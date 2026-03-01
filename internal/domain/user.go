@@ -1,10 +1,18 @@
 package domain
 
 type User struct {
-	ID         uint32 `json:"id"`
-	PassportID uint32 `json:"passport_id,omitempty"`
-	CardID     uint32 `json:"card_id,omitempty"`
-	Password   string `json:"password"`
-	Email      string `json:"email"`
-	Phone      string `json:"phone"`
+	ID       uint
+	Email    string
+	Phone    string
+	Password string
+	Role     string
+}
+
+func NewUser(email, phone, password, role string) *User {
+	return &User{
+		Email:    email,
+		Phone:    phone,
+		Password: password,
+		Role:     role,
+	}
 }

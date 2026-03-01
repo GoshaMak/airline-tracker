@@ -10,7 +10,6 @@ import (
 )
 
 func NewConnection(i do.Injector) (*pgx.Conn, error) {
-	// export DATABASE_URL="postgres://postgres:postgres@localhost:5432/airline_tickets?sslmode=disable"
 	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		slog.Error("Unable to connect to databse", "error", err)

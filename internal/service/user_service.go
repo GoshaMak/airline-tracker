@@ -1,8 +1,8 @@
 package service
 
 import (
-	"airline-ticketing-svc/internal/domain"
-	repositories "airline-ticketing-svc/internal/domain/repository"
+	"airline-tracker/internal/domain"
+	repositories "airline-tracker/internal/domain/repository"
 	"context"
 	"fmt"
 	"log/slog"
@@ -21,7 +21,7 @@ func NewUserService(i do.Injector) (*UserService, error) {
 	}, nil
 }
 
-func (s *UserService) GetUser(email string, phone string, password string) (*domain.User, error) {
+func (s *UserService) Get(email, phone, password string) (*domain.User, error) {
 	op := "user_service.GetUser"
 	var u *domain.User
 	var err error
@@ -29,6 +29,8 @@ func (s *UserService) GetUser(email string, phone string, password string) (*dom
 		u, err = s.repository.GetByEmail(context.Background(), email)
 	} else if phone != "" {
 		u, err = s.repository.GetByPhone(context.Background(), phone)
+	} else {
+		err = fmt.Errorf("Empty email and phone")
 	}
 	if err != nil {
 		return nil, err
@@ -39,7 +41,7 @@ func (s *UserService) GetUser(email string, phone string, password string) (*dom
 	return u, nil
 }
 
-func (s *UserService) CreateUser(u *domain.User) error {
+func (s *UserService) Create(u *domain.User) error {
 	slog.Debug("Pswd before", "pswd", u.Password)
 	if encryptPassword(u) != nil {
 		return fmt.Errorf("Can't encrypt password")
@@ -56,4 +58,12 @@ func encryptPassword(u *domain.User) error {
 	}
 	u.Password = string(hashed)
 	return nil
+}
+
+func (s *UserService) Exist(email, phone, password string) bool {
+	u, err := s.Get(email, phone, password)
+	if err != nil || u == nil {
+		return false
+	}
+	return true
 }

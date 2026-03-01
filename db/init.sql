@@ -2,12 +2,12 @@ create table if not exists passports
 (
     id            serial primary key,
     number        varchar(64) unique       not null, -- TODO: check format
-    issue_date    timestamp with time zone not null, -- TODO: check format
+    issue_date    timestamp with time zone not null,
     name          varchar(128)             not null,
     second_name   varchar(128),
     surname       varchar(128)             not null,
-    gender        smallint                 not null,
-    birthday      timestamp                not null, -- TODO: check format
+    gender        varchar(16)              not null,
+    birthday      timestamp                not null,
     birth_city    varchar(128)             not null,
     birth_country varchar(128)             not null
 );

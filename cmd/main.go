@@ -1,25 +1,28 @@
 package main
 
 import (
-	"airline-ticketing-svc/internal/controller"
-	"airline-ticketing-svc/internal/db"
-	"airline-ticketing-svc/internal/postgres"
-	routes "airline-ticketing-svc/internal/route"
-	"airline-ticketing-svc/internal/service"
+	"airline-tracker/internal/controller"
+	"airline-tracker/internal/db"
+	"airline-tracker/internal/postgres"
+	"airline-tracker/internal/service"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 	"github.com/samber/do/v2"
 )
 
 func main() {
+	godotenv.Load()
+
 	injector := do.New(
-		postgres.Package,
 		controller.Package,
 		service.Package,
 		db.Package,
+		postgres.Package,
 	)
 
 	defer db.CloseConnection(do.MustInvoke[*pgx.Conn](injector))
@@ -27,7 +30,7 @@ func main() {
 	setupLogger()
 
 	r := gin.Default()
-	routes.RegisterUserRoutes(injector, r)
+	registerRoutes(injector, r)
 
 	if err := r.Run(); err != nil {
 		slog.Error("Failed to run server", "error", err)
@@ -48,4 +51,12 @@ func setupLogger() {
 	}
 	slog.SetDefault(logger)
 	slog.Info("Logger inited")
+}
+
+func registerRoutes(i *do.RootScope, r *gin.Engine) {
+	r.GET("/ping", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"msg": "pong"})
+	})
+	controller.RegisterUserRoutes(i, r)
+	controller.RegisterFlightRoutes(i, r)
 }

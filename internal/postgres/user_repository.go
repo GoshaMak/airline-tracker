@@ -1,7 +1,8 @@
 package postgres
 
 import (
-	"airline-ticketing-svc/internal/domain"
+	"airline-tracker/internal/domain"
+	"airline-tracker/internal/domain/repository"
 	"context"
 	"errors"
 	"fmt"
@@ -12,13 +13,13 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type UserRepository struct {
-	db *pgx.Conn
+type userRepository struct {
+	conn *pgx.Conn
 }
 
-func NewUserRepository(i do.Injector) (*UserRepository, error) {
-	return &UserRepository{
-		db: do.MustInvoke[*pgx.Conn](i),
+func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
+	return &userRepository{
+		conn: do.MustInvoke[*pgx.Conn](i),
 	}, nil
 }
 
@@ -30,9 +31,9 @@ var (
 	ErrUserNotExists     = errors.New("User doesn't exist")
 )
 
-// User creates with null passport and card ids
-func (r *UserRepository) Save(ctx context.Context, u *domain.User) error {
-	_, err := r.db.Exec(
+// FIX:
+func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
+	_, err := r.conn.Exec(
 		ctx,
 		"insert into users(passport_id, card_id, email, phone, password)"+
 			"values (null, null, $1, $2, $3);",
@@ -49,12 +50,12 @@ func (r *UserRepository) Save(ctx context.Context, u *domain.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	op := "postgres.user_repository.GetByEmail"
 	u := &domain.User{}
 	var pid *uint32
 	var cid *uint32
-	err := r.db.QueryRow(
+	err := r.conn.QueryRow(
 		ctx,
 		"select id, passport_id, card_id, email, phone, password"+
 			" from users"+
@@ -64,21 +65,15 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		slog.Warn("Can't find user", "err", err)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	if pid != nil {
-		u.PassportID = *pid
-	}
-	if cid != nil {
-		u.CardID = *cid
-	}
 	return u, nil
 }
 
-func (r *UserRepository) GetByPhone(ctx context.Context, phone string) (*domain.User, error) {
+func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*domain.User, error) {
 	op := "postgres.user_repository.GetByPhone"
 	u := &domain.User{}
 	var pid *uint32
 	var cid *uint32
-	err := r.db.QueryRow(
+	err := r.conn.QueryRow(
 		ctx,
 		"select id, passport_id, card_id, email, phone, password"+
 			"from users"+
@@ -91,8 +86,9 @@ func (r *UserRepository) GetByPhone(ctx context.Context, phone string) (*domain.
 	if pid != nil {
 		u.PassportID = *pid
 	}
-	if cid != nil {
-		u.CardID = *cid
-	}
 	return u, nil
 }
+
+func (r *userRepository) Exists(ctx context.Context, id uint32) (*domain.User, error)
+
+func (r *userRepository) UpdateById(ctx context.Context, id uint32) error

@@ -1,2 +1,11 @@
-insert into users(passport_id, card_id, login, password, email, phone)
-values (0, 0, '', '')
+select id,
+       number,
+       issue_date,
+       name,
+       second_name,
+       surname,
+       gender,
+       birthday,
+       birth_city,
+       birth_country
+from passports
