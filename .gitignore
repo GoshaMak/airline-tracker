@@ -1,2 +1,13 @@
 .idea
+.gitignore
+.env
+nir/
+cp/
 *.bkp
+*.out
+*.toc
+*.bbl
+*.blg
+*.aux
+*.gz
+*.log

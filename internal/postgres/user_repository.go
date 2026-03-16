@@ -23,26 +23,17 @@ func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
 	}, nil
 }
 
-var (
-	ErrUserRepositoryNil = errors.New("UserRepository is nil")
-	ErrArgNil            = errors.New("Argument is nil")
-	ErrInsertFailure     = errors.New("Can't insert")
-	ErrUserAlreadyExists = errors.New("User already exists")
-	ErrUserNotExists     = errors.New("User doesn't exist")
-)
-
-// FIX:
 func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
 	_, err := r.conn.Exec(
 		ctx,
-		"insert into users(passport_id, card_id, email, phone, password)"+
-			"values (null, null, $1, $2, $3);",
-		u.Email, u.Phone, u.Password)
+		"insert into users(email, phone, password, role)"+
+			"values ($1, $2, $3, $4);",
+		&u.Email, &u.Phone, &u.Password, &u.Role)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == string(RecordAlreadyExistsErrCode) {
 			slog.Error("User already exists", "user", *u)
-			return ErrUserAlreadyExists
+			return ErrRecordAlreadyExists
 		}
 		slog.Error("Can't insert new user", "error", err, "user", *u)
 		return ErrInsertFailure
@@ -53,14 +44,12 @@ func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	op := "postgres.user_repository.GetByEmail"
 	u := &domain.User{}
-	var pid *uint32
-	var cid *uint32
 	err := r.conn.QueryRow(
 		ctx,
-		"select id, passport_id, card_id, email, phone, password"+
+		"select id, email, phone, password, role"+
 			" from users"+
 			" where email = $1;", email).
-		Scan(&u.ID, &pid, &cid, &u.Email, &u.Phone, &u.Password)
+		Scan(&u.ID, &u.Email, &u.Phone, &u.Password, &u.Role)
 	if err != nil {
 		slog.Warn("Can't find user", "err", err)
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -71,24 +60,23 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*domain.User, error) {
 	op := "postgres.user_repository.GetByPhone"
 	u := &domain.User{}
-	var pid *uint32
-	var cid *uint32
 	err := r.conn.QueryRow(
 		ctx,
-		"select id, passport_id, card_id, email, phone, password"+
+		"select id, email, phone, password, role"+
 			"from users"+
 			"where phone = $1;", phone).
-		Scan(&u.ID, &pid, &cid, &u.Email, &u.Phone, &u.Password)
+		Scan(&u.ID, &u.Email, &u.Phone, &u.Password, &u.Role)
 	if err != nil {
 		slog.Warn("Can't find user", "err", err)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	if pid != nil {
-		u.PassportID = *pid
-	}
 	return u, nil
 }
 
-func (r *userRepository) Exists(ctx context.Context, id uint32) (*domain.User, error)
+func (r *userRepository) Exists(ctx context.Context, id uint32) (*domain.User, error) {
+	return nil, nil
+}
 
-func (r *userRepository) UpdateById(ctx context.Context, id uint32) error
+func (r *userRepository) UpdateById(ctx context.Context, id uint32) error {
+	return nil
+}

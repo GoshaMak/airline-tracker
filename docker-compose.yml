@@ -1,17 +1,18 @@
 services:
-  db:
+  postgres:
     image: postgres:16
     container_name: 'postgres_db'
     restart: unless-stopped
     environment:
+      POSTGRES_DB: airline_tracker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: airline_tickets
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
 
 volumes:
-  db_data:
+  postgres_data:
     driver: local

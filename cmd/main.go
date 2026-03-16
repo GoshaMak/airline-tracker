@@ -57,6 +57,8 @@ func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	r.GET("/ping", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"msg": "pong"})
 	})
+	controller.RegisterAuthRoutes(i, r)
+	controller.RegisterAdminRoutes(i, r)
 	controller.RegisterUserRoutes(i, r)
 	controller.RegisterFlightRoutes(i, r)
 }

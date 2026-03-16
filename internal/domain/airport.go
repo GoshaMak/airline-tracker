@@ -1,7 +1,9 @@
 package domain
 
 type Airport struct {
-	ID       uint32 `json:"id"`
-	Title    string `json:"title"`
-	Location string `json:"location"`
+	ID       uint32
+	IATACode string
+	Title    string
+	City     string
+	Country  string
 }

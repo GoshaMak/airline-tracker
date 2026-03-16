@@ -1,16 +1,18 @@
 package domain
 
-type Airplane struct {
-	ID      uint32       `json:"id"`
-	Type    AirplaneType `json:"type"`
-	RowsAmt uint32       `json:"rows_amt"`
-	ColsAmt uint32       `json:"cols_amt"`
+type AircraftModel struct {
+	ID           uint
+	Manufacturer string
+	Model        string
+	Mass         uint
+	MaxAltitude  uint
+	MaxSpeed     uint
 }
 
-type AirplaneType int
+type Model int
 
 const (
-	BoeingB707 AirplaneType = iota
+	BoeingB707 Model = iota
 	BoeingB717
 	BoeingB727
 	BoeingB737
@@ -21,7 +23,7 @@ const (
 	BoeingB787
 )
 
-var airplaneTypeNames = map[AirplaneType]string{
+var airplaneTypeNames = map[Model]string{
 	BoeingB707: "Boeing B707",
 	BoeingB717: "Boeing B717",
 	BoeingB727: "Boeing B727",
@@ -33,6 +35,6 @@ var airplaneTypeNames = map[AirplaneType]string{
 	BoeingB787: "Boeing B787",
 }
 
-func (at AirplaneType) String() string {
-	return airplaneTypeNames[at]
+func (m Model) String() string {
+	return airplaneTypeNames[m]
 }

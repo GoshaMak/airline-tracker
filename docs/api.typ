@@ -39,21 +39,22 @@
     fill: blue,
   ),
   [/ping], [+], [#align(center + horizon)[ping]], [-], [{"msg": "pong"}],
-  [/user/flights], [-], [user's subscribed flights],
+
+  [/user/flights], [+], [user's subscribed flights],
   ["Authorization": "Bearer ..."], [{"flights": [...]}],
 
-  [/flights], [-], [get all flights], [-], [{"flights": [...]}],
-  [/flights/{id}], [-], [get flight by id], [-], [{"flight": Flight}],
+  [/flights], [+], [get all flights], [-], [{"flights": [...]}],
+  [/flight/{id}], [+], [get flight by id], [-], [{"flight": Flight}],
 
   table.cell(
     [POST],
-    rowspan: 5,
+    rowspan: 9,
     fill: green,
   ),
-  [/signup], [+], [-],
+  [/auth/signup], [+], [-],
   [{"email": str, "phone": str, "password": str, "role": str}], [{"msg": str}],
 
-  [/login], [+], [-],
+  [/auth/login], [+], [-],
   [{"email": str, "phone": str, "password": str}], [{"token": str}],
 
   [/user/subscribe/flight/{id}], [-], [subscribe to flight's updates],
@@ -62,15 +63,30 @@
   [/user/unsubscribe/flight/{id}], [-], [unsubscribe from flight's updates],
   [{"token": "Bearer ...", "flight_id": int}], [{"msg": str}],
 
-  [/admin/flight], [-], [add flight],
-  [{"token": "Bearer ...", "flight": Flight}], [{"msg": str}],
+  [/admin/flight], [+], [add flight],
+  [{"token": "Bearer ...", "flight": Flight, "aircraft": Aircraft,
+    "departure_airport": Airport, "arrival_airport": Airport,
+    "departure_gate": Gate, "arrival_gate": Gate}],
+  [{"msg": str}],
+
+  [/admin/aircraft], [+], [add aircraft],
+  [{"token": "Bearer ...", "aircraft": Aircraft}], [{"msg": str}],
+
+  [/admin/aircraft_model], [+], [add aircraft model],
+  [{"token": "Bearer ...", "aircraft_model": AircraftModel}], [{"msg": str}],
+
+  [/admin/airport], [+], [add airport],
+  [{"token": "Bearer ...", "airport": Airport}], [{"msg": str}],
+
+  [/admin/gate], [+], [add gate],
+  [{"token": "Bearer ...", "gate": Gate}], [{"msg": str}],
 
   table.cell(
     [PATCH],
     rowspan: 1,
     fill: orange,
   ),
-  [/admin/flight/{id}], [-], [update flight by id],
+  [/admin/flight/{id}], [+], [update flight by id],
   [{"token": "Bearer ...", "flight_id": int, "flight": Flight}], [{"msg": str}],
 
   table.cell(
@@ -78,6 +94,6 @@
     rowspan: 1,
     fill: red,
   ),
-  [/admin/flight/{id}], [-], [delete flight by id],
+  [/admin/flight/{id}], [+], [delete flight by id],
   [{"token": "Bearer ...", "flight_id": int}], [{"msg": str}],
 )

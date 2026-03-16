@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(role string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		header := ctx.GetHeader("Authorization")
 		if header == "" {
@@ -37,6 +37,11 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if claims.Issuer != "auth-service" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		if claims.Role != role {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, "unauthorized")
 			return
 		}

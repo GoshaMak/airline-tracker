@@ -5,7 +5,6 @@ import (
 	repositories "airline-tracker/internal/domain/repository"
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/samber/do/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -39,25 +38,6 @@ func (s *UserService) Get(email, phone, password string) (*domain.User, error) {
 		return nil, fmt.Errorf("%s: %s", op, "wrong password")
 	}
 	return u, nil
-}
-
-func (s *UserService) Create(u *domain.User) error {
-	slog.Debug("Pswd before", "pswd", u.Password)
-	if encryptPassword(u) != nil {
-		return fmt.Errorf("Can't encrypt password")
-	}
-	slog.Debug("Pswd after", "pswd", u.Password)
-	err := s.repository.Save(context.Background(), u)
-	return err
-}
-
-func encryptPassword(u *domain.User) error {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	u.Password = string(hashed)
-	return nil
 }
 
 func (s *UserService) Exist(email, phone, password string) bool {

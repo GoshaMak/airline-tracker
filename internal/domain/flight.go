@@ -3,9 +3,12 @@ package domain
 import "time"
 
 type Flight struct {
-	ID             uint
-	ArrivalTime    time.Time
-	DepartureTime  time.Time
-	ArrivalDelay   time.Time
-	DepartureDelay time.Time
+	ID                 uint
+	AircraftID         uint
+	ScheduledDeparture time.Time
+	ScheduledArrival   time.Time
+	ActualDeparture    time.Time
+	ActualArrival      time.Time
+	Status             string
+	FlightPlan         string
 }
