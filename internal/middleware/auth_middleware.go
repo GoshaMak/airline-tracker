@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"airline-tracker/internal/service"
+	"airline-tracker/internal/auth/service"
 	"fmt"
 	"net/http"
 	"strings"

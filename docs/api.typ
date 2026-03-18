@@ -38,7 +38,7 @@
     rowspan: 4,
     fill: blue,
   ),
-  [/ping], [+], [#align(center + horizon)[ping]], [-], [{"msg": "pong"}],
+  [/status], [+], [#align(center + horizon)[status]], [-], [{"msg": str}],
 
   [/user/flights], [+], [user's subscribed flights],
   ["Authorization": "Bearer ..."], [{"flights": [...]}],
