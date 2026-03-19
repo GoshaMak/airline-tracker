@@ -18,7 +18,7 @@ func NewUserController(i do.Injector) (*UserController, error) {
 	}, nil
 }
 
-func RegisterUserRoutes(i do.Injector, r *gin.Engine) {
+func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*UserController](i)
 	r.GET("/user/flights", middleware.AuthMiddleware("user"), c.Flights)
 }

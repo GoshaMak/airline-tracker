@@ -1,13 +1,13 @@
 package app
 
 import (
-	"airline-tracker/internal/admin"
-	adminController "airline-tracker/internal/admin/controller"
 	"airline-tracker/internal/airport"
+	airportController "airline-tracker/internal/airport/controller"
 	"airline-tracker/internal/auth"
 	authController "airline-tracker/internal/auth/controller"
 	"airline-tracker/internal/db"
 	"airline-tracker/internal/fleet"
+	aircraftController "airline-tracker/internal/fleet/controller"
 	"airline-tracker/internal/flight"
 	flightController "airline-tracker/internal/flight/controller"
 	"airline-tracker/internal/user"
@@ -33,9 +33,8 @@ func NewApp() *App {
 	setupLogger()
 
 	injector := do.New(
-		admin.Package,
-		airport.Package,
 		auth.Package,
+		airport.Package,
 		fleet.Package,
 		flight.Package,
 		user.Package,
@@ -80,8 +79,25 @@ func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	r.GET("/status", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"msg": "everything is workind"})
 	})
+
 	authController.RegisterAuthRoutes(i, r)
-	adminController.RegisterAdminRoutes(i, r)
-	userController.RegisterUserRoutes(i, r)
-	flightController.RegisterFlightRoutes(i, r)
+	slog.Debug("Auth routes successfully registered")
+
+	{
+		airportController.RegisterAirportRoutes(i, r)
+		airportController.RegisterGateRoutes(i, r)
+		slog.Debug("Airport routes successfully registered")
+	}
+
+	{
+		aircraftController.RegisterAircraftRoutes(i, r)
+		aircraftController.RegisterAircraftModelRoutes(i, r)
+		slog.Debug("Fleet routes successfully registered")
+	}
+
+	flightController.RegisterRoutes(i, r)
+	slog.Debug("Flight routes successfully registered")
+
+	userController.RegisterRoutes(i, r)
+	slog.Debug("User routes successfully registered")
 }
