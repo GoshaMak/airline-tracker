@@ -10,3 +10,7 @@ func NewFlightPlan(v string) (FlightPlan, error) {
 	}
 	return FlightPlan(v), nil
 }
+
+func (fp FlightPlan) String() string {
+	return string(fp)
+}

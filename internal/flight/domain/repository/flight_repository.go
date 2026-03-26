@@ -1,16 +1,16 @@
 package repository
 
 import (
-	flightDomain "airline-tracker/internal/flight/domain"
+	"airline-tracker/internal/flight/domain"
 	"context"
 )
 
 type FlightRepository interface {
-	Save(ctx context.Context, flight *flightDomain.Flight) error
+	Save(ctx context.Context, flight *domain.Flight) error
 
-	Exists(ctx context.Context, id uint32) (*flightDomain.Flight, error)
+	Exists(ctx context.Context, id uint32) (*domain.Flight, error)
 
 	UpdateByID(ctx context.Context, id uint32) error
 
-	ListAllFlights(ctx context.Context) ([]flightDomain.Flight, error)
+	ListAllFlights(ctx context.Context) ([]domain.Flight, error)
 }

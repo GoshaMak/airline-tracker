@@ -51,7 +51,7 @@ create table if not exists flights
     actual_departure    timestamp,
     actual_arrival      timestamp,
     status              varchar(20),
-    flight_plan         varchar(128)
+    plan                varchar(128)
 );
 
 create table if not exists visits

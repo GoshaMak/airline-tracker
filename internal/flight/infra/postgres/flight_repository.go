@@ -1,10 +1,11 @@
 package postgres
 
 import (
-	flightDomain "airline-tracker/internal/flight/domain"
+	"airline-tracker/internal/flight/domain"
 	"airline-tracker/internal/flight/domain/repository"
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/samber/do/v2"
@@ -20,7 +21,7 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	}, nil
 }
 
-func (r *flightRepository) Save(ctx context.Context, f *flightDomain.Flight) error {
+func (r *flightRepository) Save(ctx context.Context, f *domain.Flight) error {
 	op := "FlightRepository.Save"
 	_, err := r.conn.Exec(ctx,
 		"call add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
@@ -42,7 +43,7 @@ func (r *flightRepository) Save(ctx context.Context, f *flightDomain.Flight) err
 	return nil
 }
 
-func (r *flightRepository) Exists(ctx context.Context, id uint32) (*flightDomain.Flight, error) {
+func (r *flightRepository) Exists(ctx context.Context, id uint32) (*domain.Flight, error) {
 	return nil, nil
 }
 
@@ -50,27 +51,49 @@ func (r *flightRepository) UpdateByID(ctx context.Context, id uint32) error {
 	return nil
 }
 
-func (r *flightRepository) ListAllFlights(ctx context.Context) ([]flightDomain.Flight, error) {
+func (r *flightRepository) ListAllFlights(ctx context.Context) ([]domain.Flight, error) {
 	rows, err := r.conn.Query(ctx,
-		"select id, aircraft_id,"+
-			" scheduled_departure, scheduled_arrival,"+
-			" actual_departure, actual_arrival, status, flight_plan"+
-			" from flights")
+		"select id,"+
+			" aircraft_id,"+
+			" scheduled_departure,"+
+			" scheduled_arrival,"+
+			" actual_departure,"+
+			" actual_arrival,"+
+			" status,"+
+			" plan,"+
+			" departure_gate_id,"+
+			" arrival_gate_id,"+
+			" departure_airport_id,"+
+			" arrival_airport_id"+
+			" from scan_flights_info()")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var flights []flightDomain.Flight
-	// flights, err := pgx.CollectRows(rows, pgx.RowToStructByPos[domain.Flight])
+	var flights []domain.Flight
 	for rows.Next() {
-		var fl flightDomain.Flight
-		if err := rows.Scan(&fl.ID, &fl.AircraftID,
+		var fl domain.Flight
+		actualDeparture := &time.Time{}
+		actualArrival := &time.Time{}
+		slog.Debug("pre scan")
+		if err := rows.Scan(
+			&fl.ID, &fl.AircraftID,
 			&fl.ScheduledDeparture, &fl.ScheduledArrival,
-			&fl.ActualDeparture, &fl.ActualArrival,
-			&fl.Status, &fl.Plan); err != nil {
+			&actualDeparture, &actualArrival,
+			&fl.Status, &fl.Plan,
+			&fl.DepartureGateID, &fl.ArrivalGateID,
+			&fl.DepartureAirportID, &fl.ArrivalAirportID); err != nil {
+			slog.Debug("here", "err", err.Error())
 			return nil, err
 		}
+		if actualDeparture != nil {
+			fl.ActualDeparture = *actualDeparture
+		}
+		if actualArrival != nil {
+			fl.ActualArrival = *actualArrival
+		}
+		slog.Debug("after scan")
 		flights = append(flights, fl)
 	}
 

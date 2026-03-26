@@ -25,7 +25,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*FlightController](i)
 
 	{
-		r.GET("/flights", c.Flights)
+		r.GET("/list_flights", c.ListFlights)
 		r.GET("/flight/:id", c.FlightByID)
 	}
 
@@ -42,17 +42,21 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Tags flight
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.FlightDTO
+// @Success 200 {array} dto.ListFlightsResponse
 // @Failure 400
-// @Router /flights [get]
-func (c *FlightController) Flights(ctx *gin.Context) {
+// @Router /list_flights [get]
+func (c *FlightController) ListFlights(ctx *gin.Context) {
 	flights, err := c.service.ListAllFlights()
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg": "error"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
 	}
-	flights_dto := make([]dto.FlightDTO, len(flights), cap(flights))
-	ctx.JSON(http.StatusOK, gin.H{"flights": flights_dto})
+	response, err := dto.ToResponseListFlights(flights)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"flights": *response})
 }
 
 func (c *FlightController) FlightByID(ctx *gin.Context) {}

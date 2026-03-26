@@ -11,3 +11,7 @@ func NewFlightStatus(v string) (FlightStatus, error) {
 	return "", fmt.Errorf("invalid flight status")
 
 }
+
+func (fs FlightStatus) String() string {
+	return string(fs)
+}
