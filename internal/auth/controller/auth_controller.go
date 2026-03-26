@@ -1,8 +1,9 @@
 package controller
 
 import (
+	"airline-tracker/internal/auth/dto"
 	"airline-tracker/internal/auth/service"
-	"airline-tracker/internal/user/dto"
+	userDomain "airline-tracker/internal/user/domain"
 	"log/slog"
 	"net/http"
 
@@ -22,17 +23,31 @@ func NewAuthController(i do.Injector) (*AuthController, error) {
 
 func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*AuthController](i)
-	r.POST("/auth/signup", c.Signup)
-	r.POST("/auth/login", c.Login)
+
+	g := r.Group("/auth")
+	{
+		g.POST("signup", c.Signup)
+		g.POST("login", c.Login)
+	}
 }
 
+// @Summary signup
+// @Description creates a user
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body dto.SignupDTO true "user info"
+// @Success 201 "user created"
+// @Failure 400
+// @Failure 500
+// @Router /auth/signup [post]
 func (c *AuthController) Signup(ctx *gin.Context) {
-	var req dto.UserDTO
+	var req dto.SignupDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
 		return
 	}
-	u := req.UserFromDTO()
+	u := userDomain.NewUser(req.Email, req.Phone, req.Password, req.Role)
 	if err := c.service.CreateUser(u); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "failed to create a user"})
 		return
@@ -40,8 +55,18 @@ func (c *AuthController) Signup(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "user created"})
 }
 
+// @Summary login
+// @Description user authentication
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body dto.LoginRequestDTO true "user info"
+// @Success 200 {object} dto.LoginResponseDTO "auth token"
+// @Failure 401
+// @Failure 500
+// @Router /auth/login [post]
 func (c *AuthController) Login(ctx *gin.Context) {
-	var req dto.UserDTO
+	var req dto.LoginRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "incorrect args"})
 		return
@@ -55,7 +80,9 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	}
 	token, err := service.GenerateJWT(u)
 	if err != nil {
+		slog.Warn("Error generating jwt", "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "err"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"token": token})
+	ctx.JSON(http.StatusOK, dto.LoginResponseDTO{Token: token})
 }

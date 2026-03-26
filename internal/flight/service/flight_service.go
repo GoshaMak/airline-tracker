@@ -1,8 +1,7 @@
 package service
 
 import (
-	airportDomain "airline-tracker/internal/airport/domain"
-	fleetDomain "airline-tracker/internal/fleet/domain"
+	"airline-tracker/internal/flight/command"
 	"airline-tracker/internal/flight/domain"
 	"airline-tracker/internal/flight/domain/repository"
 	"context"
@@ -28,15 +27,12 @@ func (s *FlightService) ListAllFlights() ([]domain.Flight, error) {
 	return flights, nil
 }
 
-func (s *FlightService) AddFlight(
-	flight *domain.Flight,
-	aircraft *fleetDomain.Aircraft,
-	departureAirport, arrivalAirport *airportDomain.Airport,
-	departureGate, arrivalGate *airportDomain.Gate,
-) error {
-	if err := s.repository.Save(context.Background(),
-		flight, aircraft, departureAirport, arrivalAirport,
-		departureGate, arrivalGate); err != nil {
+func (s *FlightService) AddFlight(cmd *command.AddFlightCommand) error {
+	f, err := command.CommandToFlightDomain(cmd)
+	if err != nil {
+		return err
+	}
+	if err := s.repository.Save(context.Background(), f); err != nil {
 		return err
 	}
 	return nil

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"airline-tracker/internal/fleet/domain"
+	"airline-tracker/internal/fleet/command"
 	"airline-tracker/internal/fleet/domain/repository"
 	"context"
 
@@ -18,7 +18,11 @@ func NewAircraftService(i do.Injector) (*AircraftService, error) {
 	}, nil
 }
 
-func (s *AircraftService) AddAircraft(a *domain.Aircraft) error {
+func (s *AircraftService) AddAircraft(cmd *command.CreateAircraftCommand) error {
+	a, err := command.ToDomainCreateAircraftCommand(cmd)
+	if err != nil {
+		return err
+	}
 	if err := s.repository.Save(context.Background(), a); err != nil {
 		return err
 	}

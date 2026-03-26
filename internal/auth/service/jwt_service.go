@@ -3,7 +3,6 @@ package service
 import (
 	"airline-tracker/internal/user/domain"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,7 +39,7 @@ func GetJWTKey() []byte {
 }
 
 func GenerateJWT(u *domain.User) (string, error) {
-	claims := newJWTClaims(strconv.FormatUint(uint64(u.ID), 10), u.Role)
+	claims := newJWTClaims(u.ID.String(), u.Role)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, *claims)
 	key := GetJWTKey()
 	tokenString, err := token.SignedString(key)

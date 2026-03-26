@@ -7,18 +7,18 @@ import (
 )
 
 type Aircraft struct {
-	id                 uuid.UUID
+	ID                 uuid.UUID
 	RegistrationNumber string
-	AircraftModelID    uint
+	AircraftModelID    uuid.UUID
 	SerialNumber       string
-	Mileage            uint
+	Mileage            int
 }
 
 func NewAircraft(
 	registrationNumber string,
-	aircraftModelID uint,
+	aircraftModelID uuid.UUID,
 	serialNumber string,
-	mileage uint,
+	mileage int,
 ) (*Aircraft, error) {
 	if registrationNumber == "" {
 		return nil, errors.New("registration number is required")
@@ -28,7 +28,7 @@ func NewAircraft(
 	}
 
 	return &Aircraft{
-		id:                 uuid.New(),
+		ID:                 uuid.New(),
 		RegistrationNumber: registrationNumber,
 		AircraftModelID:    aircraftModelID,
 		SerialNumber:       serialNumber,

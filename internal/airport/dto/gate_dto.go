@@ -1,15 +1,10 @@
 package dto
 
-import "airline-tracker/internal/airport/domain"
+import (
+	"github.com/google/uuid"
+)
 
 type GateDTO struct {
-	AirportID uint   `json:"airport_id"`
-	Number    string `json:"number"`
-}
-
-func (g *GateDTO) GateFromDTO() *domain.Gate {
-	return &domain.Gate{
-		AirportID: g.AirportID,
-		Number:    g.Number,
-	}
+	AirportID uuid.UUID `json:"airport_id" example:"add manually"`
+	Number    string    `json:"number" example:"A1"`
 }

@@ -1,17 +1,19 @@
 package app
 
 import (
+	"airline-tracker/cmd/docs"
 	"airline-tracker/internal/airport"
 	airportController "airline-tracker/internal/airport/controller"
 	"airline-tracker/internal/auth"
 	authController "airline-tracker/internal/auth/controller"
 	"airline-tracker/internal/db"
 	"airline-tracker/internal/fleet"
-	aircraftController "airline-tracker/internal/fleet/controller"
+	fleetController "airline-tracker/internal/fleet/controller"
 	"airline-tracker/internal/flight"
 	flightController "airline-tracker/internal/flight/controller"
 	"airline-tracker/internal/user"
 	userController "airline-tracker/internal/user/controller"
+
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,7 +22,17 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"github.com/samber/do/v2"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title my api
+
+// @host localhost:8080
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 
 type App struct {
 	router   *gin.Engine
@@ -28,6 +40,7 @@ type App struct {
 }
 
 func NewApp() *App {
+	// TODO: add SIGINT handler
 	godotenv.Load()
 
 	setupLogger()
@@ -54,7 +67,7 @@ func NewApp() *App {
 func (a *App) Run() {
 	defer db.CloseConnection(do.MustInvoke[*pgx.Conn](a.injector))
 
-	if err := a.router.Run(); err != nil {
+	if err := a.router.Run(":8080"); err != nil { // FIX: hardcoded port
 		slog.Error("Failed to run server", "error", err)
 		os.Exit(1)
 	}
@@ -75,10 +88,19 @@ func setupLogger() {
 	slog.Info("Logger inited")
 }
 
+// @Summary status example
+// @Description check status
+// @Tags health check
+// @Accept json
+// @Produce json
+// @Success 200
+// @Router /status [get]
+func status(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, "OK")
+}
+
 func registerRoutes(i *do.RootScope, r *gin.Engine) {
-	r.GET("/status", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"msg": "everything is workind"})
-	})
+	r.GET("/status", status)
 
 	authController.RegisterAuthRoutes(i, r)
 	slog.Debug("Auth routes successfully registered")
@@ -90,8 +112,8 @@ func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	}
 
 	{
-		aircraftController.RegisterAircraftRoutes(i, r)
-		aircraftController.RegisterAircraftModelRoutes(i, r)
+		fleetController.RegisterAircraftRoutes(i, r)
+		fleetController.RegisterAircraftModelRoutes(i, r)
 		slog.Debug("Fleet routes successfully registered")
 	}
 
@@ -100,4 +122,8 @@ func registerRoutes(i *do.RootScope, r *gin.Engine) {
 
 	userController.RegisterRoutes(i, r)
 	slog.Debug("User routes successfully registered")
+
+	docs.SwaggerInfo.BasePath = "/"
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	slog.Debug("Swagger routes successfully registered")
 }

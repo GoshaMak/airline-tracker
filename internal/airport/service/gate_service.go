@@ -1,7 +1,7 @@
 package service
 
 import (
-	"airline-tracker/internal/airport/domain"
+	"airline-tracker/internal/airport/command"
 	"airline-tracker/internal/airport/domain/repository"
 	"context"
 
@@ -18,7 +18,11 @@ func NewGateService(i do.Injector) (*GateService, error) {
 	}, nil
 }
 
-func (s *GateService) AddGate(g *domain.Gate) error {
+func (s *GateService) AddGate(cmd *command.AddGateCommand) error {
+	g, err := command.CommandToGateDomain(cmd)
+	if err != nil {
+		return err
+	}
 	if err := s.repository.Save(context.Background(), g); err != nil {
 		return err
 	}

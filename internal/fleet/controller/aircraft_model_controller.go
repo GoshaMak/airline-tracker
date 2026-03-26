@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"airline-tracker/internal/fleet/command"
 	"airline-tracker/internal/fleet/dto"
 	"airline-tracker/internal/fleet/service"
 	"airline-tracker/internal/middleware"
@@ -24,22 +25,35 @@ func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*AircraftModelController](i)
 	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
 	{
-		g.POST("/aircraft_model", c.AddAircraftModel)
+		g.POST("/add_aircraft_model", c.AddAircraftModel)
 	}
 }
 
+// @Summary add aircraft model
+// @Description create new aircraft model
+// @Tags aircraft
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param aircraft_model body dto.CreateAircraftModelRequest true "aircraft model info"
+// @Success 201 "created"
+// @Failure 400
+// @Failure 401
+// @Router /admin/add_aircraft_model [post]
 func (c *AircraftModelController) AddAircraftModel(ctx *gin.Context) {
-	type Req struct {
-		AircraftModel dto.AircraftModelDTO `json:"aircraft_model"`
-	}
-	req := &Req{}
+	req := &dto.CreateAircraftModelRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args", "err": err})
 		return
 	}
-	if err := c.service.AddAircraftModel(req.AircraftModel.AircraftModelFromDTO()); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+	cmd, err := command.NewCreateAircraftModelCommand(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "invalid args", "err": err})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"msg": "aircraft model created"})
+	if err := c.service.AddAircraftModel(cmd); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
+		return
+	}
+	ctx.JSON(http.StatusCreated, "created")
 }

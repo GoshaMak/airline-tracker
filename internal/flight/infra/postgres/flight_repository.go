@@ -1,11 +1,10 @@
 package postgres
 
 import (
-	airportDomain "airline-tracker/internal/airport/domain"
-	fleetDomain "airline-tracker/internal/fleet/domain"
 	flightDomain "airline-tracker/internal/flight/domain"
 	"airline-tracker/internal/flight/domain/repository"
 	"context"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/samber/do/v2"
@@ -21,27 +20,23 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	}, nil
 }
 
-func (r *flightRepository) Save(
-	ctx context.Context,
-	flight *flightDomain.Flight,
-	aircraft *fleetDomain.Aircraft,
-	departureAirport, arrivalAirport *airportDomain.Airport,
-	departureGate, arrivalGate *airportDomain.Gate,
-) error {
-	var id uint
-	err := r.conn.QueryRow(ctx,
-		"select add_flight($1, $2, $3, $4, $5, $6, $7, $8)",
-		flight.ScheduledDeparture,
-		flight.ScheduledArrival,
-		flight.Status,
-		flight.FlightPlan,
-		aircraft.RegistrationNumber,
-		departureAirport.IATACode,
-		arrivalAirport.IATACode,
-		departureGate.Number,
-		arrivalGate.Number,
-	).Scan(&id)
+func (r *flightRepository) Save(ctx context.Context, f *flightDomain.Flight) error {
+	op := "FlightRepository.Save"
+	_, err := r.conn.Exec(ctx,
+		"call add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+		f.ID,
+		f.ScheduledDeparture,
+		f.ScheduledArrival,
+		f.Status,
+		f.Plan,
+		f.AircraftID,
+		f.DepartureAirportID,
+		f.ArrivalAirportID,
+		f.DepartureGateID,
+		f.ArrivalGateID,
+	)
 	if err != nil {
+		slog.Debug(op, "error in add_flight", err)
 		return err
 	}
 	return nil
@@ -73,7 +68,7 @@ func (r *flightRepository) ListAllFlights(ctx context.Context) ([]flightDomain.F
 		if err := rows.Scan(&fl.ID, &fl.AircraftID,
 			&fl.ScheduledDeparture, &fl.ScheduledArrival,
 			&fl.ActualDeparture, &fl.ActualArrival,
-			&fl.Status, &fl.FlightPlan); err != nil {
+			&fl.Status, &fl.Plan); err != nil {
 			return nil, err
 		}
 		flights = append(flights, fl)

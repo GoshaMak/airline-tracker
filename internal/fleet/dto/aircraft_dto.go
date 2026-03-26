@@ -1,19 +1,10 @@
 package dto
 
-import "airline-tracker/internal/fleet/domain"
+import "github.com/google/uuid"
 
 type AircraftDTO struct {
-	RegistrationNumber string `json:"registration_number"`
-	AircraftModelID    uint   `json:"aircraft_model_id"`
-	SerialNumber       string `json:"serial_number"`
-	Mileage            uint   `json:"mileage"`
-}
-
-func (a *AircraftDTO) AircraftFromDTO() *domain.Aircraft {
-	return &domain.Aircraft{
-		RegistrationNumber: a.RegistrationNumber,
-		AircraftModelID:    a.AircraftModelID,
-		SerialNumber:       a.SerialNumber,
-		Mileage:            a.Mileage,
-	}
+	RegistrationNumber string    `json:"registration_number" example:"999"`
+	AircraftModelID    uuid.UUID `json:"aircraft_model_id" example:"fill manually"`
+	SerialNumber       string    `json:"serial_number" example:"123"`
+	Mileage            int       `json:"mileage" example:"123"`
 }

@@ -1,6 +1,6 @@
 create table if not exists users
 (
-    id       serial primary key,
+    id       uuid primary key default gen_random_uuid(),
     email    varchar(256) unique, -- TODO: check format
     phone    varchar(32) unique,-- TODO: check format
     password varchar(128) not null,
@@ -9,7 +9,7 @@ create table if not exists users
 
 create table if not exists airports
 (
-    id        serial primary key,
+    id        uuid primary key default gen_random_uuid(),
     iata_code varchar(10) unique not null,
     title     varchar(128),
     city      varchar(128),
@@ -18,14 +18,14 @@ create table if not exists airports
 
 create table if not exists gates
 (
-    id         serial primary key,
-    airport_id bigint references airports (id),
+    id         uuid primary key default gen_random_uuid(),
+    airport_id uuid references airports (id),
     number     varchar(128)
 );
 
 create table if not exists aircraft_models
 (
-    id           serial primary key,
+    id           uuid primary key default gen_random_uuid(),
     manufacturer varchar(50),
     model        varchar(50),
     mass         int, -- kg
@@ -35,8 +35,8 @@ create table if not exists aircraft_models
 
 create table if not exists aircraft
 (
-    id                  serial primary key,
-    aircraft_model_id   bigint references aircraft_models (id),
+    id                  uuid primary key default gen_random_uuid(),
+    aircraft_model_id   uuid references aircraft_models (id),
     registration_number varchar(10) unique,
     serial_number       varchar(10),
     mileage             int
@@ -44,8 +44,8 @@ create table if not exists aircraft
 
 create table if not exists flights
 (
-    id                  serial primary key,
-    aircraft_id         bigint references aircraft (id),
+    id                  uuid primary key default gen_random_uuid(),
+    aircraft_id         uuid references aircraft (id),
     scheduled_departure timestamp,
     scheduled_arrival   timestamp,
     actual_departure    timestamp,
@@ -56,8 +56,8 @@ create table if not exists flights
 
 create table if not exists visits
 (
-    id                serial primary key,
-    flight_id         bigint references flights (id),
-    departure_gate_id bigint references gates (id),
-    arrival_gate_id   bigint references gates (id)
+    id                uuid primary key default gen_random_uuid(),
+    flight_id         uuid references flights (id),
+    departure_gate_id uuid references gates (id),
+    arrival_gate_id   uuid references gates (id)
 );

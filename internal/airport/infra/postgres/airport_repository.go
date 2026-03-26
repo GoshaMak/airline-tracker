@@ -27,10 +27,9 @@ func (r *airportRepository) Save(
 	a *domain.Airport,
 ) error {
 	_, err := r.conn.Exec(ctx,
-		"insert into"+
-			" airports(iata_code, title, city, country)"+
-			" values ($1, $2, $3, $4)",
-		&a.IATACode, &a.Title, &a.City, &a.Country,
+		"insert into airports(id, iata_code, title, city, country)"+
+			" values ($1, $2, $3, $4, $5)",
+		a.ID, a.IATACode, a.Title, a.City, a.Country,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError

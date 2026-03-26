@@ -1,21 +1,9 @@
 package dto
 
-import "airline-tracker/internal/fleet/domain"
-
 type AircraftModelDTO struct {
-	Manufacturer string `json:"manufacturer"`
-	Model        string `json:"model"`
-	Mass         uint   `json:"mass"`
-	MaxAltitude  uint   `json:"max_altitude"`
-	MaxSpeed     uint   `json:"max_speed"`
-}
-
-func (a *AircraftModelDTO) AircraftModelFromDTO() *domain.AircraftModel {
-	return &domain.AircraftModel{
-		Manufacturer: a.Manufacturer,
-		Model:        a.Model,
-		Mass:         a.Mass,
-		MaxAltitude:  a.MaxAltitude,
-		MaxSpeed:     a.MaxSpeed,
-	}
+	Manufacturer string `json:"manufacturer" example:"A"`
+	Model        string `json:"model" example:"B"`
+	Mass         int    `json:"mass" example:"999"`
+	MaxAltitude  int    `json:"max_altitude" example:"3"`
+	MaxSpeed     int    `json:"max_speed" example:"1"`
 }

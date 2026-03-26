@@ -26,9 +26,9 @@ func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
 func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
 	_, err := r.conn.Exec(
 		ctx,
-		"insert into users(email, phone, password, role)"+
-			"values ($1, $2, $3, $4);",
-		&u.Email, &u.Phone, &u.Password, &u.Role)
+		"insert into users(id, email, phone, password, role)"+
+			"values ($1, $2, $3, $4, $5);",
+		u.ID, u.Email, u.Phone, u.Password, u.Role)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == string(RecordAlreadyExistsErrCode) {

@@ -1,10 +1,8 @@
 package controller
 
 import (
-	airportDTO "airline-tracker/internal/airport/dto"
-	fleetDTO "airline-tracker/internal/fleet/dto"
+	"airline-tracker/internal/flight/command"
 	"airline-tracker/internal/flight/dto"
-	flightDTO "airline-tracker/internal/flight/dto"
 	"airline-tracker/internal/flight/service"
 	"airline-tracker/internal/middleware"
 	"net/http"
@@ -33,12 +31,20 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 
 	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
 	{
-		g.POST("/flight", c.AddFlight)
+		g.POST("/add_flight", c.AddFlight)
 		g.PATCH("/flight/:id", c.UpdateFlight) // TODO: move id to request's body
 		g.DELETE("/flight/:id", c.DeleteFlight)
 	}
 }
 
+// @Summary list all flights
+// @Description list all flights
+// @Tags flight
+// @Accept json
+// @Produce json
+// @Success 200 {array} dto.FlightDTO
+// @Failure 400
+// @Router /flights [get]
 func (c *FlightController) Flights(ctx *gin.Context) {
 	flights, err := c.service.ListAllFlights()
 	if err != nil {
@@ -46,33 +52,35 @@ func (c *FlightController) Flights(ctx *gin.Context) {
 		return
 	}
 	flights_dto := make([]dto.FlightDTO, len(flights), cap(flights))
-	for i, fl := range flights {
-		flights_dto[i] = *dto.FlightToDTO(&fl)
-	}
 	ctx.JSON(http.StatusOK, gin.H{"flights": flights_dto})
 }
 
 func (c *FlightController) FlightByID(ctx *gin.Context) {}
 
+// @Summary add flight
+// @Description create a flight
+// @Tags flight
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param flight body dto.CreateFlightRequest true "flight info"
+// @Success 201
+// @Failure 400
+// @Failure 500
+// @Router /admin/add_flight [post]
 func (c *FlightController) AddFlight(ctx *gin.Context) {
-	type Req struct {
-		Flight           flightDTO.FlightDTO   `json:"flight"`
-		Aircraft         fleetDTO.AircraftDTO  `json:"aircraft"`
-		DepartureAirport airportDTO.AirportDTO `json:"departure_airport"`
-		ArrivalAirport   airportDTO.AirportDTO `json:"arrival_airport"`
-		DepartureGate    airportDTO.GateDTO    `json:"departure_gate"`
-		ArrivalGate      airportDTO.GateDTO    `json:"arrival_gate"`
-	}
-	req := &Req{}
+	req := &dto.CreateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args", "err": err})
 		return
 	}
-	if err := c.service.AddFlight(
-		req.Flight.FlightFromDTO(), req.Aircraft.AircraftFromDTO(),
-		req.DepartureAirport.AirportFromDTO(), req.ArrivalAirport.AirportFromDTO(),
-		req.DepartureGate.GateFromDTO(), req.ArrivalGate.GateFromDTO()); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+	cmd, err := command.NewAddFlightCommand(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
+		return
+	}
+	if err := c.service.AddFlight(cmd); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "flight created"})

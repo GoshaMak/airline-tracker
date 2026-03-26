@@ -27,10 +27,9 @@ func (r *gateRepository) Save(
 	g *domain.Gate,
 ) error {
 	_, err := r.conn.Exec(ctx,
-		"insert into"+
-			" gates(airport_id, number)"+
-			" values ($1, $2)",
-		&g.AirportID, &g.Number,
+		"insert into gates(id, airport_id, number)"+
+			" values ($1, $2, $3)",
+		g.ID, g.AirportID, g.Number,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
