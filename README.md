@@ -46,11 +46,11 @@
 Mobile (Android)
 
 ## C4
-![L1](./diagrams/c4/L1.svg)
-![L2](./diagrams/c4/L2.svg)
-![Mobile-L3](./diagrams/c4/Mobile-L3.svg)
-![Backend-L3](./diagrams/c4/Backend-L3.svg)
-![L4](./diagrams/class/class.svg)
+![L1](./docs/diagrams/c4/L1.svg)
+![L2](./docs/diagrams/c4/L2.svg)
+![Mobile-L3](./docs/diagrams/c4/Mobile-L3.svg)
+![Backend-L3](./docs/diagrams/c4/Backend-L3.svg)
+![L4](./docs/diagrams/class/class.svg)
 
 ## Диаграмма последовательностей
-![Sequence](./diagrams/sequence/notify.svg)
+![Sequence](./docs/diagrams/sequence/notify.svg)
