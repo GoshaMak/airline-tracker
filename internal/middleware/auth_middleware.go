@@ -18,7 +18,13 @@ func AuthMiddleware(role string) gin.HandlerFunc {
 			return
 		}
 
-		tokenString := strings.TrimPrefix(header, "Bearer ")
+		const prefix = "Bearer "
+		if !strings.HasPrefix(header, prefix) {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		tokenString := strings.TrimPrefix(header, prefix)
 
 		claims := &service.JWTClaims{}
 

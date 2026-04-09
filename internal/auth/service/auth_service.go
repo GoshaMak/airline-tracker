@@ -43,12 +43,14 @@ func (s *AuthService) GetUser(email, phone, password string) (*domain.User, erro
 
 func (s *AuthService) CreateUser(u *domain.User) error {
 	slog.Debug("Pswd before", "pswd", u.Password)
-	if encryptPassword(u) != nil {
+	if encryptPassword(u) != nil { // TODO: move inside NewUser
 		return fmt.Errorf("Can't encrypt password")
 	}
 	slog.Debug("Pswd after", "pswd", u.Password)
-	err := s.repository.Save(context.Background(), u)
-	return err
+	if err := s.repository.Save(context.Background(), u); err != nil {
+		return err
+	}
+	return nil
 }
 
 func encryptPassword(u *domain.User) error {

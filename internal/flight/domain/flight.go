@@ -8,18 +8,18 @@ import (
 )
 
 type Flight struct {
-	ID                 uuid.UUID
-	AircraftID         *uuid.UUID
-	ScheduledDeparture time.Time
-	ScheduledArrival   time.Time
-	ActualDeparture    time.Time
-	ActualArrival      time.Time
-	Status             FlightStatus
-	Plan               FlightPlan
-	DepartureAirportID *uuid.UUID
-	ArrivalAirportID   *uuid.UUID
-	DepartureGateID    *uuid.UUID
-	ArrivalGateID      *uuid.UUID
+	ID                 uuid.UUID    `json:"id"`
+	AircraftID         *uuid.UUID   `json:"aircraft_id"`
+	ScheduledDeparture time.Time    `json:"scheduled_departure"`
+	ScheduledArrival   time.Time    `json:"scheduled_arrival"`
+	ActualDeparture    time.Time    `json:"actual_departure"`
+	ActualArrival      time.Time    `json:"actual_arrival"`
+	Status             FlightStatus `json:"status"`
+	Plan               FlightPlan   `json:"plan"`
+	DepartureAirportID *uuid.UUID   `json:"departure_airport_id"`
+	ArrivalAirportID   *uuid.UUID   `json:"arrival_airport_id"`
+	DepartureGateID    *uuid.UUID   `json:"departure_gate_id"`
+	ArrivalGateID      *uuid.UUID   `json:"arrival_gate_id"`
 }
 
 func NewFlight(

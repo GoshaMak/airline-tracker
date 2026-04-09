@@ -6,11 +6,13 @@ import (
 	airportController "airline-tracker/internal/airport/controller"
 	"airline-tracker/internal/auth"
 	authController "airline-tracker/internal/auth/controller"
-	"airline-tracker/internal/db"
 	"airline-tracker/internal/fleet"
 	fleetController "airline-tracker/internal/fleet/controller"
 	"airline-tracker/internal/flight"
 	flightController "airline-tracker/internal/flight/controller"
+	"airline-tracker/internal/infra"
+	"airline-tracker/internal/infra/postgres"
+	"airline-tracker/internal/infra/redis"
 	"airline-tracker/internal/user"
 	userController "airline-tracker/internal/user/controller"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
+	rds "github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -51,7 +54,7 @@ func NewApp() *App {
 		fleet.Package,
 		flight.Package,
 		user.Package,
-		db.Package,
+		infra.Package,
 	)
 
 	router := gin.Default()
@@ -65,7 +68,8 @@ func NewApp() *App {
 }
 
 func (a *App) Run() {
-	defer db.CloseConnection(do.MustInvoke[*pgx.Conn](a.injector))
+	defer postgres.CloseConnection(do.MustInvoke[*pgx.Conn](a.injector))
+	defer redis.CloseConnection(do.MustInvoke[*rds.Client](a.injector))
 
 	if err := a.router.Run(":8080"); err != nil { // FIX: hardcoded port
 		slog.Error("Failed to run server", "error", err)

@@ -13,6 +13,17 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
 
+  redis:
+    image: redis:7
+    container_name: 'redis_db'
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local

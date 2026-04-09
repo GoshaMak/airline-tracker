@@ -72,13 +72,13 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 	slog.Debug("Auth", "email", req.Email, "phone", req.Phone, "pswd", req.Password, "role", req.Role)
-	u, err := c.service.GetUser(req.Email, req.Phone, req.Password)
+	user, err := c.service.GetUser(req.Email, req.Phone, req.Password)
 	if err != nil {
 		slog.Warn("Can't find user", "err", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"msg": "user was not found"})
 		return
 	}
-	token, err := service.GenerateJWT(u)
+	token, err := service.GenerateJWT(user)
 	if err != nil {
 		slog.Warn("Error generating jwt", "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "err"})

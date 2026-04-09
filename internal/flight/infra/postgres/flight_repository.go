@@ -84,7 +84,6 @@ func (r *flightRepository) ListAllFlights(ctx context.Context) ([]domain.Flight,
 			&fl.Status, &fl.Plan,
 			&fl.DepartureGateID, &fl.ArrivalGateID,
 			&fl.DepartureAirportID, &fl.ArrivalAirportID); err != nil {
-			slog.Debug("here", "err", err.Error())
 			return nil, err
 		}
 		if actualDeparture != nil {

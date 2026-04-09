@@ -1,4 +1,4 @@
-package db
+package postgres
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/samber/do/v2"
 )
 
-func NewConnection(i do.Injector) (*pgx.Conn, error) {
+func NewPostgresConnection(i do.Injector) (*pgx.Conn, error) {
 	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		slog.Error("Unable to connect to databse", "error", err)

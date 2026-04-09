@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"airline-tracker/internal/domain"
+	"airline-tracker/internal/common"
 
 	"github.com/google/uuid"
 )
@@ -9,16 +9,16 @@ import (
 type Airport struct {
 	ID       uuid.UUID
 	IATACode IATACode
-	Title    domain.Title
-	City     domain.City
-	Country  domain.Country
+	Title    common.Title
+	City     common.City
+	Country  common.Country
 }
 
 func NewAirport(
 	iataCode IATACode,
-	title domain.Title,
-	city domain.City,
-	country domain.Country,
+	title common.Title,
+	city common.City,
+	country common.Country,
 ) (*Airport, error) {
 	return &Airport{
 		ID:       uuid.New(),
