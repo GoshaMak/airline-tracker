@@ -9,8 +9,14 @@ workspace "Name" "Description" {
 
         app = softwareSystem "Airline tracker" {
             mobile = container "Мобильное приложение (Android)" {
-                authController = component "Контроллер аутентификации"
-                flightController = component "Контроллер полётов"
+                authView = component "Экран аутентификации"
+                flightView = component "Экран с полётами"
+
+                authViewModel = component "Контроллер аутентификации"
+                flightViewModel = component "Контроллер полётов"
+
+                authModel = component "Сервис аутентификации"
+                flightModel = component "Сервис полётов"
 
                 apiService = component "Сервис API"
 
@@ -33,6 +39,7 @@ workspace "Name" "Description" {
                 authzService = component "Сервис авторизации"
                 adminService = component "Сервис администратора"
                 userService = component "Сервис пользователя"
+                notificationService = component "Сервис уведомлений"
 
                 flightRepository = component "Репозиторий полётов"{
                     tags "Database"
@@ -40,6 +47,9 @@ workspace "Name" "Description" {
                 userRepository = component "Репозиторий пользователей"{
                     tags "Database"
                 }
+            }
+            kafka = container "Kafka" {
+                tags "Kafka"
             }
         }
 
@@ -51,9 +61,15 @@ workspace "Name" "Description" {
 
         app.mobile -> app.backend "API"
 
-        app.mobile.authController -> app.mobile.apiService "Использует"
+        app.mobile.authView -> app.mobile.authViewModel "Вызывает"
+        app.mobile.flightView -> app.mobile.flightViewModel "Вызывает"
 
-        app.mobile.flightController -> app.mobile.flightRepository "Использует"
+        app.mobile.authViewModel -> app.mobile.authModel "Вызывает"
+        app.mobile.flightViewModel -> app.mobile.flightModel "Вызывает"
+
+        app.mobile.authModel -> app.mobile.apiService "Использует"
+
+        app.mobile.flightModel -> app.mobile.flightRepository "Использует"
 
         app.mobile.apiService -> app.backend "API"
 
@@ -61,6 +77,7 @@ workspace "Name" "Description" {
 
         app.backend -> app.db "Хранит данные"
         app.backend -> app.cache "Хранит данные"
+        app.backend -> app.kafka "Отправляет сообщения"
 
         app.mobile -> app.backend.adminController "Вызывает через HTTP"
         app.mobile -> app.backend.userController "Вызывает через HTTP"
@@ -71,6 +88,7 @@ workspace "Name" "Description" {
 
         app.backend.userController -> app.backend.authzService "Использует"
         app.backend.userController -> app.backend.userService "Использует"
+        app.backend.userController -> app.backend.notificationService "Использует"
 
         app.backend.authController -> app.backend.authService "Использует"
 
@@ -81,6 +99,10 @@ workspace "Name" "Description" {
         app.backend.adminService -> app.backend.flightRepository "Использует"
 
         app.backend.userService -> app.backend.flightRepository "Использует"
+
+        app.backend.notificationService -> app.backend.userRepository "Использует"
+        app.backend.notificationService -> app.backend.flightRepository "Использует"
+        app.backend.notificationService -> app.kafka "Отправляет данные"
 
         app.backend.flightRepository -> app.db "Читает/обновляет данные"
         app.backend.flightRepository -> app.cache "Читает/обновляет данные"
@@ -131,6 +153,10 @@ workspace "Name" "Description" {
             relationship "Relationship" {
                 thickness 4
             }
+            element "Kafka" {
+                shape pipe
+            }
         }
     }
 }
+
