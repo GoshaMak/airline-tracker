@@ -1,4 +1,4 @@
-package service
+package usecase
 
 import (
 	"airline-tracker/internal/user/domain"
@@ -11,24 +11,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
-	repository repository.UserRepository
+type AuthUsecase struct {
+	repo repository.UserRepository
 }
 
-func NewAuthService(i do.Injector) (*AuthService, error) {
-	return &AuthService{
-		repository: do.MustInvokeAs[repository.UserRepository](i),
+func NewAuthUsecase(i do.Injector) (*AuthUsecase, error) {
+	return &AuthUsecase{
+		repo: do.MustInvokeAs[repository.UserRepository](i),
 	}, nil
 }
 
-func (s *AuthService) GetUser(email, phone, password string) (*domain.User, error) {
-	op := "auth_service.Get"
+func (uc *AuthUsecase) GetUser(email, phone, password string) (*domain.User, error) {
+	op := "auth_uc.Get"
 	var u *domain.User
 	var err error
 	if email != "" {
-		u, err = s.repository.GetByEmail(context.Background(), email)
+		u, err = uc.repo.GetByEmail(context.Background(), email)
 	} else if phone != "" {
-		u, err = s.repository.GetByPhone(context.Background(), phone)
+		u, err = uc.repo.GetByPhone(context.Background(), phone)
 	} else {
 		err = fmt.Errorf("Empty email and phone")
 	}
@@ -41,13 +41,13 @@ func (s *AuthService) GetUser(email, phone, password string) (*domain.User, erro
 	return u, nil
 }
 
-func (s *AuthService) CreateUser(u *domain.User) error {
+func (uc *AuthUsecase) CreateUser(u *domain.User) error {
 	slog.Debug("Pswd before", "pswd", u.Password)
 	if encryptPassword(u) != nil { // TODO: move inside NewUser
 		return fmt.Errorf("Can't encrypt password")
 	}
 	slog.Debug("Pswd after", "pswd", u.Password)
-	if err := s.repository.Save(context.Background(), u); err != nil {
+	if err := uc.repo.Save(context.Background(), u); err != nil {
 		return err
 	}
 	return nil
@@ -62,8 +62,8 @@ func encryptPassword(u *domain.User) error {
 	return nil
 }
 
-func (s *AuthService) Exist(email, phone, password string) bool {
-	u, err := s.GetUser(email, phone, password)
+func (uc *AuthUsecase) Exist(email, phone, password string) bool {
+	u, err := uc.GetUser(email, phone, password)
 	if err != nil || u == nil {
 		return false
 	}

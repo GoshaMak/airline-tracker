@@ -1,13 +1,13 @@
 package auth
 
 import (
-	"airline-tracker/internal/auth/controller"
-	"airline-tracker/internal/auth/service"
+	"airline-tracker/internal/auth/handler"
+	"airline-tracker/internal/auth/usecase"
 
 	"github.com/samber/do/v2"
 )
 
 var Package = do.Package(
-	do.Lazy(controller.NewAuthController),
-	do.Lazy(service.NewAuthService),
+	do.Lazy(handler.NewAuthHandler),
+	do.Lazy(usecase.NewAuthUsecase),
 )

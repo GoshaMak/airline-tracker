@@ -1,9 +1,9 @@
-package controller
+package handler
 
 import (
 	"airline-tracker/internal/fleet/command"
 	"airline-tracker/internal/fleet/dto"
-	"airline-tracker/internal/fleet/service"
+	"airline-tracker/internal/fleet/usecase"
 	"airline-tracker/internal/middleware"
 	"net/http"
 
@@ -11,18 +11,18 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type AircraftModelController struct {
-	service *service.AircraftModelService
+type AircraftModelHandler struct {
+	uc *usecase.AircraftModelUsecase
 }
 
-func NewAircraftModelController(i do.Injector) (*AircraftModelController, error) {
-	return &AircraftModelController{
-		service: do.MustInvoke[*service.AircraftModelService](i),
+func NewAircraftModelHandler(i do.Injector) (*AircraftModelHandler, error) {
+	return &AircraftModelHandler{
+		uc: do.MustInvoke[*usecase.AircraftModelUsecase](i),
 	}, nil
 }
 
 func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*AircraftModelController](i)
+	c := do.MustInvoke[*AircraftModelHandler](i)
 	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
 	{
 		g.POST("/add_aircraft_model", c.AddAircraftModel)
@@ -40,7 +40,7 @@ func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 401
 // @Router /admin/add_aircraft_model [post]
-func (c *AircraftModelController) AddAircraftModel(ctx *gin.Context) {
+func (h *AircraftModelHandler) AddAircraftModel(ctx *gin.Context) {
 	req := &dto.CreateAircraftModelRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args", "err": err})
@@ -51,7 +51,7 @@ func (c *AircraftModelController) AddAircraftModel(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "invalid args", "err": err})
 		return
 	}
-	if err := c.service.AddAircraftModel(cmd); err != nil {
+	if err := h.uc.AddAircraftModel(cmd); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
 		return
 	}

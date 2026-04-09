@@ -1,8 +1,8 @@
-package controller
+package handler
 
 import (
 	"airline-tracker/internal/auth/dto"
-	"airline-tracker/internal/auth/service"
+	"airline-tracker/internal/auth/usecase"
 	userDomain "airline-tracker/internal/user/domain"
 	"log/slog"
 	"net/http"
@@ -11,18 +11,18 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type AuthController struct {
-	service *service.AuthService
+type AuthHandler struct {
+	uc *usecase.AuthUsecase
 }
 
-func NewAuthController(i do.Injector) (*AuthController, error) {
-	return &AuthController{
-		service: do.MustInvoke[*service.AuthService](i),
+func NewAuthHandler(i do.Injector) (*AuthHandler, error) {
+	return &AuthHandler{
+		uc: do.MustInvoke[*usecase.AuthUsecase](i),
 	}, nil
 }
 
 func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*AuthController](i)
+	c := do.MustInvoke[*AuthHandler](i)
 
 	g := r.Group("/auth")
 	{
@@ -41,14 +41,14 @@ func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 500
 // @Router /auth/signup [post]
-func (c *AuthController) Signup(ctx *gin.Context) {
+func (h *AuthHandler) Signup(ctx *gin.Context) {
 	var req dto.SignupDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
 		return
 	}
 	u := userDomain.NewUser(req.Email, req.Phone, req.Password, req.Role)
-	if err := c.service.CreateUser(u); err != nil {
+	if err := h.uc.CreateUser(u); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "failed to create a user"})
 		return
 	}
@@ -65,20 +65,20 @@ func (c *AuthController) Signup(ctx *gin.Context) {
 // @Failure 401
 // @Failure 500
 // @Router /auth/login [post]
-func (c *AuthController) Login(ctx *gin.Context) {
+func (h *AuthHandler) Login(ctx *gin.Context) {
 	var req dto.LoginRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "incorrect args"})
 		return
 	}
 	slog.Debug("Auth", "email", req.Email, "phone", req.Phone, "pswd", req.Password, "role", req.Role)
-	user, err := c.service.GetUser(req.Email, req.Phone, req.Password)
+	user, err := h.uc.GetUser(req.Email, req.Phone, req.Password)
 	if err != nil {
 		slog.Warn("Can't find user", "err", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"msg": "user was not found"})
 		return
 	}
-	token, err := service.GenerateJWT(user)
+	token, err := usecase.GenerateJWT(user)
 	if err != nil {
 		slog.Warn("Error generating jwt", "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "err"})

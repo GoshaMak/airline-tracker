@@ -1,9 +1,9 @@
-package controller
+package handler
 
 import (
 	"airline-tracker/internal/airport/command"
 	"airline-tracker/internal/airport/dto"
-	"airline-tracker/internal/airport/service"
+	"airline-tracker/internal/airport/usecase"
 	"airline-tracker/internal/middleware"
 	"net/http"
 
@@ -11,18 +11,18 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type GateController struct {
-	service *service.GateService
+type GateHandler struct {
+	uc *usecase.GateUsecase
 }
 
-func NewGateController(i do.Injector) (*GateController, error) {
-	return &GateController{
-		service: do.MustInvoke[*service.GateService](i),
+func NewGateHandler(i do.Injector) (*GateHandler, error) {
+	return &GateHandler{
+		uc: do.MustInvoke[*usecase.GateUsecase](i),
 	}, nil
 }
 
 func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*GateController](i)
+	c := do.MustInvoke[*GateHandler](i)
 	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
 	{
 		g.POST("/add_gate", c.AddGate)
@@ -41,7 +41,7 @@ func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 500
 // @Router /admin/add_gate [post]
-func (c *GateController) AddGate(ctx *gin.Context) {
+func (h *GateHandler) AddGate(ctx *gin.Context) {
 	req := &dto.CreateGateRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
@@ -52,7 +52,7 @@ func (c *GateController) AddGate(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
-	if err := c.service.AddGate(cmd); err != nil {
+	if err := h.uc.AddGate(cmd); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
@@ -69,4 +69,4 @@ func (c *GateController) AddGate(ctx *gin.Context) {
 // @Failure 400
 // @Failure 500
 // @Router /admin/list_gates [get]
-func (c *GateController) ListGates(ctx *gin.Context) {}
+func (h *GateHandler) ListGates(ctx *gin.Context) {}

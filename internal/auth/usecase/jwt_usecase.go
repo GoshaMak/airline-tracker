@@ -1,4 +1,4 @@
-package service
+package usecase
 
 import (
 	"airline-tracker/internal/user/domain"

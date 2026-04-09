@@ -1,9 +1,9 @@
-package controller
+package handler
 
 import (
 	"airline-tracker/internal/airport/command"
 	"airline-tracker/internal/airport/dto"
-	"airline-tracker/internal/airport/service"
+	"airline-tracker/internal/airport/usecase"
 	"airline-tracker/internal/middleware"
 	"net/http"
 
@@ -11,18 +11,18 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type AirportController struct {
-	service *service.AirportService
+type AirportHandler struct {
+	uc *usecase.AirportUsecase
 }
 
-func NewAirportController(i do.Injector) (*AirportController, error) {
-	return &AirportController{
-		service: do.MustInvoke[*service.AirportService](i),
+func NewAirportHandler(i do.Injector) (*AirportHandler, error) {
+	return &AirportHandler{
+		uc: do.MustInvoke[*usecase.AirportUsecase](i),
 	}, nil
 }
 
 func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*AirportController](i)
+	c := do.MustInvoke[*AirportHandler](i)
 	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
 	{
 		g.POST("/add_airport", c.AddAirport)
@@ -40,7 +40,7 @@ func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 500
 // @Router /admin/add_airport [post]
-func (c *AirportController) AddAirport(ctx *gin.Context) {
+func (h *AirportHandler) AddAirport(ctx *gin.Context) {
 	req := &dto.CreateAirportRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
@@ -51,7 +51,7 @@ func (c *AirportController) AddAirport(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "false args"})
 		return
 	}
-	if err := c.service.AddAirport(cmd); err != nil {
+	if err := h.uc.AddAirport(cmd); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "bad request"})
 		return
 	}

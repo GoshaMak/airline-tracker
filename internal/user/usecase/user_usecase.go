@@ -1,4 +1,4 @@
-package service
+package usecase
 
 import (
 	"airline-tracker/internal/user/domain"
@@ -10,24 +10,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService struct {
-	repository repository.UserRepository
+type UserUsecase struct {
+	repo repository.UserRepository
 }
 
-func NewUserService(i do.Injector) (*UserService, error) {
-	return &UserService{
-		repository: do.MustInvokeAs[repository.UserRepository](i),
+func NewUserUsecase(i do.Injector) (*UserUsecase, error) {
+	return &UserUsecase{
+		repo: do.MustInvokeAs[repository.UserRepository](i),
 	}, nil
 }
 
-func (s *UserService) Get(email, phone, password string) (*domain.User, error) {
+func (uc *UserUsecase) Get(email, phone, password string) (*domain.User, error) {
 	op := "user_service.GetUser"
 	var u *domain.User
 	var err error
 	if email != "" {
-		u, err = s.repository.GetByEmail(context.Background(), email)
+		u, err = uc.repo.GetByEmail(context.Background(), email)
 	} else if phone != "" {
-		u, err = s.repository.GetByPhone(context.Background(), phone)
+		u, err = uc.repo.GetByPhone(context.Background(), phone)
 	} else {
 		err = fmt.Errorf("Empty email and phone")
 	}
@@ -40,8 +40,8 @@ func (s *UserService) Get(email, phone, password string) (*domain.User, error) {
 	return u, nil
 }
 
-func (s *UserService) Exist(email, phone, password string) bool {
-	u, err := s.Get(email, phone, password)
+func (uc *UserUsecase) Exist(email, phone, password string) bool {
+	u, err := uc.Get(email, phone, password)
 	if err != nil || u == nil {
 		return false
 	}
