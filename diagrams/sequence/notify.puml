@@ -1,0 +1,18 @@
+@startuml
+participant "Планировщик" as scheduler
+queue "Очередь" as kafka
+participant "Отправитель" as dispatcher
+database "База данных" as db
+
+scheduler -> scheduler-- : Сформировать уведомления
+
+scheduler ->> kafka++ : Передать уведомления
+
+kafka -> dispatcher-- : Получить уведомления
+
+dispatcher ->> db++ : Сохранить уведомления
+
+dispatcher -> db : Получить устаревшие уведомления
+db -->> dispatcher
+
+@enduml
