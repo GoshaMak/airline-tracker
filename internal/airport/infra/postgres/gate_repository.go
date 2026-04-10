@@ -27,7 +27,7 @@ func (r *gateRepository) Save(
 	g *domain.Gate,
 ) error {
 	query := `
-		insert into gates(id, airport_id, number)
+	insert into gates(id, airport_id, number)
 		values ($1, $2, $3)
 	`
 	_, err := r.conn.Exec(ctx, query,

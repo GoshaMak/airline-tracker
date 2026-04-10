@@ -26,10 +26,13 @@ func (r *aircraftRepository) Save(
 	ctx context.Context,
 	a *domain.Aircraft,
 ) error {
-	_, err := r.pool.Exec(ctx,
-		"insert into"+
-			" aircraft(registration_number, aircraft_model_id, serial_number, mileage)"+
-			" values ($1, $2, $3, $4)",
+	query := `
+	insert into
+		aircraft(registration_number, aircraft_model_id, serial_number, mileage)
+		values ($1, $2, $3, $4)
+	`
+
+	_, err := r.pool.Exec(ctx, query,
 		&a.RegistrationNumber, &a.AircraftModelID, &a.SerialNumber, &a.Mileage,
 	)
 	if err != nil {

@@ -27,7 +27,7 @@ func (r *airportRepository) Save(
 	a *domain.Airport,
 ) error {
 	query := `
-		insert into airports(id, iata_code, title, city, country)
+	insert into airports(id, iata_code, title, city, country)
 		values ($1, $2, $3, $4, $5)
 	`
 

@@ -15,4 +15,4 @@ down:
 	docker compose down -v
 
 test:
-	go test -cover -count=1 ./... 2>&1 | grep -v '\[no test files\]'
+	GO111MODULE=on go test -cover -count=1 ./... 2>&1 | grep -v '\[no test files\]'

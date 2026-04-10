@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
@@ -44,18 +45,22 @@ func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
 
 func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User, error) {
 	op := "postgres.user_repository.GetUser"
-	u := &domain.User{}
-	err := r.conn.QueryRow(
-		ctx,
-		"select id, email, password, role"+
-			" from users"+
-			" where email = $1;", email).
-		Scan(&u.ID, &u.Email, &u.Password, &u.Role)
+	query := `
+	select * from users where email = $1
+	`
+
+	row, err := r.conn.Query(ctx, query)
+	if err != nil {
+		return domain.User{}, err
+	}
+	defer row.Close()
+
+	u, err := pgx.CollectOneRow(row, pgx.RowToStructByName[domain.User])
 	if err != nil {
 		slog.Warn("Can't find user", "err", err)
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
-	return *u, nil
+	return u, nil
 }
 
 func (r *userRepository) Exists(ctx context.Context, id uint32) (domain.User, error) {

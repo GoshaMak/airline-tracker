@@ -11,8 +11,8 @@ import (
 type FlightCommand struct {
 	ScheduledDeparture time.Time
 	ScheduledArrival   time.Time
-	ActualDeparture    time.Time
-	ActualArrival      time.Time
+	ActualDeparture    *time.Time
+	ActualArrival      *time.Time
 	Status             string
 	Plan               string
 }
