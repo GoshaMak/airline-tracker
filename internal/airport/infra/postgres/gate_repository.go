@@ -3,22 +3,22 @@ package postgres
 import (
 	"airline-tracker/internal/airport/domain"
 	"airline-tracker/internal/airport/domain/repository"
+	"airline-tracker/internal/airport/infra"
 	"context"
 	"errors"
-	"log/slog"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type gateRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
 func NewGateRepository(i do.Injector) (repository.GateRepository, error) {
 	return &gateRepository{
-		conn: do.MustInvoke[*pgx.Conn](i),
+		conn: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
 }
 
@@ -26,19 +26,19 @@ func (r *gateRepository) Save(
 	ctx context.Context,
 	g *domain.Gate,
 ) error {
-	_, err := r.conn.Exec(ctx,
-		"insert into gates(id, airport_id, number)"+
-			" values ($1, $2, $3)",
+	query := `
+	insert into gates(id, airport_id, number)
+		values ($1, $2, $3)
+	`
+	_, err := r.conn.Exec(ctx, query,
 		g.ID, g.AirportID, g.Number,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == string(RecordAlreadyExistsErrCode) {
-			slog.Error("Gate already exists", "gate", *g)
-			return ErrRecordAlreadyExists
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return infra.ErrGateAlreadyExists
 		}
-		slog.Error("Can't insert new gate", "error", err, "gate", *g)
-		return ErrInsertFailure
+		return err
 	}
 	return nil
 }

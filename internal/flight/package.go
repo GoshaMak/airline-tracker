@@ -1,15 +1,15 @@
 package flight
 
 import (
-	"airline-tracker/internal/flight/controller"
+	"airline-tracker/internal/flight/handler"
 	"airline-tracker/internal/flight/infra/postgres"
-	"airline-tracker/internal/flight/service"
+	"airline-tracker/internal/flight/usecase"
 
 	"github.com/samber/do/v2"
 )
 
 var Package = do.Package(
-	do.Lazy(controller.NewFlightController),
-	do.Lazy(service.NewFlightService),
+	do.Lazy(handler.NewFlightHandler),
+	do.Lazy(service.NewFlightUsecase),
 	do.Lazy(postgres.NewFlightRepository),
 )

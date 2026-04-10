@@ -1,4 +1,4 @@
-package service
+package usecase
 
 import (
 	"airline-tracker/internal/airport/command"
@@ -19,7 +19,7 @@ func (m *airportRepoMock) Save(ctx context.Context, a *domain.Airport) error {
 	return m.saveFn(ctx, a)
 }
 
-func TestAirportService(t *testing.T) {
+func TestAirportUsecase(t *testing.T) {
 	tests := []struct {
 		name    string
 		repo    *airportRepoMock
@@ -85,15 +85,15 @@ func TestAirportService(t *testing.T) {
 			do.Override(injector, func(i do.Injector) (repository.AirportRepository, error) {
 				return tt.repo, nil
 			})
-			s, _ := NewAirportService(injector)
+			s, _ := NewAirportUsecase(injector)
 			req := tt.data.(*dto.CreateAirportRequest)
-			cmd := &command.AddAirportCommand{
+			cmd := &command.CreateAirportCommand{
 				IATACode: req.Airport.IATACode,
 				Title:    req.Airport.Title,
 				City:     req.Airport.City,
 				Country:  req.Airport.Country,
 			}
-			err := s.AddAirport(cmd)
+			err := s.CreateAirport(cmd)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("err = %v, wantErr = %v", err, tt.wantErr)
 			}

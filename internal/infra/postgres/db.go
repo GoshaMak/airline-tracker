@@ -2,23 +2,45 @@ package postgres
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
-func NewPostgresConnection(i do.Injector) (*pgx.Conn, error) {
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-	if err != nil {
-		slog.Error("Unable to connect to databse", "error", err)
-		return nil, nil
-	}
-	slog.Info("Connected to db")
-	return conn, err
+func NewPostgresConnection(i do.Injector) (*pgxpool.Pool, error) {
+	return newPool(context.Background())
 }
 
-func CloseConnection(c *pgx.Conn) error {
-	return c.Close(context.Background())
+func newPool(ctx context.Context) (*pgxpool.Pool, error) {
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"),
+	)
+
+	config, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse database config: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create connection pool: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("unable to ping database")
+	}
+
+	return pool, nil
+}
+
+func CloseConnection(c *pgxpool.Pool) error {
+	c.Close()
+	return nil
 }

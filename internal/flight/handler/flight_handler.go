@@ -1,9 +1,9 @@
-package controller
+package handler
 
 import (
 	"airline-tracker/internal/flight/command"
 	"airline-tracker/internal/flight/dto"
-	"airline-tracker/internal/flight/service"
+	"airline-tracker/internal/flight/usecase"
 	"airline-tracker/internal/middleware"
 	"net/http"
 
@@ -11,18 +11,18 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type FlightController struct {
-	service *service.FlightService
+type FlightHandler struct {
+	uc *service.FlightUsecase
 }
 
-func NewFlightController(i do.Injector) (*FlightController, error) {
-	return &FlightController{
-		service: do.MustInvoke[*service.FlightService](i),
+func NewFlightHandler(i do.Injector) (*FlightHandler, error) {
+	return &FlightHandler{
+		uc: do.MustInvoke[*service.FlightUsecase](i),
 	}, nil
 }
 
 func RegisterRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*FlightController](i)
+	c := do.MustInvoke[*FlightHandler](i)
 
 	{
 		r.GET("/list_flights", c.ListFlights)
@@ -45,8 +45,8 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Success 200 {array} dto.ListFlightsResponse
 // @Failure 400
 // @Router /list_flights [get]
-func (c *FlightController) ListFlights(ctx *gin.Context) {
-	flights, err := c.service.ListAllFlights()
+func (h *FlightHandler) ListFlights(ctx *gin.Context) {
+	flights, err := h.uc.ListAllFlights()
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
@@ -59,7 +59,7 @@ func (c *FlightController) ListFlights(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"flights": *response})
 }
 
-func (c *FlightController) FlightByID(ctx *gin.Context) {}
+func (h *FlightHandler) FlightByID(ctx *gin.Context) {}
 
 // @Summary add flight
 // @Description create a flight
@@ -72,7 +72,7 @@ func (c *FlightController) FlightByID(ctx *gin.Context) {}
 // @Failure 400
 // @Failure 500
 // @Router /admin/add_flight [post]
-func (c *FlightController) AddFlight(ctx *gin.Context) {
+func (h *FlightHandler) AddFlight(ctx *gin.Context) {
 	req := &dto.CreateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args", "err": err})
@@ -83,13 +83,13 @@ func (c *FlightController) AddFlight(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
 		return
 	}
-	if err := c.service.AddFlight(cmd); err != nil {
+	if err := h.uc.AddFlight(cmd); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "flight created"})
 }
 
-func (c *FlightController) UpdateFlight(ctx *gin.Context) {}
+func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {}
 
-func (c *FlightController) DeleteFlight(ctx *gin.Context) {}
+func (h *FlightHandler) DeleteFlight(ctx *gin.Context) {}

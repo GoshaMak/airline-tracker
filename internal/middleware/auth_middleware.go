@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"airline-tracker/internal/auth/service"
+	"airline-tracker/internal/auth/usecase"
 	"fmt"
 	"net/http"
 	"strings"
@@ -26,7 +26,7 @@ func AuthMiddleware(role string) gin.HandlerFunc {
 
 		tokenString := strings.TrimPrefix(header, prefix)
 
-		claims := &service.JWTClaims{}
+		claims := &usecase.JWTClaims{}
 
 		token, err := jwt.ParseWithClaims(
 			tokenString, claims,
@@ -34,7 +34,7 @@ func AuthMiddleware(role string) gin.HandlerFunc {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("invalid signing method")
 				}
-				return service.GetJWTKey(), nil
+				return usecase.GetJWTKey(), nil
 			})
 
 		if err != nil || !token.Valid {

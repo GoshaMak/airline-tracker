@@ -1,27 +1,27 @@
-package controller
+package handler
 
 import (
 	"airline-tracker/internal/middleware"
 	"airline-tracker/internal/user/dto"
-	"airline-tracker/internal/user/service"
+	"airline-tracker/internal/user/usecase"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do/v2"
 )
 
-type UserController struct {
-	service *service.UserService
+type UserHandler struct {
+	uc *usecase.UserUsecase
 }
 
-func NewUserController(i do.Injector) (*UserController, error) {
-	return &UserController{
-		service: do.MustInvoke[*service.UserService](i),
+func NewUserHandler(i do.Injector) (*UserHandler, error) {
+	return &UserHandler{
+		uc: do.MustInvoke[*usecase.UserUsecase](i),
 	}, nil
 }
 
 func RegisterRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*UserController](i)
+	c := do.MustInvoke[*UserHandler](i)
 
 	g := r.Group("/user", middleware.AuthMiddleware("user"))
 	{
@@ -40,7 +40,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 401
 // @Router /user/list_flights [get]
-func (c *UserController) ListFlights(ctx *gin.Context) {
+func (h *UserHandler) ListFlights(ctx *gin.Context) {
 	req := &dto.ListFlightsRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		ctx.JSON(http.StatusBadRequest, "")

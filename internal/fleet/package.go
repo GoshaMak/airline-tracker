@@ -1,19 +1,19 @@
 package fleet
 
 import (
-	"airline-tracker/internal/fleet/controller"
+	"airline-tracker/internal/fleet/handler"
 	"airline-tracker/internal/fleet/infra/postgres"
-	"airline-tracker/internal/fleet/service"
+	"airline-tracker/internal/fleet/usecase"
 
 	"github.com/samber/do/v2"
 )
 
 var Package = do.Package(
-	do.Lazy(controller.NewAircraftController),
-	do.Lazy(service.NewAircraftService),
+	do.Lazy(handler.NewAircraftHandler),
+	do.Lazy(usecase.NewAircraftUsecase),
 	do.Lazy(postgres.NewAircraftRepository),
 
-	do.Lazy(controller.NewAircraftModelController),
-	do.Lazy(service.NewAircraftModelService),
+	do.Lazy(handler.NewAircraftModelHandler),
+	do.Lazy(usecase.NewAircraftModelUsecase),
 	do.Lazy(postgres.NewAircraftModelRepository),
 )

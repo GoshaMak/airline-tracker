@@ -2,7 +2,6 @@ create table if not exists users
 (
     id       uuid primary key default gen_random_uuid(),
     email    varchar(256) unique, -- TODO: check format
-    phone    varchar(32) unique,-- TODO: check format
     password varchar(128) not null,
     role     varchar(20)
 );

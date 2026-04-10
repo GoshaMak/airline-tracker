@@ -8,13 +8,13 @@ import (
 )
 
 type flight struct {
-	ID                 uuid.UUID `json:"id"`
-	ScheduledDeparture time.Time `json:"scheduled_departure"`
-	ScheduledArrival   time.Time `json:"scheduled_arrival"`
-	ActualDeparture    time.Time `json:"actual_departure"`
-	ActualArrival      time.Time `json:"actual_arrival"`
-	Status             string    `json:"status"`
-	Plan               string    `json:"plan"`
+	ID                 uuid.UUID  `json:"id"`
+	ScheduledDeparture time.Time  `json:"scheduled_departure"`
+	ScheduledArrival   time.Time  `json:"scheduled_arrival"`
+	ActualDeparture    *time.Time `json:"actual_departure"`
+	ActualArrival      *time.Time `json:"actual_arrival"`
+	Status             string     `json:"status"`
+	Plan               string     `json:"plan"`
 }
 
 type ListFlightsResponse struct {

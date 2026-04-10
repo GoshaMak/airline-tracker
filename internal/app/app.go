@@ -3,25 +3,25 @@ package app
 import (
 	"airline-tracker/cmd/docs"
 	"airline-tracker/internal/airport"
-	airportController "airline-tracker/internal/airport/controller"
+	airportController "airline-tracker/internal/airport/handler"
 	"airline-tracker/internal/auth"
-	authController "airline-tracker/internal/auth/controller"
+	authController "airline-tracker/internal/auth/handler"
 	"airline-tracker/internal/fleet"
-	fleetController "airline-tracker/internal/fleet/controller"
+	fleetController "airline-tracker/internal/fleet/handler"
 	"airline-tracker/internal/flight"
-	flightController "airline-tracker/internal/flight/controller"
+	flightController "airline-tracker/internal/flight/handler"
 	"airline-tracker/internal/infra"
 	"airline-tracker/internal/infra/postgres"
 	"airline-tracker/internal/infra/redis"
 	"airline-tracker/internal/user"
-	userController "airline-tracker/internal/user/controller"
+	userController "airline-tracker/internal/user/handler"
 
 	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	rds "github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
@@ -68,10 +68,11 @@ func NewApp() *App {
 }
 
 func (a *App) Run() {
-	defer postgres.CloseConnection(do.MustInvoke[*pgx.Conn](a.injector))
+	defer postgres.CloseConnection(do.MustInvoke[*pgxpool.Pool](a.injector))
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](a.injector))
 
-	if err := a.router.Run(":8080"); err != nil { // FIX: hardcoded port
+	port := os.Getenv("PORT")
+	if err := a.router.Run(":" + port); err != nil {
 		slog.Error("Failed to run server", "error", err)
 		os.Exit(1)
 	}
@@ -97,7 +98,7 @@ func setupLogger() {
 // @Tags health check
 // @Accept json
 // @Produce json
-// @Success 200
+// @Success 200 "OK"
 // @Router /status [get]
 func status(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "OK")
