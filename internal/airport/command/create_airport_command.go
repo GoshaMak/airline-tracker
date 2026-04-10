@@ -5,14 +5,14 @@ import (
 	"fmt"
 )
 
-type AddAirportCommand struct {
+type CreateAirportCommand struct {
 	IATACode string
 	Title    string
 	City     string
 	Country  string
 }
 
-func NewAddAirportCommand(req *dto.CreateAirportRequest) (*AddAirportCommand, error) {
+func NewCreateAirportCommand(req *dto.CreateAirportRequest) (*CreateAirportCommand, error) {
 	code := req.Airport.IATACode
 	if code == "" {
 		return nil, fmt.Errorf("invalid iata code")
@@ -29,7 +29,8 @@ func NewAddAirportCommand(req *dto.CreateAirportRequest) (*AddAirportCommand, er
 	if country == "" {
 		return nil, fmt.Errorf("invalid country")
 	}
-	return &AddAirportCommand{
+
+	return &CreateAirportCommand{
 		IATACode: code,
 		Title:    title,
 		City:     city,

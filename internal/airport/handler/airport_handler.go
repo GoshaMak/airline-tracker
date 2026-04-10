@@ -5,6 +5,8 @@ import (
 	"airline-tracker/internal/airport/dto"
 	"airline-tracker/internal/airport/usecase"
 	"airline-tracker/internal/middleware"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,37 +25,52 @@ func NewAirportHandler(i do.Injector) (*AirportHandler, error) {
 
 func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*AirportHandler](i)
-	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
+
+	g := r.Group("/airport", middleware.AuthMiddleware("admin"))
 	{
-		g.POST("/add_airport", c.AddAirport)
+		g.POST("/create", c.CreateAirport)
+		g.POST("/list", c.ListAirports)
 	}
 }
 
-// @Summary new airport
-// @Description creates an airport
-// @Tags airport
+// @Summary create airport (only admin)
+// @Tags Airport
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param airport body dto.CreateAirportRequest true "airport info"
 // @Success 201 "airport created"
 // @Failure 400
+// @Failure 401
+// @Failure 409
 // @Failure 500
-// @Router /admin/add_airport [post]
-func (h *AirportHandler) AddAirport(ctx *gin.Context) {
+// @Router /airport/create [post]
+func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 	req := &dto.CreateAirportRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	cmd, err := command.NewAddAirportCommand(req)
+
+	cmd, err := command.NewCreateAirportCommand(req)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "false args"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.AddAirport(cmd); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "bad request"})
+
+	if err := h.uc.CreateAirport(cmd); err != nil {
+		if errors.Is(err, usecase.ErrAirportAlreadyExists) {
+			ctx.JSON(http.StatusConflict, gin.H{"msg": "airport already exists"})
+			return
+		}
+		slog.Info("handler.create_airport", "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"msg": "airport created"})
+
+	ctx.JSON(http.StatusCreated, gin.H{"msg": "airport created"})
+}
+
+func (h *AirportHandler) ListAirports(ctx *gin.Context) {
+
 }

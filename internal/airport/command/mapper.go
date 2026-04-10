@@ -3,12 +3,12 @@ package command
 import "airline-tracker/internal/airport/domain"
 import "airline-tracker/internal/common"
 
-func CommandToGateDomain(cmd *AddGateCommand) (*domain.Gate, error) {
+func CommandToGateDomain(cmd *CreateGateCommand) (*domain.Gate, error) {
 	g, err := domain.NewGate(cmd.AirportID, cmd.GateNumber)
 	return g, err
 }
 
-func CommandToAirportDomain(cmd *AddAirportCommand) (*domain.Airport, error) {
+func CommandToAirportDomain(cmd *CreateAirportCommand) (*domain.Airport, error) {
 	code, err := domain.NewIATACode(cmd.IATACode)
 	if err != nil {
 		return nil, err

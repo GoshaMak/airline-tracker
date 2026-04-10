@@ -8,30 +8,31 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type userRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
 func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
 	return &userRepository{
-		conn: do.MustInvoke[*pgx.Conn](i),
+		conn: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
 }
 
 func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
-	_, err := r.conn.Exec(
-		ctx,
-		"insert into users(id, email, phone, password, role)"+
-			"values ($1, $2, $3, $4, $5);",
-		u.ID, u.Email, u.Phone, u.Password, u.Role)
+	query := `
+	insert into users(id, email, password, role)
+		values ($1, $2, $3, $4)
+	`
+	_, err := r.conn.Exec(ctx, query,
+		u.ID, u.Email, u.Password, u.Role)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == string(RecordAlreadyExistsErrCode) {
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			slog.Error("User already exists", "user", *u)
 			return ErrRecordAlreadyExists
 		}
@@ -41,40 +42,24 @@ func (r *userRepository) Save(ctx context.Context, u *domain.User) error {
 	return nil
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	op := "postgres.user_repository.GetByEmail"
+func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User, error) {
+	op := "postgres.user_repository.GetUser"
 	u := &domain.User{}
 	err := r.conn.QueryRow(
 		ctx,
-		"select id, email, phone, password, role"+
+		"select id, email, password, role"+
 			" from users"+
 			" where email = $1;", email).
-		Scan(&u.ID, &u.Email, &u.Phone, &u.Password, &u.Role)
+		Scan(&u.ID, &u.Email, &u.Password, &u.Role)
 	if err != nil {
 		slog.Warn("Can't find user", "err", err)
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
-	return u, nil
+	return *u, nil
 }
 
-func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*domain.User, error) {
-	op := "postgres.user_repository.GetByPhone"
-	u := &domain.User{}
-	err := r.conn.QueryRow(
-		ctx,
-		"select id, email, phone, password, role"+
-			"from users"+
-			"where phone = $1;", phone).
-		Scan(&u.ID, &u.Email, &u.Phone, &u.Password, &u.Role)
-	if err != nil {
-		slog.Warn("Can't find user", "err", err)
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return u, nil
-}
-
-func (r *userRepository) Exists(ctx context.Context, id uint32) (*domain.User, error) {
-	return nil, nil
+func (r *userRepository) Exists(ctx context.Context, id uint32) (domain.User, error) {
+	return domain.User{}, nil
 }
 
 func (r *userRepository) UpdateById(ctx context.Context, id uint32) error {

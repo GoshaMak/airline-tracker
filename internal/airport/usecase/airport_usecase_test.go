@@ -87,13 +87,13 @@ func TestAirportUsecase(t *testing.T) {
 			})
 			s, _ := NewAirportUsecase(injector)
 			req := tt.data.(*dto.CreateAirportRequest)
-			cmd := &command.AddAirportCommand{
+			cmd := &command.CreateAirportCommand{
 				IATACode: req.Airport.IATACode,
 				Title:    req.Airport.Title,
 				City:     req.Airport.City,
 				Country:  req.Airport.Country,
 			}
-			err := s.AddAirport(cmd)
+			err := s.CreateAirport(cmd)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("err = %v, wantErr = %v", err, tt.wantErr)
 			}

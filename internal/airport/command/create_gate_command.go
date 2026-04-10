@@ -7,17 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
-type AddGateCommand struct {
+type CreateGateCommand struct {
 	AirportID  uuid.UUID
 	GateNumber domain.GateNumber
 }
 
-func NewAddGateCommand(req *dto.CreateGateRequest) (*AddGateCommand, error) {
+func NewCreateGateCommand(req *dto.CreateGateRequest) (*CreateGateCommand, error) {
 	num, err := domain.NewGateNumber(req.Gate.Number)
 	if err != nil {
 		return nil, err
 	}
-	return &AddGateCommand{
+
+	return &CreateGateCommand{
 		AirportID:  req.Gate.AirportID,
 		GateNumber: num,
 	}, nil

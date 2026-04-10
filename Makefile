@@ -1,12 +1,18 @@
-CONTROLLERS := $(shell find internal -type d -name controller | paste -sd ",")
+HANDLERS := $(shell find internal -type d -name handler | paste -sd ",")
 DTOS := $(shell find internal -type d -name dto | paste -sd ",")
 
-.PHONY : swagger debug
+.PHONY : swagger up down test
 
 swagger :
 	swag init -g app.go -o cmd/docs --parseInternal=true \
-		--dir internal/app/,$(CONTROLLERS),$(DTOS)
+		--dir internal/app/,$(HANDLERS),$(DTOS)
 
-debug : swagger
-debug : cmd/server/main.go
-	go run $<
+up: swagger
+up:
+	docker compose up --build -d
+
+down:
+	docker compose down -v
+
+test:
+	go test -cover -count=1 ./... 2>&1 | grep -v '\[no test files\]'

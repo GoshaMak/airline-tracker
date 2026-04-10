@@ -7,17 +7,17 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type flightRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
 func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	return &flightRepository{
-		conn: do.MustInvoke[*pgx.Conn](i),
+		conn: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
 }
 

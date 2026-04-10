@@ -7,18 +7,18 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type aircraftRepository struct {
-	conn *pgx.Conn
+	pool *pgxpool.Pool
 }
 
 func NewAircraftRepository(i do.Injector) (repository.AircraftRepository, error) {
 	return &aircraftRepository{
-		conn: do.MustInvoke[*pgx.Conn](i),
+		pool: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
 }
 
@@ -26,7 +26,7 @@ func (r *aircraftRepository) Save(
 	ctx context.Context,
 	a *domain.Aircraft,
 ) error {
-	_, err := r.conn.Exec(ctx,
+	_, err := r.pool.Exec(ctx,
 		"insert into"+
 			" aircraft(registration_number, aircraft_model_id, serial_number, mileage)"+
 			" values ($1, $2, $3, $4)",

@@ -20,14 +20,12 @@ func NewUserUsecase(i do.Injector) (*UserUsecase, error) {
 	}, nil
 }
 
-func (uc *UserUsecase) Get(email, phone, password string) (*domain.User, error) {
+func (uc *UserUsecase) Get(email, password string) (*domain.User, error) {
 	op := "user_service.GetUser"
-	var u *domain.User
+	var u domain.User
 	var err error
 	if email != "" {
-		u, err = uc.repo.GetByEmail(context.Background(), email)
-	} else if phone != "" {
-		u, err = uc.repo.GetByPhone(context.Background(), phone)
+		u, err = uc.repo.GetUser(context.Background(), email)
 	} else {
 		err = fmt.Errorf("Empty email and phone")
 	}
@@ -37,11 +35,11 @@ func (uc *UserUsecase) Get(email, phone, password string) (*domain.User, error) 
 	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
 		return nil, fmt.Errorf("%s: %s", op, "wrong password")
 	}
-	return u, nil
+	return &u, nil
 }
 
-func (uc *UserUsecase) Exist(email, phone, password string) bool {
-	u, err := uc.Get(email, phone, password)
+func (uc *UserUsecase) Exist(email, password string) bool {
+	u, err := uc.Get(email, password)
 	if err != nil || u == nil {
 		return false
 	}
