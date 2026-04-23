@@ -1,14 +1,16 @@
 HANDLERS := $(shell find internal -type d -name handler | paste -sd ",")
 DTOS := $(shell find internal -type d -name dto | paste -sd ",")
 
-.PHONY : swagger up down test
+.PHONY : swagger up down test format
 
 swagger :
 	swag init -g app.go -o cmd/docs --parseInternal=true \
 		--dir internal/app/,$(HANDLERS),$(DTOS)
 
+up: format
 up: swagger
 up:
+	goimports -w .
 	docker compose up --build -d
 
 down:
@@ -16,3 +18,6 @@ down:
 
 test:
 	GO111MODULE=on go test -cover -count=1 ./... 2>&1 | grep -v '\[no test files\]'
+
+format:
+	goimports -w .

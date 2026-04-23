@@ -3,7 +3,6 @@ package postgres
 import (
 	"airline-tracker/internal/airport/domain"
 	"airline-tracker/internal/airport/domain/repository"
-	"airline-tracker/internal/airport/infra"
 	"context"
 	"errors"
 
@@ -36,7 +35,7 @@ func (r *gateRepository) Save(
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return infra.ErrGateAlreadyExists
+			return repository.ErrGateAlreadyExists
 		}
 		return err
 	}

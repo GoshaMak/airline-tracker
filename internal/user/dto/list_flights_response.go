@@ -1,8 +1,14 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type FlightDTO struct {
+	ID                 uuid.UUID `json:"id"`
+	AircraftID         uuid.UUID `json:"aircraft_id"`
 	ScheduledDeparture time.Time `json:"scheduled_departure"`
 	ScheduledArrival   time.Time `json:"scheduled_arrival"`
 	ActualDeparture    time.Time `json:"actual_departure"`

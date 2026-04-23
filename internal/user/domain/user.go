@@ -2,6 +2,7 @@ package domain
 
 import "github.com/google/uuid"
 
+// WARN: fix thig tag mess
 type User struct {
 	ID       uuid.UUID `db:"id"`
 	Email    string    `db:"email"`
@@ -9,8 +10,8 @@ type User struct {
 	Role     string    `db:"role"`
 }
 
-func NewUser(email, password, role string) *User {
-	return &User{
+func NewUser(email, password, role string) User {
+	return User{
 		ID:       uuid.New(),
 		Email:    email,
 		Password: password,

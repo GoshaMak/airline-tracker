@@ -31,7 +31,7 @@ func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
 
 // @Summary add aircraft model
 // @Description create new aircraft model
-// @Tags aircraft
+// @Tags Aircraft
 // @Security BearerAuth
 // @Accept json
 // @Produce json

@@ -3,8 +3,9 @@ package handler
 import (
 	"airline-tracker/internal/flight/command"
 	"airline-tracker/internal/flight/dto"
-	"airline-tracker/internal/flight/usecase"
+	service "airline-tracker/internal/flight/usecase"
 	"airline-tracker/internal/middleware"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,41 +30,48 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 		r.GET("/flight/:id", c.FlightByID)
 	}
 
-	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
+	admin := r.Group("", middleware.AuthMiddleware("admin"))
 	{
-		g.POST("/add_flight", c.AddFlight)
-		g.PATCH("/flight/:id", c.UpdateFlight) // TODO: move id to request's body
-		g.DELETE("/flight/:id", c.DeleteFlight)
+		admin.POST("/add_flight", c.AddFlight)
+		admin.PATCH("/flight/:id", c.UpdateFlight) // TODO: move id to request's body
+		admin.DELETE("/flight/:id", c.DeleteFlight)
 	}
 }
 
 // @Summary list all flights
 // @Description list all flights
-// @Tags flight
+// @Tags Flight
 // @Accept json
 // @Produce json
 // @Success 200 {array} dto.ListFlightsResponse
 // @Failure 400
 // @Router /list_flights [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
+	op := "FlightHandler.ListFlights"
 	flights, err := h.uc.ListAllFlights()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"err": err})
+		slog.Warn(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "internal error",
+		})
 		return
 	}
 	response, err := dto.ToResponseListFlights(flights)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
+		slog.Warn(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "internal error",
+		})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"flights": *response})
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (h *FlightHandler) FlightByID(ctx *gin.Context) {}
 
-// @Summary add flight
+// @Summary add flight (only admin)
 // @Description create a flight
-// @Tags flight
+// @Tags Flight
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -71,7 +79,7 @@ func (h *FlightHandler) FlightByID(ctx *gin.Context) {}
 // @Success 201
 // @Failure 400
 // @Failure 500
-// @Router /admin/add_flight [post]
+// @Router /add_flight [post]
 func (h *FlightHandler) AddFlight(ctx *gin.Context) {
 	req := &dto.CreateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {

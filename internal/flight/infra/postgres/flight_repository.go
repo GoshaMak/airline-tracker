@@ -4,7 +4,7 @@ import (
 	"airline-tracker/internal/flight/domain"
 	"airline-tracker/internal/flight/domain/repository"
 	"context"
-	"log/slog"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,8 +21,8 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	}, nil
 }
 
-func (r *flightRepository) Save(ctx context.Context, f *domain.Flight) error {
-	op := "FlightRepository.Save"
+func (r *flightRepository) SaveFlight(ctx context.Context, f *domain.Flight) error {
+	op := "FlightRepository.SaveFlight"
 	_, err := r.conn.Exec(ctx,
 		"call add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
 		f.ID,
@@ -37,8 +37,7 @@ func (r *flightRepository) Save(ctx context.Context, f *domain.Flight) error {
 		f.ArrivalGateID,
 	)
 	if err != nil {
-		slog.Debug(op, "error in add_flight", err)
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
@@ -52,20 +51,15 @@ func (r *flightRepository) UpdateByID(ctx context.Context, id uint32) error {
 }
 
 func (r *flightRepository) ListAllFlights(ctx context.Context) ([]domain.Flight, error) {
+	op := "FlightRepository.ListAllFlights"
 	query := `
 	select * from scan_flights_info()
 	`
-
-	rows, err := r.conn.Query(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+	rows, _ := r.conn.Query(ctx, query)
 	flights, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Flight])
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return flights, nil
 }

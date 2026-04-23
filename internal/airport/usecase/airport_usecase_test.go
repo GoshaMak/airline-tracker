@@ -12,11 +12,17 @@ import (
 )
 
 type airportRepoMock struct {
-	saveFn func(ctx context.Context, a *domain.Airport) error
+	saveFn func(ctx context.Context, a domain.Airport) error
+
+	listAirportsFn func(ctx context.Context) ([]domain.Airport, error)
 }
 
-func (m *airportRepoMock) Save(ctx context.Context, a *domain.Airport) error {
+func (m *airportRepoMock) Save(ctx context.Context, a domain.Airport) error {
 	return m.saveFn(ctx, a)
+}
+
+func (m *airportRepoMock) ListAirports(ctx context.Context) ([]domain.Airport, error) {
+	return m.listAirportsFn(ctx)
 }
 
 func TestAirportUsecase(t *testing.T) {
@@ -29,7 +35,7 @@ func TestAirportUsecase(t *testing.T) {
 		{
 			name: "[IATA code] empty",
 			repo: &airportRepoMock{
-				saveFn: func(ctx context.Context, a *domain.Airport) error {
+				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
 				},
 			},
@@ -46,7 +52,7 @@ func TestAirportUsecase(t *testing.T) {
 		{
 			name: "[IATA code] wrong format",
 			repo: &airportRepoMock{
-				saveFn: func(ctx context.Context, a *domain.Airport) error {
+				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
 				},
 			},
@@ -63,7 +69,7 @@ func TestAirportUsecase(t *testing.T) {
 		{
 			name: "[IATA code] correct format",
 			repo: &airportRepoMock{
-				saveFn: func(ctx context.Context, a *domain.Airport) error {
+				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
 				},
 			},

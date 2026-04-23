@@ -14,6 +14,15 @@ insert into gates(airport_id, number)
 values ((select id from airports where title = '123'), 'A1'),
        ((select id from airports where title = '456'), 'B1');
 
+-- USERS
+insert into users(id, email, password, role)
+values ('d60a8f31-f314-4e98-81e9-bc67085f6d20', 'ab@cd.ef',
+        '$2a$10$XdFK03wD8YLIQMKc/lklJOfNPos2tsUeUj2nilqGzln7M3cqnz9uS', 'user');
+
+insert into users(id, email, password, role)
+values ('81008edc-1361-4500-a131-5959d7dad3e1', 'a@b.c',
+        '$2a$10$muwnpf/NFUp.NIKa2IAdQO6PjZcoL5nueNIMko82Z.fzSafubyMby', 'admin');
+
 -- FLIGHTS
 select add_flight(
                gen_random_uuid(),
@@ -39,4 +48,5 @@ from (select id from aircraft limit 1) a,
       from gates g
                join airports a on g.airport_id = a.id
       where a.title = '456'
-      limit 1) ag;
+      limit 1) ag
+;

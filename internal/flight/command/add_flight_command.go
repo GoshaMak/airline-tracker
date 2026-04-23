@@ -19,11 +19,11 @@ type FlightCommand struct {
 
 type AddFlightCommand struct {
 	Flight             *FlightCommand
-	AircraftID         *uuid.UUID
-	DepartureAiroprtID *uuid.UUID
-	ArrivalAiroprtID   *uuid.UUID
-	DepartureGateID    *uuid.UUID
-	ArrivalGateID      *uuid.UUID
+	AircraftID         uuid.UUID
+	DepartureAiroprtID uuid.UUID
+	ArrivalAiroprtID   uuid.UUID
+	DepartureGateID    uuid.UUID
+	ArrivalGateID      uuid.UUID
 }
 
 func NewAddFlightCommand(req *dto.CreateFlightRequest) (*AddFlightCommand, error) {
@@ -42,10 +42,10 @@ func NewAddFlightCommand(req *dto.CreateFlightRequest) (*AddFlightCommand, error
 	}
 	return &AddFlightCommand{
 		Flight:             f,
-		AircraftID:         &req.AircraftID,
-		DepartureAiroprtID: &req.DepartureAirportID,
-		ArrivalAiroprtID:   &req.ArrivalAirportID,
-		DepartureGateID:    &req.DepartureGateID,
-		ArrivalGateID:      &req.ArrivalGateID,
+		AircraftID:         req.AircraftID,
+		DepartureAiroprtID: req.DepartureAirportID,
+		ArrivalAiroprtID:   req.ArrivalAirportID,
+		DepartureGateID:    req.DepartureGateID,
+		ArrivalGateID:      req.ArrivalGateID,
 	}, nil
 }

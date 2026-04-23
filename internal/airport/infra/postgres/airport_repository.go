@@ -3,10 +3,11 @@ package postgres
 import (
 	"airline-tracker/internal/airport/domain"
 	"airline-tracker/internal/airport/domain/repository"
-	"airline-tracker/internal/airport/infra"
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
@@ -24,7 +25,7 @@ func NewAirportRepository(i do.Injector) (repository.AirportRepository, error) {
 
 func (r *airportRepository) Save(
 	ctx context.Context,
-	a *domain.Airport,
+	a domain.Airport,
 ) error {
 	query := `
 	insert into airports(id, iata_code, title, city, country)
@@ -37,16 +38,26 @@ func (r *airportRepository) Save(
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return infra.ErrAirportAlreadyExists
+			return repository.ErrAirportAlreadyExists
 		}
 		return err
 	}
 	return nil
 }
 
-func (r *airportRepository) Exists(
-	ctx context.Context,
-	a *domain.Airport,
-) (*domain.Airport, error) {
-	return nil, nil
+func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport, error) {
+	op := "airportRepository.ListAirports"
+	query := `	
+	select id, iata_code, title, city, country
+	from airports
+	`
+	rows, _ := r.conn.Query(ctx, query)
+	airports, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Airport])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return airports, nil
 }

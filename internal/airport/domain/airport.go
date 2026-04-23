@@ -19,8 +19,8 @@ func NewAirport(
 	title common.Title,
 	city common.City,
 	country common.Country,
-) (*Airport, error) {
-	return &Airport{
+) (Airport, error) {
+	return Airport{
 		ID:       uuid.New(),
 		IATACode: iataCode,
 		Title:    title,

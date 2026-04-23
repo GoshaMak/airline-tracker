@@ -3,7 +3,7 @@ package flight
 import (
 	"airline-tracker/internal/flight/handler"
 	"airline-tracker/internal/flight/infra/postgres"
-	"airline-tracker/internal/flight/usecase"
+	service "airline-tracker/internal/flight/usecase"
 
 	"github.com/samber/do/v2"
 )

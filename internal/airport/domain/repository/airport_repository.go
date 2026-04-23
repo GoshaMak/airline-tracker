@@ -6,5 +6,7 @@ import (
 )
 
 type AirportRepository interface {
-	Save(ctx context.Context, a *domain.Airport) error
+	Save(ctx context.Context, a domain.Airport) error
+
+	ListAirports(ctx context.Context) ([]domain.Airport, error)
 }

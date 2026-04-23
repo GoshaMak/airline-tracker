@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"airline-tracker/internal/airport/domain"
-	"airline-tracker/internal/airport/infra"
+	"airline-tracker/internal/airport/domain/repository"
 	"airline-tracker/internal/common"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -64,7 +64,7 @@ func cleanupAirportByIATA(t *testing.T, pool *pgxpool.Pool, iata string) {
 	}
 }
 
-func mustNewAirport(t *testing.T, iata, title, city, country string) *domain.Airport {
+func mustNewAirport(t *testing.T, iata, title, city, country string) domain.Airport {
 	t.Helper()
 
 	iataCode, err := domain.NewIATACode(iata)
@@ -104,17 +104,17 @@ func TestAirportRepository_Save(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		airports []*domain.Airport
+		airports []domain.Airport
 		cleanup  []string
-		verify   func(t *testing.T, pool *pgxpool.Pool, airports []*domain.Airport)
+		verify   func(t *testing.T, pool *pgxpool.Pool, airports []domain.Airport)
 	}{
 		{
 			name: "save one airport",
-			airports: []*domain.Airport{
+			airports: []domain.Airport{
 				mustNewAirport(t, "SVO", "Sheremetyevo", "Moscow", "Russia"),
 			},
 			cleanup: []string{"SVO"},
-			verify: func(t *testing.T, pool *pgxpool.Pool, airports []*domain.Airport) {
+			verify: func(t *testing.T, pool *pgxpool.Pool, airports []domain.Airport) {
 				query := `
 				select iata_code, title, city, country
 					from airports where id = $1
@@ -139,12 +139,12 @@ func TestAirportRepository_Save(t *testing.T) {
 		},
 		{
 			name: "save multiple airports",
-			airports: []*domain.Airport{
+			airports: []domain.Airport{
 				mustNewAirport(t, "JFK", "John F. Kennedy", "New York", "USA"),
 				mustNewAirport(t, "LHR", "Heathrow", "London", "UK"),
 			},
 			cleanup: []string{"JFK", "LHR"},
-			verify: func(t *testing.T, pool *pgxpool.Pool, airports []*domain.Airport) {
+			verify: func(t *testing.T, pool *pgxpool.Pool, airports []domain.Airport) {
 				query := `
 				select count(*) from airports
 					where iata_code in ($1, $2)
@@ -189,8 +189,8 @@ func TestAirportRepository_Save_DuplicateIATA(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		first     *domain.Airport
-		duplicate *domain.Airport
+		first     domain.Airport
+		duplicate domain.Airport
 		cleanup   []string
 		expected  error
 	}{
@@ -199,7 +199,7 @@ func TestAirportRepository_Save_DuplicateIATA(t *testing.T) {
 			first:     mustNewAirport(t, "CDG", "Charles de Gaulle", "Paris", "France"),
 			duplicate: mustNewAirport(t, "CDG", "Paris North", "Paris", "France"),
 			cleanup:   []string{"CDG"},
-			expected:  infra.ErrAirportAlreadyExists,
+			expected:  repository.ErrAirportAlreadyExists,
 		},
 	}
 

@@ -95,7 +95,7 @@ func setupLogger() {
 
 // @Summary status example
 // @Description check status
-// @Tags health check
+// @Tags Health check
 // @Accept json
 // @Produce json
 // @Success 200 "OK"

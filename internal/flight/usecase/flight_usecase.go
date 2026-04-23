@@ -32,7 +32,7 @@ func (uc *FlightUsecase) AddFlight(cmd *command.AddFlightCommand) error {
 	if err != nil {
 		return err
 	}
-	if err := uc.repo.Save(context.Background(), f); err != nil {
+	if err := uc.repo.SaveFlight(context.Background(), f); err != nil {
 		return err
 	}
 	return nil
