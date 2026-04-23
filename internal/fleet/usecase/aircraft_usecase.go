@@ -23,7 +23,7 @@ func (uc *AircraftUsecase) AddAircraft(cmd *command.CreateAircraftCommand) error
 	if err != nil {
 		return err
 	}
-	if err := uc.repo.Save(context.Background(), a); err != nil {
+	if err := uc.repo.SaveAircraft(context.Background(), a); err != nil {
 		return err
 	}
 	return nil

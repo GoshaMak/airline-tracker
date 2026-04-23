@@ -6,9 +6,9 @@ import (
 )
 
 type FlightRepository interface {
-	SaveFlight(ctx context.Context, flight *domain.Flight) error
+	SaveFlight(ctx context.Context, flight domain.Flight) error
 
-	Exists(ctx context.Context, id uint32) (*domain.Flight, error)
+	Exists(ctx context.Context, id uint32) (domain.Flight, error)
 
 	UpdateByID(ctx context.Context, id uint32) error
 

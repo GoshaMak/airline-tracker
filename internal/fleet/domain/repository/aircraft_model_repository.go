@@ -6,7 +6,7 @@ import (
 )
 
 type AircraftModelRepository interface {
-	Save(ctx context.Context, a *domain.AircraftModel) error
+	SaveAircraftModel(ctx context.Context, a domain.AircraftModel) error
 
-	Exists(ctx context.Context, a *domain.AircraftModel) (*domain.AircraftModel, error)
+	Exists(ctx context.Context, a domain.AircraftModel) (domain.AircraftModel, error)
 }

@@ -18,7 +18,7 @@ type FlightCommand struct {
 }
 
 type AddFlightCommand struct {
-	Flight             *FlightCommand
+	Flight             FlightCommand
 	AircraftID         uuid.UUID
 	DepartureAiroprtID uuid.UUID
 	ArrivalAiroprtID   uuid.UUID

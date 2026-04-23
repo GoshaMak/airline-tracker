@@ -4,6 +4,7 @@ import (
 	"airline-tracker/internal/airport/command"
 	"airline-tracker/internal/airport/dto"
 	"airline-tracker/internal/airport/usecase"
+	"airline-tracker/internal/common"
 	"airline-tracker/internal/middleware"
 	"errors"
 	"log/slog"
@@ -24,12 +25,12 @@ func NewGateHandler(i do.Injector) (*GateHandler, error) {
 }
 
 func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*GateHandler](i)
+	h := do.MustInvoke[*GateHandler](i)
 
-	g := r.Group("/gate", middleware.AuthMiddleware("admin"))
+	admin := r.Group("/gate", middleware.AuthMiddleware(common.AdminRole))
 	{
-		g.POST("/create", c.CreateGate)
-		g.GET("/list", c.ListGates)
+		admin.POST("/create", h.CreateGate)
+		admin.GET("/list", h.ListGates)
 	}
 }
 

@@ -1,18 +1,16 @@
 package domain
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 )
 
 type AircraftModel struct {
 	ID           uuid.UUID
-	Manufacturer string
-	Model        string
-	Mass         int
-	MaxAltitude  int
-	MaxSpeed     int
+	Manufacturer Manufacturer
+	Model        Model
+	Mass         AircraftMass
+	MaxAltitude  AircraftMaxAltitude
+	MaxSpeed     AircraftMaxSpeed
 }
 
 func NewAircraftModel(
@@ -21,28 +19,33 @@ func NewAircraftModel(
 	mass int,
 	maxAltitude int,
 	maxSpeed int,
-) (*AircraftModel, error) {
-	if manufacturer == "" {
-		return nil, fmt.Errorf("invalid manufacturer")
+) (AircraftModel, error) {
+	mnfct, err := NewManufacturer(manufacturer)
+	if err != nil {
+		return AircraftModel{}, err
 	}
-	if model == "" {
-		return nil, fmt.Errorf("invalid aircraft model")
+	mdl, err := NewModel(model)
+	if err != nil {
+		return AircraftModel{}, err
 	}
-	if mass <= 0 {
-		return nil, fmt.Errorf("negative mass value")
+	m, err := NewAircraftMass(mass)
+	if err != nil {
+		return AircraftModel{}, err
 	}
-	if maxAltitude <= 0 {
-		return nil, fmt.Errorf("negative max altitude")
+	altd, err := NewAircraftMaxAltitude(maxAltitude)
+	if err != nil {
+		return AircraftModel{}, err
 	}
-	if maxSpeed <= 0 {
-		return nil, fmt.Errorf("negative max speed")
+	spd, err := NewAircraftMaxSpeed(maxSpeed)
+	if err != nil {
+		return AircraftModel{}, err
 	}
-	return &AircraftModel{
+	return AircraftModel{
 		ID:           uuid.New(),
-		Manufacturer: manufacturer,
-		Model:        model,
-		Mass:         mass,
-		MaxAltitude:  maxAltitude,
-		MaxSpeed:     maxSpeed,
+		Manufacturer: mnfct,
+		Model:        mdl,
+		Mass:         m,
+		MaxAltitude:  altd,
+		MaxSpeed:     spd,
 	}, nil
 }

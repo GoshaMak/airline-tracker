@@ -5,8 +5,8 @@ import (
 	"airline-tracker/internal/flight/dto"
 )
 
-func DTOToFlightCommand(f *dto.FlightDTO) (*FlightCommand, error) {
-	return &FlightCommand{
+func DTOToFlightCommand(f *dto.FlightDTO) (FlightCommand, error) {
+	return FlightCommand{
 		ScheduledDeparture: f.ScheduledDeparture,
 		ScheduledArrival:   f.ScheduledArrival,
 		ActualDeparture:    f.ActualDeparture,
@@ -16,7 +16,7 @@ func DTOToFlightCommand(f *dto.FlightDTO) (*FlightCommand, error) {
 	}, nil
 }
 
-func CommandToFlightDomain(cmd *AddFlightCommand) (*domain.Flight, error) {
+func CommandToFlightDomain(cmd *AddFlightCommand) (domain.Flight, error) {
 	f, err := domain.NewFlight(
 		cmd.AircraftID,
 		cmd.Flight.ScheduledDeparture,

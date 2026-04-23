@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"airline-tracker/internal/auth/usecase"
+	"airline-tracker/internal/common"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(role string) gin.HandlerFunc {
+func AuthMiddleware(role common.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		header := ctx.GetHeader("Authorization")
 		if header == "" {

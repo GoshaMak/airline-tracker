@@ -7,12 +7,12 @@ values ((select id from aircraft_models), '999', '123', 123);
 
 -- AIRPORT
 insert into airports(iata_code, title, city, country)
-values ('123', '123', '123', '123'),
-       ('456', '456', '456', '456');
+values ('SVO', 'Sheremetyevo International Airport', 'Moscow', 'RU'),
+       ('LED', 'Pulkovo Airport', 'St. Petersburg', 'RU');
 
 insert into gates(airport_id, number)
-values ((select id from airports where title = '123'), 'A1'),
-       ((select id from airports where title = '456'), 'B1');
+values ((select id from airports where title = 'Sheremetyevo International Airport'), 'A1'),
+       ((select id from airports where title = 'Pulkovo Airport'), 'B1');
 
 -- USERS
 insert into users(id, email, password, role)
@@ -28,7 +28,7 @@ select add_flight(
                gen_random_uuid(),
                '2026-03-26 14:30:00'::timestamp,
                '2026-05-26 14:30:00'::timestamp,
-               'waiting',
+               'scheduled',
                'ABCDE A99 ABCDE ABC A66',
                a.id,
                da.id,

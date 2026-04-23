@@ -48,7 +48,13 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	u := userDomain.NewUser(req.Email, req.Password, req.Role)
+	u, err := userDomain.NewUser(req.Email, req.Password, req.Role)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"msg": "bad request",
+		})
+		return
+	}
 	if err := h.uc.CreateUser(u); err != nil {
 		if errors.Is(err, usecase.ErrUserAlreadyExists) {
 			ctx.JSON(http.StatusConflict, gin.H{

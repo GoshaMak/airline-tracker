@@ -23,7 +23,7 @@ func (uc *AircraftModelUsecase) AddAircraftModel(cmd *command.CreateAircraftMode
 	if err != nil {
 		return err
 	}
-	if err := uc.repo.Save(context.Background(), am); err != nil {
+	if err := uc.repo.SaveAircraftModel(context.Background(), am); err != nil {
 		return err
 	}
 	return nil

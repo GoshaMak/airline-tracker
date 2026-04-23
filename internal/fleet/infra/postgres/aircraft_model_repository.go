@@ -5,7 +5,7 @@ import (
 	"airline-tracker/internal/fleet/domain/repository"
 	"context"
 	"errors"
-	"log/slog"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,10 +22,11 @@ func NewAircraftModelRepository(i do.Injector) (repository.AircraftModelReposito
 	}, nil
 }
 
-func (r *aircraftModelRepository) Save(
+func (r *aircraftModelRepository) SaveAircraftModel(
 	ctx context.Context,
-	am *domain.AircraftModel,
+	am domain.AircraftModel,
 ) error {
+	op := "AircraftModelRepository.SaveAircraftModel"
 	query := `
 	insert into
 		aircraft_models(manufacturer, model, mass, max_altitude, max_speed)
@@ -36,19 +37,17 @@ func (r *aircraftModelRepository) Save(
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == string(RecordAlreadyExistsErrCode) {
-			slog.Error("AircraftModel already exists", "aircraft model", *am)
-			return ErrRecordAlreadyExists
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrAircraftModelAlreadyExists
 		}
-		slog.Error("Can't insert new aircraftModel", "error", err, "aircraft model", *am)
-		return ErrInsertFailure
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
 
 func (r *aircraftModelRepository) Exists(
 	ctx context.Context,
-	am *domain.AircraftModel,
-) (*domain.AircraftModel, error) {
-	return nil, nil
+	am domain.AircraftModel,
+) (domain.AircraftModel, error) {
+	return domain.AircraftModel{}, nil
 }

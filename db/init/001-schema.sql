@@ -11,8 +11,8 @@ create table if not exists airports
     id        uuid primary key default gen_random_uuid(),
     iata_code varchar(10) unique not null,
     title     varchar(128)       not null,
-    city      varchar(128)       not null,
-    country   varchar(128)       not null
+    city      varchar(200)       not null,
+    country   varchar(10)        not null
 );
 
 create table if not exists gates

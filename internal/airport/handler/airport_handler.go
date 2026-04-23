@@ -5,6 +5,7 @@ import (
 	"airline-tracker/internal/airport/dto"
 	"airline-tracker/internal/airport/query"
 	"airline-tracker/internal/airport/usecase"
+	"airline-tracker/internal/common"
 	"airline-tracker/internal/middleware"
 	"errors"
 	"log/slog"
@@ -25,16 +26,16 @@ func NewAirportHandler(i do.Injector) (*AirportHandler, error) {
 }
 
 func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*AirportHandler](i)
+	h := do.MustInvoke[*AirportHandler](i)
 
-	admin := r.Group("/airport", middleware.AuthMiddleware("admin"))
+	admin := r.Group("/airport", middleware.AuthMiddleware(common.AdminRole))
 	{
-		admin.POST("/create", c.CreateAirport)
+		admin.POST("/create", h.CreateAirport)
 	}
 
 	user := r.Group("/airport")
 	{
-		user.GET("/list", c.ListAirports)
+		user.GET("/list", h.ListAirports)
 	}
 }
 

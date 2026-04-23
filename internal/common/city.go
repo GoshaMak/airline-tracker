@@ -1,12 +1,34 @@
 package common
 
-import "fmt"
+import (
+	"errors"
+	"unicode"
+)
 
+// Must be created via NewCity
 type City string
 
-func NewCity(v string) (City, error) {
-	if v == "" {
-		return "", fmt.Errorf("invalid country")
+var (
+	ErrInvalidCity = errors.New("invalid city")
+)
+
+func isValidCity(city string) bool {
+	if len(city) < 2 || len(city) > 200 {
+		return false
 	}
-	return City(v), nil
+
+	for _, r := range city {
+		if !unicode.IsLetter(r) && r != ' ' && r != '-' {
+			return false
+		}
+	}
+
+	return true
+}
+
+func NewCity(c string) (City, error) {
+	if !isValidCity(c) {
+		return "", ErrInvalidCity
+	}
+	return City(c), nil
 }

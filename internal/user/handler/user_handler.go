@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"airline-tracker/internal/common"
 	"airline-tracker/internal/flight/dto"
 	"airline-tracker/internal/middleware"
 	"airline-tracker/internal/user/usecase"
@@ -25,7 +26,7 @@ func NewUserHandler(i do.Injector) (*UserHandler, error) {
 func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*UserHandler](i)
 
-	user := r.Group("/user", middleware.AuthMiddleware("user"))
+	user := r.Group("/user", middleware.AuthMiddleware(common.UserRole))
 	{
 		user.POST("/subscribe", h.Subscribe)
 		user.GET("/list_flights", h.ListFlights)

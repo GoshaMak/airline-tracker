@@ -34,19 +34,19 @@ func NewFlight(
 	arrivalAirportID uuid.UUID,
 	departureGateID uuid.UUID,
 	arrivalGateID uuid.UUID,
-) (*Flight, error) {
+) (Flight, error) {
 	if scheduledDeparture.Compare(scheduledArrival) != -1 {
-		return nil, fmt.Errorf("departure after arrival")
+		return Flight{}, fmt.Errorf("departure after arrival")
 	}
 	status, err := NewFlightStatus(flightStatus)
 	if err != nil {
-		return nil, err
+		return Flight{}, err
 	}
 	plan, err := NewFlightPlan(flightPlan)
 	if err != nil {
-		return nil, err
+		return Flight{}, err
 	}
-	return &Flight{
+	return Flight{
 		ID:                 uuid.New(),
 		AircraftID:         aircraftID,
 		ScheduledDeparture: scheduledDeparture,

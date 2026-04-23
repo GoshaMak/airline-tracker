@@ -1,20 +1,32 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"airline-tracker/internal/common"
 
-// WARN: fix thig tag mess
+	"github.com/google/uuid"
+)
+
+// WARN: fix this tag mess
 type User struct {
-	ID       uuid.UUID `db:"id"`
-	Email    string    `db:"email"`
-	Password string    `db:"password"`
-	Role     string    `db:"role"`
+	ID       uuid.UUID    `db:"id"`
+	Email    common.Email `db:"email"`
+	Password string       `db:"password"`
+	Role     common.Role  `db:"role"`
 }
 
-func NewUser(email, password, role string) User {
+func NewUser(email, password, role string) (User, error) {
+	e, err := common.NewEmail(email)
+	if err != nil {
+		return User{}, err
+	}
+	r, err := common.NewRole(role)
+	if err != nil {
+		return User{}, err
+	}
 	return User{
 		ID:       uuid.New(),
-		Email:    email,
+		Email:    e,
 		Password: password,
-		Role:     role,
-	}
+		Role:     r,
+	}, nil
 }

@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"airline-tracker/internal/common"
 	"airline-tracker/internal/user/domain"
 	"os"
 	"time"
@@ -12,11 +13,11 @@ import (
 var jwtKey = []byte("")
 
 type JWTClaims struct {
-	Role string `json:"role"`
+	Role common.Role `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func newJWTClaims(userID, role string) *JWTClaims {
+func newJWTClaims(userID string, role common.Role) *JWTClaims {
 	return &JWTClaims{
 		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{

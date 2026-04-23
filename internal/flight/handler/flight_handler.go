@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"airline-tracker/internal/common"
 	"airline-tracker/internal/flight/command"
 	"airline-tracker/internal/flight/dto"
 	service "airline-tracker/internal/flight/usecase"
@@ -30,7 +31,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 		r.GET("/flight/:id", c.FlightByID)
 	}
 
-	admin := r.Group("", middleware.AuthMiddleware("admin"))
+	admin := r.Group("", middleware.AuthMiddleware(common.AdminRole))
 	{
 		admin.POST("/add_flight", c.AddFlight)
 		admin.PATCH("/flight/:id", c.UpdateFlight) // TODO: move id to request's body

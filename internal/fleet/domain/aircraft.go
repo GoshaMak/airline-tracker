@@ -1,17 +1,15 @@
 package domain
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
 )
 
 type Aircraft struct {
 	ID                 uuid.UUID
-	RegistrationNumber string
+	RegistrationNumber RegistrationNumber
 	AircraftModelID    uuid.UUID
-	SerialNumber       string
-	Mileage            int
+	SerialNumber       SerialNumber
+	Mileage            Mileage
 }
 
 func NewAircraft(
@@ -19,19 +17,24 @@ func NewAircraft(
 	aircraftModelID uuid.UUID,
 	serialNumber string,
 	mileage int,
-) (*Aircraft, error) {
-	if registrationNumber == "" {
-		return nil, errors.New("registration number is required")
+) (Aircraft, error) {
+	rn, err := NewRegistrationNumber(registrationNumber)
+	if err != nil {
+		return Aircraft{}, err
 	}
-	if registrationNumber == "" {
-		return nil, errors.New("registration number is required")
+	sn, err := NewSerialNumber(serialNumber)
+	if err != nil {
+		return Aircraft{}, err
 	}
-
-	return &Aircraft{
+	m, err := NewMileage(mileage)
+	if err != nil {
+		return Aircraft{}, err
+	}
+	return Aircraft{
 		ID:                 uuid.New(),
-		RegistrationNumber: registrationNumber,
+		RegistrationNumber: rn,
 		AircraftModelID:    aircraftModelID,
-		SerialNumber:       serialNumber,
-		Mileage:            mileage,
+		SerialNumber:       sn,
+		Mileage:            m,
 	}, nil
 }

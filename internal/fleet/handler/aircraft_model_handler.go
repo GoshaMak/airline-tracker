@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"airline-tracker/internal/common"
 	"airline-tracker/internal/fleet/command"
 	"airline-tracker/internal/fleet/dto"
 	"airline-tracker/internal/fleet/usecase"
@@ -22,10 +23,11 @@ func NewAircraftModelHandler(i do.Injector) (*AircraftModelHandler, error) {
 }
 
 func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
-	c := do.MustInvoke[*AircraftModelHandler](i)
-	g := r.Group("/admin", middleware.AuthMiddleware("admin"))
+	h := do.MustInvoke[*AircraftModelHandler](i)
+
+	admin := r.Group("/admin", middleware.AuthMiddleware(common.AdminRole))
 	{
-		g.POST("/add_aircraft_model", c.AddAircraftModel)
+		admin.POST("/add_aircraft_model", h.AddAircraftModel)
 	}
 }
 

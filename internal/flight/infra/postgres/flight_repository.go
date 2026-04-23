@@ -21,7 +21,7 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	}, nil
 }
 
-func (r *flightRepository) SaveFlight(ctx context.Context, f *domain.Flight) error {
+func (r *flightRepository) SaveFlight(ctx context.Context, f domain.Flight) error {
 	op := "FlightRepository.SaveFlight"
 	_, err := r.conn.Exec(ctx,
 		"call add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
@@ -42,8 +42,8 @@ func (r *flightRepository) SaveFlight(ctx context.Context, f *domain.Flight) err
 	return nil
 }
 
-func (r *flightRepository) Exists(ctx context.Context, id uint32) (*domain.Flight, error) {
-	return nil, nil
+func (r *flightRepository) Exists(ctx context.Context, id uint32) (domain.Flight, error) {
+	return domain.Flight{}, nil
 }
 
 func (r *flightRepository) UpdateByID(ctx context.Context, id uint32) error {
