@@ -5,7 +5,7 @@ create table if not exists users
     password_hash varchar(128)        not null,
     role          varchar(20)         not null,
 
-    check (role in ('user', 'admin'))
+    constraint role_check check (role in ('user', 'admin'))
 );
 
 create table if not exists airports
@@ -23,7 +23,7 @@ create table if not exists gates
     airport_id uuid references airports (id) not null,
     number     varchar(4)                    not null,
 
-    unique (airport_id, number)
+    constraint unique_gate_in_airport unique (airport_id, number)
 );
 
 create table if not exists aircraft_models
@@ -35,10 +35,10 @@ create table if not exists aircraft_models
     max_altitude int         not null, -- meters
     max_speed    int         not null, -- km/h
 
-    unique (manufacturer, model),
-    check (mass > 0),
-    check (max_altitude > 0),
-    check (max_speed > 0)
+    constraint unique_model_per_manufacturer unique (manufacturer, model),
+    constraint positive_mass check (mass > 0),
+    constraint positive_max_altitude check (max_altitude > 0),
+    constraint positive_max_speed check (max_speed > 0)
 );
 
 create table if not exists aircraft
@@ -49,7 +49,7 @@ create table if not exists aircraft
     serial_number       varchar(10)                          not null,
     mileage             int                                  not null,
 
-    check (mileage >= 0)
+    constraint non_negative_mileage check (mileage >= 0)
 );
 
 create table if not exists flights
@@ -63,12 +63,13 @@ create table if not exists flights
     status              varchar(20)                   not null,
     plan                varchar(200),
 
-    check (scheduled_arrival > scheduled_departure),
-    check (actual_departure is null or actual_arrival is null or actual_arrival > actual_departure),
-    check (status in ('scheduled', 'boarding',
-                      'departed', 'landed',
-                      'arrived', 'delayed',
-                      'cancelled', 'rescheduled'))
+    constraint sch_arrival_after_sch_departure check (scheduled_arrival > scheduled_departure),
+    constraint act_arrival_after_act_departure check (actual_departure is null or actual_arrival is null or
+                                                      actual_arrival > actual_departure),
+    constraint status_check check (status in ('scheduled', 'boarding',
+                                              'departed', 'landed',
+                                              'arrived', 'delayed',
+                                              'cancelled', 'rescheduled'))
 );
 
 create table if not exists flight_routes
@@ -85,5 +86,5 @@ create table if not exists subscriptions
     user_id   uuid references users (id)   not null,
     flight_id uuid references flights (id) not null,
 
-    unique (user_id, flight_id)
+    constraint unique_flight_subscription_per_user unique (user_id, flight_id)
 );

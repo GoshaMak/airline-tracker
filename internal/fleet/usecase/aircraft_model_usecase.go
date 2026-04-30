@@ -18,7 +18,7 @@ func NewAircraftModelUsecase(i do.Injector) (*AircraftModelUsecase, error) {
 	}, nil
 }
 
-func (uc *AircraftModelUsecase) AddAircraftModel(cmd *command.CreateAircraftModelCommand) error {
+func (uc *AircraftModelUsecase) AddAircraftModel(cmd command.CreateAircraftModelCommand) error {
 	am, err := command.ToDomainCreateAircraftModelCommand(cmd)
 	if err != nil {
 		return err

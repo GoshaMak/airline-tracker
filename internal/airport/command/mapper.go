@@ -5,7 +5,7 @@ import (
 	"airline-tracker/internal/common"
 )
 
-func CommandToGateDomain(cmd *CreateGateCommand) (*domain.Gate, error) {
+func CommandToGateDomain(cmd *CreateGateCommand) (domain.Gate, error) {
 	g, err := domain.NewGate(cmd.AirportID, cmd.GateNumber)
 	return g, err
 }

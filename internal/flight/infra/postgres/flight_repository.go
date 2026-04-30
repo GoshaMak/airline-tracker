@@ -4,6 +4,7 @@ import (
 	"airline-tracker/internal/flight/domain"
 	"airline-tracker/internal/flight/domain/repository"
 	"airline-tracker/internal/flight/infra/postgres/model"
+	"airline-tracker/internal/utils"
 	"context"
 	"fmt"
 
@@ -22,20 +23,24 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	}, nil
 }
 
-func (r *flightRepository) SaveFlight(ctx context.Context, f domain.Flight) error {
+func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
 	op := "FlightRepository.SaveFlight"
+	var plan *string
+	if f.Plan != nil {
+		plan = utils.Ptr(f.Plan.String())
+	}
 	_, err := r.conn.Exec(ctx,
 		"call add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-		f.ID,
+		f.Id,
 		f.ScheduledDeparture,
 		f.ScheduledArrival,
 		f.Status.String(),
-		f.Plan.String(),
-		f.AircraftID,
-		f.DepartureAirportID,
-		f.ArrivalAirportID,
-		f.DepartureGateID,
-		f.ArrivalGateID,
+		plan,
+		f.AircraftId,
+		f.DepartureAirportId,
+		f.ArrivalAirportId,
+		f.DepartureGateId,
+		f.ArrivalGateId,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -47,14 +52,15 @@ func (r *flightRepository) Exists(ctx context.Context, id uint32) (domain.Flight
 	return domain.Flight{}, nil
 }
 
-func (r *flightRepository) UpdateByID(ctx context.Context, id uint32) error {
+func (r *flightRepository) UpdateById(ctx context.Context, id uint32) error {
 	return nil
 }
 
-func (r *flightRepository) ListAllFlights(ctx context.Context) ([]domain.Flight, error) {
+func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, error) {
 	op := "FlightRepository.ListAllFlights"
 	query := `
-	select * from scan_flights_info()
+	select *
+	from scan_flights_info()
 	`
 	rows, _ := r.conn.Query(ctx, query)
 	flightsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
@@ -64,11 +70,11 @@ func (r *flightRepository) ListAllFlights(ctx context.Context) ([]domain.Flight,
 
 	flights := make([]domain.Flight, len(flightsModels))
 	for i, m := range flightsModels {
-		d, err := model.FlightModelToDomain(m)
+		f, err := model.FlightModelToDomain(m)
 		if err != nil {
 			return nil, err
 		}
-		flights[i] = d
+		flights[i] = f
 	}
 
 	return flights, nil

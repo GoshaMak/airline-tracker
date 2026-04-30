@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,7 +22,6 @@ func newPool(ctx context.Context) (*pgxpool.Pool, error) {
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_NAME"),
 	)
-	slog.Debug(fmt.Sprintf("connStr: %s", connStr))
 
 	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
@@ -36,7 +34,7 @@ func newPool(ctx context.Context) (*pgxpool.Pool, error) {
 	}
 
 	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("unable to ping database")
+		return nil, fmt.Errorf("unable to ping postgres")
 	}
 
 	return pool, nil

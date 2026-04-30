@@ -6,7 +6,7 @@ import (
 )
 
 type GateRepository interface {
-	Save(ctx context.Context, g *domain.Gate) error
+	Save(ctx context.Context, g domain.Gate) error
 
-	Exists(ctx context.Context, g *domain.Gate) (*domain.Gate, error)
+	Exists(ctx context.Context, g domain.Gate) (domain.Gate, error)
 }

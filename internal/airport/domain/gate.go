@@ -8,8 +8,8 @@ type Gate struct {
 	Number    GateNumber
 }
 
-func NewGate(aid uuid.UUID, number GateNumber) (*Gate, error) {
-	return &Gate{
+func NewGate(aid uuid.UUID, number GateNumber) (Gate, error) {
+	return Gate{
 		ID:        uuid.New(),
 		AirportID: aid,
 		Number:    number,

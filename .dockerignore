@@ -9,3 +9,6 @@ docker-compose.yml
 Makefile
 README.md
 db/tmp
+.venv
+venv
+.idea

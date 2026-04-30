@@ -23,7 +23,7 @@ func NewGateRepository(i do.Injector) (repository.GateRepository, error) {
 
 func (r *gateRepository) Save(
 	ctx context.Context,
-	g *domain.Gate,
+	g domain.Gate,
 ) error {
 	query := `
 	insert into gates(id, airport_id, number)
@@ -44,7 +44,7 @@ func (r *gateRepository) Save(
 
 func (r *gateRepository) Exists(
 	ctx context.Context,
-	a *domain.Gate,
-) (*domain.Gate, error) {
-	return nil, nil
+	a domain.Gate,
+) (domain.Gate, error) {
+	return domain.Gate{}, nil
 }

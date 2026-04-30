@@ -9,5 +9,5 @@ import (
 
 var Package = do.Package(
 	do.Lazy(postgres.NewPostgresPool),
-	do.Lazy(redis.NewRedisConnection),
+	do.Lazy(redis.NewRedisClient),
 )

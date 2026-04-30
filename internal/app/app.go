@@ -3,19 +3,19 @@ package app
 import (
 	"airline-tracker/cmd/docs"
 	"airline-tracker/internal/airport"
-	airportController "airline-tracker/internal/airport/handler"
+	airportHandler "airline-tracker/internal/airport/handler"
 	"airline-tracker/internal/auth"
-	authController "airline-tracker/internal/auth/handler"
+	authHandler "airline-tracker/internal/auth/handler"
 	"airline-tracker/internal/fleet"
-	fleetController "airline-tracker/internal/fleet/handler"
+	fleetHandler "airline-tracker/internal/fleet/handler"
 	"airline-tracker/internal/flight"
-	flightController "airline-tracker/internal/flight/handler"
+	flightHandler "airline-tracker/internal/flight/handler"
 	"airline-tracker/internal/infra"
 	"airline-tracker/internal/infra/postgres"
 	"airline-tracker/internal/infra/redis"
 	"airline-tracker/internal/pkg/logger"
 	"airline-tracker/internal/user"
-	userController "airline-tracker/internal/user/handler"
+	userHandler "airline-tracker/internal/user/handler"
 	"io"
 
 	"log/slog"
@@ -84,16 +84,17 @@ func NewApp() *App {
 	}
 }
 
-func (a *App) Run() {
+func (a *App) Run() int {
 	defer postgres.CloseConnection(do.MustInvoke[*pgxpool.Pool](a.injector))
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](a.injector))
 
 	port := os.Getenv("PORT")
 	if err := a.router.Run(":" + port); err != nil {
 		slog.Error("Failed to run server", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	slog.Info("Program finished")
+	return 0
 }
 
 // @Summary status example
@@ -122,25 +123,25 @@ func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	r.GET("/status", status)
 	r.GET("/create_uuid", createUUID)
 
-	authController.RegisterAuthRoutes(i, r)
+	authHandler.RegisterAuthRoutes(i, r)
 	slog.Debug("Auth routes successfully registered")
 
 	{
-		airportController.RegisterAirportRoutes(i, r)
-		airportController.RegisterGateRoutes(i, r)
+		airportHandler.RegisterAirportRoutes(i, r)
+		airportHandler.RegisterGateRoutes(i, r)
 		slog.Debug("Airport routes successfully registered")
 	}
 
 	{
-		fleetController.RegisterAircraftRoutes(i, r)
-		fleetController.RegisterAircraftModelRoutes(i, r)
+		fleetHandler.RegisterAircraftRoutes(i, r)
+		fleetHandler.RegisterAircraftModelRoutes(i, r)
 		slog.Debug("Fleet routes successfully registered")
 	}
 
-	flightController.RegisterRoutes(i, r)
+	flightHandler.RegisterRoutes(i, r)
 	slog.Debug("Flight routes successfully registered")
 
-	userController.RegisterRoutes(i, r)
+	userHandler.RegisterRoutes(i, r)
 	slog.Debug("User routes successfully registered")
 
 	docs.SwaggerInfo.BasePath = "/"

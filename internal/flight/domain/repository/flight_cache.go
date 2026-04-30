@@ -8,9 +8,13 @@ import (
 )
 
 type FlightCache interface {
-	Set(ctx context.Context, f *domain.Flight) error
+	Save(ctx context.Context, f domain.Flight) error
 
-	GetByID(ctx context.Context, id *uuid.UUID) (*domain.Flight, error)
+	GetById(ctx context.Context, id uuid.UUID) (domain.Flight, error)
 
-	Delete(ctx context.Context, id *uuid.UUID) error
+	DeleteById(ctx context.Context, id uuid.UUID) error
+
+	SaveFlights(ctx context.Context, flights []domain.Flight) error
+
+	GetFlights(ctx context.Context) ([]domain.Flight, error)
 }

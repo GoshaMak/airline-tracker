@@ -16,17 +16,17 @@ func FlightModelToDomain(f FlightModel) (domain.Flight, error) {
 		p = &pv
 	}
 	return domain.Flight{
-		ID:                 f.ID,
-		AircraftID:         f.AircraftID,
+		Id:                 f.Id,
+		AircraftId:         f.AircraftId,
 		ScheduledDeparture: f.ScheduledDeparture,
 		ScheduledArrival:   f.ScheduledArrival,
 		ActualDeparture:    f.ActualDeparture,
 		ActualArrival:      f.ActualArrival,
 		Status:             st,
 		Plan:               p,
-		DepartureAirportID: f.DepartureAirportID,
-		ArrivalAirportID:   f.ArrivalAirportID,
-		DepartureGateID:    f.DepartureGateID,
-		ArrivalGateID:      f.ArrivalGateID,
+		DepartureAirportId: f.DepartureAirportId,
+		ArrivalAirportId:   f.ArrivalAirportId,
+		DepartureGateId:    f.DepartureGateId,
+		ArrivalGateId:      f.ArrivalGateId,
 	}, nil
 }

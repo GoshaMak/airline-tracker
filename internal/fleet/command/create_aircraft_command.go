@@ -16,21 +16,21 @@ type CreateAircraftCommand struct {
 
 func NewCreateAircraftCommand(
 	req *dto.CreateAircraftRequest,
-) (*CreateAircraftCommand, error) {
+) (CreateAircraftCommand, error) {
 	reg := req.Aircraft.RegistrationNumber
 	if reg == "" {
-		return nil, fmt.Errorf("invalid registration number")
+		return CreateAircraftCommand{}, fmt.Errorf("invalid registration number")
 	}
 	amID := req.Aircraft.AircraftModelID
 	serial := req.Aircraft.SerialNumber
 	if serial == "" {
-		return nil, fmt.Errorf("ivalid serial number")
+		return CreateAircraftCommand{}, fmt.Errorf("ivalid serial number")
 	}
 	mileage := req.Aircraft.Mileage
 	if mileage < 0 {
-		return nil, fmt.Errorf("invalid mileage")
+		return CreateAircraftCommand{}, fmt.Errorf("invalid mileage")
 	}
-	return &CreateAircraftCommand{
+	return CreateAircraftCommand{
 		RegistrationNumber: reg,
 		AircraftModelID:    amID,
 		SerialNumber:       serial,

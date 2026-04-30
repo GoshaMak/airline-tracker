@@ -47,9 +47,9 @@ func (r *airportRepository) Save(
 }
 
 func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport, error) {
-	op := "airportRepository.ListAirports"
+	op := "AirportRepository.ListAirports"
 	query := `	
-	select id, iata_code, title, city, country
+	select *
 	from airports
 	`
 	rows, _ := r.conn.Query(ctx, query)
@@ -63,11 +63,11 @@ func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport,
 
 	airports := make([]domain.Airport, len(airportsModels))
 	for i, am := range airportsModels {
-		ad, err := model.AirportModelToDomain(am)
+		a, err := model.AirportModelToDomain(am)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		airports[i] = ad
+		airports[i] = a
 	}
 	return airports, nil
 }

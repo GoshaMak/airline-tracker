@@ -56,6 +56,8 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 			return ErrUserNotFound
 		case repository.ErrFlightNotFound:
 			return ErrFlightNotFound
+		case repository.ErrUserAlreadySubscribed:
+			return nil
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}

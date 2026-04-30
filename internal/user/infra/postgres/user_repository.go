@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -36,7 +35,7 @@ func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 		values ($1, $2, $3, $4)
 	`
 	_, err := r.conn.Exec(ctx, query,
-		user.ID, user.Email.String(),
+		user.Id, user.Email.String(),
 		user.PasswordHash.String(), user.Role.String())
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -88,12 +87,16 @@ func (r *userRepository) Subscribe(
 	_, err := r.conn.Exec(ctx, query, uid, fid)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "P0002" {
-			slog.Debug(op, "err", err)
-			if strings.HasPrefix(pgErr.Message, "user") {
-				return repository.ErrUserNotFound
-			} else if strings.HasPrefix(pgErr.Message, "flight") {
-				return repository.ErrFlightNotFound
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "P0002" {
+				if strings.HasPrefix(pgErr.Message, "user") {
+					return repository.ErrUserNotFound
+				} else if strings.HasPrefix(pgErr.Message, "flight") {
+					return repository.ErrFlightNotFound
+				}
+			} else if pgErr.Code == "23505" &&
+				pgErr.ConstraintName == "unique_flight_subscription_per_user" {
+				return repository.ErrUserAlreadySubscribed
 			}
 		}
 		return fmt.Errorf("%s: %w", op, err)

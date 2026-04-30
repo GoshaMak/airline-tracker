@@ -3,7 +3,7 @@ package command
 import "airline-tracker/internal/fleet/domain"
 
 func ToDomainCreateAircraftModelCommand(
-	cmd *CreateAircraftModelCommand,
+	cmd CreateAircraftModelCommand,
 ) (domain.AircraftModel, error) {
 	am, err := domain.NewAircraftModel(
 		cmd.Manufacturer,
@@ -16,7 +16,7 @@ func ToDomainCreateAircraftModelCommand(
 }
 
 func ToDomainCreateAircraftCommand(
-	cmd *CreateAircraftCommand,
+	cmd CreateAircraftCommand,
 ) (domain.Aircraft, error) {
 	a, err := domain.NewAircraft(
 		cmd.RegistrationNumber,

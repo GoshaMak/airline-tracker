@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	ID           uuid.UUID
+	Id           uuid.UUID
 	Email        common.Email
 	PasswordHash PasswordHashed
 	Role         common.Role
@@ -27,7 +27,7 @@ func NewUser(email, password, role string) (User, error) {
 		return User{}, err
 	}
 	return User{
-		ID:           uuid.New(),
+		Id:           uuid.New(),
 		Email:        e,
 		PasswordHash: p,
 		Role:         r,

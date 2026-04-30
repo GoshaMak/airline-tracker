@@ -1,26 +1,30 @@
 package redis
 
 import (
-	"log/slog"
+	"context"
+	"errors"
+	"fmt"
 	"os"
 
 	rds "github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 )
 
-// TODO: make custom type?
-func NewRedisConnection(i do.Injector) (*rds.Client, error) {
-	rdb := rds.NewClient(&rds.Options{
+func NewRedisClient(i do.Injector) (*rds.Client, error) {
+	cln := rds.NewClient(&rds.Options{
 		Addr:     os.Getenv("REDIS_ADDR"),
-		Password: "",
+		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
-	if rdb == nil {
-		slog.Error("Unable to connect to redis")
-		return nil, nil
+	if cln == nil {
+		return nil, errors.New("unable to connect to redis")
 	}
-	slog.Info("Connected to redis")
-	return rdb, nil
+
+	if err := cln.Ping(context.Background()).Err(); err != nil {
+		return nil, fmt.Errorf("unable to ping redis")
+	}
+
+	return cln, nil
 }
 
 func CloseConnection(rdb *rds.Client) error {
