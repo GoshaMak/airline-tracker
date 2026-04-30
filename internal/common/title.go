@@ -18,7 +18,7 @@ func isValidTitle(t string) bool {
 	}
 
 	for _, r := range t {
-		if !unicode.IsLetter(r) && r != ' ' && r != '-' {
+		if !unicode.IsLetter(r) && r != ' ' && r != '-' && r != ',' {
 			return false
 		}
 	}
@@ -32,4 +32,8 @@ func NewTitle(t string) (Title, error) {
 		return "", ErrInvalidTitle
 	}
 	return Title(t), nil
+}
+
+func (t Title) String() string {
+	return string(t)
 }

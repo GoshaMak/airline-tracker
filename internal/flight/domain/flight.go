@@ -15,7 +15,7 @@ type Flight struct {
 	ActualDeparture    *time.Time   `json:"actual_departure" db:"actual_departure"`
 	ActualArrival      *time.Time   `json:"actual_arrival" db:"actual_arrival"`
 	Status             FlightStatus `json:"status" db:"status"`
-	Plan               FlightPlan   `json:"plan" db:"plan"`
+	Plan               *FlightPlan  `json:"plan" db:"plan"`
 	DepartureAirportID uuid.UUID    `json:"departure_airport_id" db:"departure_airport_id"`
 	ArrivalAirportID   uuid.UUID    `json:"arrival_airport_id" db:"arrival_airport_id"`
 	DepartureGateID    uuid.UUID    `json:"departure_gate_id" db:"departure_gate_id"`
@@ -29,7 +29,7 @@ func NewFlight(
 	actualDeparture *time.Time,
 	actualArrival *time.Time,
 	flightStatus string,
-	flightPlan string,
+	flightPlan *string,
 	departureAirportID uuid.UUID,
 	arrivalAirportID uuid.UUID,
 	departureGateID uuid.UUID,
@@ -42,9 +42,13 @@ func NewFlight(
 	if err != nil {
 		return Flight{}, err
 	}
-	plan, err := NewFlightPlan(flightPlan)
-	if err != nil {
-		return Flight{}, err
+	var plan *FlightPlan
+	if flightPlan != nil {
+		pv, err := NewFlightPlan(*flightPlan)
+		if err != nil {
+			return Flight{}, err
+		}
+		plan = &pv
 	}
 	return Flight{
 		ID:                 uuid.New(),

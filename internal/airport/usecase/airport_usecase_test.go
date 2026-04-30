@@ -42,9 +42,9 @@ func TestAirportUsecase(t *testing.T) {
 			data: &dto.CreateAirportRequest{
 				Airport: dto.AirportDTO{
 					IATACode: "",
-					Title:    "Title",
-					City:     "City",
-					Country:  "Country",
+					Title:    "Domodedovo",
+					City:     "Moscow",
+					Country:  "RU",
 				},
 			},
 			wantErr: true,
@@ -58,10 +58,10 @@ func TestAirportUsecase(t *testing.T) {
 			},
 			data: &dto.CreateAirportRequest{
 				Airport: dto.AirportDTO{
-					IATACode: "123",
-					Title:    "Title",
-					City:     "City",
-					Country:  "Country",
+					IATACode: "Domodedovo",
+					Title:    "Domodedovo",
+					City:     "Moscow",
+					Country:  "RU",
 				},
 			},
 			wantErr: true,
@@ -76,9 +76,9 @@ func TestAirportUsecase(t *testing.T) {
 			data: &dto.CreateAirportRequest{
 				Airport: dto.AirportDTO{
 					IATACode: "SVO",
-					Title:    "Title",
-					City:     "City",
-					Country:  "Country",
+					Title:    "Domodedovo",
+					City:     "Moscow",
+					Country:  "RU",
 				},
 			},
 			wantErr: false,

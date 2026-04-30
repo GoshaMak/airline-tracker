@@ -8,7 +8,7 @@ import (
 type GateNumber string
 
 func NewGateNumber(v string) (GateNumber, error) {
-	matched, err := regexp.MatchString(`^[A-Z]\d{1,2}$`, v)
+	matched, err := regexp.MatchString(`^[A-Z]\d{1,4}$`, v)
 	if err != nil {
 		return "", err
 	}
@@ -16,4 +16,8 @@ func NewGateNumber(v string) (GateNumber, error) {
 		return "", fmt.Errorf("invalid gate number")
 	}
 	return GateNumber(v), nil
+}
+
+func (gn GateNumber) String() string {
+	return string(gn)
 }

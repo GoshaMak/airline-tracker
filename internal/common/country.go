@@ -114,5 +114,9 @@ func NewCountry(c string) (Country, error) {
 			return "", ErrInvalidCountry
 		}
 	}
-	return Country(c), nil
+	return Country(code), nil
+}
+
+func (c Country) String() string {
+	return string(c)
 }

@@ -14,7 +14,7 @@ type FlightCommand struct {
 	ActualDeparture    *time.Time
 	ActualArrival      *time.Time
 	Status             string
-	Plan               string
+	Plan               *string
 }
 
 type AddFlightCommand struct {
@@ -36,9 +36,6 @@ func NewAddFlightCommand(req *dto.CreateFlightRequest) (*AddFlightCommand, error
 	}
 	if f.Status == "" {
 		return nil, fmt.Errorf("flight status is empty")
-	}
-	if f.Plan == "" {
-		return nil, fmt.Errorf("flight plan is empty")
 	}
 	return &AddFlightCommand{
 		Flight:             f,

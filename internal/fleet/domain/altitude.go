@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 type AircraftMaxAltitude int // meters
 
@@ -28,4 +31,8 @@ func NewAircraftMaxAltitude(altitude int) (AircraftMaxAltitude, error) {
 		return -1, err
 	}
 	return AircraftMaxAltitude(altitude), nil
+}
+
+func (a AircraftMaxAltitude) String() string {
+	return strconv.Itoa(int(a))
 }

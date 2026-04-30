@@ -33,7 +33,8 @@ func (r *aircraftModelRepository) SaveAircraftModel(
 		values ($1, $2, $3, $4, $5)
 	`
 	_, err := r.pool.Exec(ctx, query,
-		&am.Manufacturer, &am.Model, &am.Mass, &am.MaxAltitude, &am.MaxSpeed,
+		am.Manufacturer.String(), am.Model.String(),
+		am.Mass.String(), am.MaxAltitude.String(), am.MaxSpeed.String(),
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError

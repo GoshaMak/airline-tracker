@@ -39,7 +39,7 @@ func GetJWTKey() []byte {
 	return jwtKey
 }
 
-func GenerateJWT(u *domain.User) (string, error) {
+func GenerateJWT(u domain.User) (string, error) {
 	claims := newJWTClaims(u.ID.String(), u.Role)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, *claims)
 	key := GetJWTKey()

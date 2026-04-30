@@ -3,13 +3,14 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
-func NewPostgresConnection(i do.Injector) (*pgxpool.Pool, error) {
+func NewPostgresPool(i do.Injector) (*pgxpool.Pool, error) {
 	return newPool(context.Background())
 }
 
@@ -22,6 +23,7 @@ func newPool(ctx context.Context) (*pgxpool.Pool, error) {
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_NAME"),
 	)
+	slog.Debug(fmt.Sprintf("connStr: %s", connStr))
 
 	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {

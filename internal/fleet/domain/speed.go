@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 type AircraftMaxSpeed int // km/h
 
@@ -28,4 +31,8 @@ func NewAircraftMaxSpeed(speed int) (AircraftMaxSpeed, error) {
 		return -1, err
 	}
 	return AircraftMaxSpeed(speed), nil
+}
+
+func (s AircraftMaxSpeed) String() string {
+	return strconv.Itoa(int(s))
 }

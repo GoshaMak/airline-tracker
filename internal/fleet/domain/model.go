@@ -25,3 +25,7 @@ func NewModel(model string) (Model, error) {
 	}
 	return Model(model), nil
 }
+
+func (m Model) String() string {
+	return string(m)
+}

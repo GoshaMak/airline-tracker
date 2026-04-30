@@ -3,6 +3,7 @@ package postgres
 import (
 	"airline-tracker/internal/flight/domain"
 	"airline-tracker/internal/flight/domain/repository"
+	"airline-tracker/internal/flight/infra/postgres/model"
 	"context"
 	"fmt"
 
@@ -28,8 +29,8 @@ func (r *flightRepository) SaveFlight(ctx context.Context, f domain.Flight) erro
 		f.ID,
 		f.ScheduledDeparture,
 		f.ScheduledArrival,
-		f.Status,
-		f.Plan,
+		f.Status.String(),
+		f.Plan.String(),
 		f.AircraftID,
 		f.DepartureAirportID,
 		f.ArrivalAirportID,
@@ -56,9 +57,18 @@ func (r *flightRepository) ListAllFlights(ctx context.Context) ([]domain.Flight,
 	select * from scan_flights_info()
 	`
 	rows, _ := r.conn.Query(ctx, query)
-	flights, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Flight])
+	flightsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	flights := make([]domain.Flight, len(flightsModels))
+	for i, m := range flightsModels {
+		d, err := model.FlightModelToDomain(m)
+		if err != nil {
+			return nil, err
+		}
+		flights[i] = d
 	}
 
 	return flights, nil

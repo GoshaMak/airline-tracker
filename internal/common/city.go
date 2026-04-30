@@ -32,3 +32,7 @@ func NewCity(c string) (City, error) {
 	}
 	return City(c), nil
 }
+
+func (c City) String() string {
+	return string(c)
+}

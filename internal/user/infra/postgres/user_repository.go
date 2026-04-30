@@ -2,8 +2,10 @@ package postgres
 
 import (
 	flightDomain "airline-tracker/internal/flight/domain"
+	flightModel "airline-tracker/internal/flight/infra/postgres/model"
 	"airline-tracker/internal/user/domain"
 	"airline-tracker/internal/user/domain/repository"
+	"airline-tracker/internal/user/infra/postgres/model"
 	"context"
 	"errors"
 	"fmt"
@@ -34,7 +36,8 @@ func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 		values ($1, $2, $3, $4)
 	`
 	_, err := r.conn.Exec(ctx, query,
-		user.ID, user.Email, user.Password, user.Role)
+		user.ID, user.Email.String(),
+		user.PasswordHash.String(), user.Role.String())
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -51,14 +54,19 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 	select * from users where email = $1
 	`
 	row, _ := r.conn.Query(ctx, query, email)
-	u, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[domain.User])
+	um, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.UserModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, repository.ErrUserNotFound
 		}
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
-	return u, nil
+
+	ud, err := model.UserModelToDomain(um)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+	return ud, nil
 }
 
 func (r *userRepository) Exists(ctx context.Context, uid uuid.UUID) (domain.User, error) {
@@ -102,9 +110,18 @@ func (r *userRepository) ListFlights(
 	select * from scan_user_flights_info($1)
 	`
 	rows, _ := r.conn.Query(ctx, query, uid)
-	flights, err := pgx.CollectRows(rows, pgx.RowToStructByName[flightDomain.Flight])
+	fsMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[flightModel.FlightModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return flights, nil
+
+	fsDs := make([]flightDomain.Flight, len(fsMs))
+	for i, fm := range fsMs {
+		fd, err := flightModel.FlightModelToDomain(fm)
+		if err != nil {
+			return nil, err
+		}
+		fsDs[i] = fd
+	}
+	return fsDs, nil
 }

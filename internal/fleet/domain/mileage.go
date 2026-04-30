@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"strconv"
 )
 
 type Mileage int // miles
@@ -30,4 +31,8 @@ func NewMileage(m int) (Mileage, error) {
 		return -1, err
 	}
 	return Mileage(m), nil
+}
+
+func (m Mileage) String() string {
+	return strconv.Itoa(int(m))
 }

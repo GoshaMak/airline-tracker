@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 type AircraftMass int // kg
 
@@ -28,4 +31,8 @@ func NewAircraftMass(mass int) (AircraftMass, error) {
 		return -1, err
 	}
 	return AircraftMass(mass), nil
+}
+
+func (m AircraftMass) String() string {
+	return strconv.Itoa(int(m))
 }

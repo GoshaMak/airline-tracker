@@ -9,27 +9,24 @@ import (
 type FlightPlan string
 
 var (
-	ErrInvalidFlightPlan = errors.New("invalide flight plan")
+	ErrInvalidFlightPlan = errors.New("invalid flight plan")
 )
 
-var flightPlanRegex = regexp.MustCompile(`^[A-Z0-9]{2,10}$`)
+var flightPlanRegex = regexp.MustCompile(`^[A-Z0-9\- ]{2,200}$`)
 
 func IsValidFlightPlan(p string) error {
 	p = strings.ToUpper(strings.TrimSpace(p))
 
 	if p == "" {
-		return ErrInvalidFlightPlan
+		return nil
 	}
 
 	if len(p) > 1000 {
 		return ErrInvalidFlightPlan
 	}
 
-	fields := strings.FieldsSeq(p)
-	for field := range fields {
-		if !flightPlanRegex.MatchString(field) {
-			return ErrInvalidFlightPlan
-		}
+	if !flightPlanRegex.MatchString(p) {
+		return ErrInvalidFlightPlan
 	}
 
 	return nil

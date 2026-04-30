@@ -3,6 +3,7 @@ package postgres
 import (
 	"airline-tracker/internal/airport/domain"
 	"airline-tracker/internal/airport/domain/repository"
+	"airline-tracker/internal/airport/infra/postgres/model"
 	"context"
 	"errors"
 	"fmt"
@@ -33,7 +34,7 @@ func (r *airportRepository) Save(
 	`
 
 	_, err := r.conn.Exec(ctx, query,
-		a.ID, a.IATACode, a.Title, a.City, a.Country,
+		a.ID, a.IATACode.String(), a.Title.String(), a.City.String(), a.Country.String(),
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -52,12 +53,21 @@ func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport,
 	from airports
 	`
 	rows, _ := r.conn.Query(ctx, query)
-	airports, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Airport])
+	airportsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AirportModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	airports := make([]domain.Airport, len(airportsModels))
+	for i, am := range airportsModels {
+		ad, err := model.AirportModelToDomain(am)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		airports[i] = ad
 	}
 	return airports, nil
 }

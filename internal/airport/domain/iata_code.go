@@ -19,3 +19,7 @@ func NewIATACode(v string) (IATACode, error) {
 	}
 	return IATACode(v), nil
 }
+
+func (c IATACode) String() string {
+	return string(c)
+}

@@ -33,7 +33,8 @@ func (r *aircraftRepository) SaveAircraft(
 		values ($1, $2, $3, $4)
 	`
 	_, err := r.pool.Exec(ctx, query,
-		&a.RegistrationNumber, &a.AircraftModelID, &a.SerialNumber, &a.Mileage,
+		a.RegistrationNumber.String(), a.AircraftModelID.String(),
+		a.SerialNumber.String(), a.Mileage.String(),
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError

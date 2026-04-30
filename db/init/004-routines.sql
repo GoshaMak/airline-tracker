@@ -56,7 +56,7 @@ begin
             p_flight_status,
             p_flight_plan);
 
-    insert into visits (flight_id, departure_gate_id, arrival_gate_id)
+    insert into flight_routes (flight_id, departure_gate_id, arrival_gate_id)
     values (p_flight_id, p_departure_gate_id, p_arrival_gate_id);
 end;
 $$;
@@ -95,7 +95,7 @@ begin
                gd.airport_id,
                ga.airport_id
         from flights f
-                 join visits v on f.id = v.flight_id
+                 join flight_routes v on f.id = v.flight_id
                  join gates gd on gd.id = v.departure_gate_id
                  join gates ga on ga.id = v.arrival_gate_id;
 end;
@@ -110,11 +110,11 @@ create or replace function subscribe(
 as
 $$
 begin
-    if not exists(select * from users where id = p_uid) then
+    if not exists(select 1 from users where id = p_uid) then
         raise exception 'user not found' using errcode = 'P0002';
     end if;
 
-    if not exists(select * from flights where id = p_fid) then
+    if not exists(select 1 from flights where id = p_fid) then
         raise exception 'flight not found' using errcode = 'P0002';
     end if;
 
@@ -163,7 +163,7 @@ begin
                gd.airport_id,
                ga.airport_id
         from flights f
-                 join visits v on f.id = v.flight_id
+                 join flight_routes v on f.id = v.flight_id
                  join gates gd on gd.id = v.departure_gate_id
                  join gates ga on ga.id = v.arrival_gate_id
                  join subscriptions s on s.flight_id = f.id and s.user_id = p_uid;

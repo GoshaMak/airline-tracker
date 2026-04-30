@@ -105,7 +105,7 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 	}
 	slog.Info(op, "user", user)
 
-	token, err := usecase.GenerateJWT(&user)
+	token, err := usecase.GenerateJWT(user)
 	if err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err})

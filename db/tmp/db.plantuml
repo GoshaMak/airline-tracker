@@ -41,6 +41,11 @@ class gates {
    number: varchar(128)
    id: uuid
 }
+class subscriptions {
+   user_id: uuid
+   flight_id: uuid
+   id: uuid
+}
 class users {
    email: varchar(256)
    password: varchar(128)
@@ -57,6 +62,8 @@ class visits {
 aircraft         -[#595959,plain]-^  aircraft_models : "aircraft_model_id:id"
 flights          -[#595959,plain]-^  aircraft        : "aircraft_id:id"
 gates            -[#595959,plain]-^  airports        : "airport_id:id"
+subscriptions    -[#595959,plain]-^  flights         : "flight_id:id"
+subscriptions    -[#595959,plain]-^  users           : "user_id:id"
 visits           -[#595959,plain]-^  flights         : "flight_id:id"
 visits           -[#595959,plain]-^  gates           : "departure_gate_id:id"
 visits           -[#595959,plain]-^  gates           : "arrival_gate_id:id"

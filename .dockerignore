@@ -1,2 +1,11 @@
 docs/
 diagrams
+.dockerignore
+.git
+.gitignore
+Dockerfile
+TODO.md
+docker-compose.yml
+Makefile
+README.md
+db/tmp

@@ -25,3 +25,7 @@ func NewSerialNumber(n string) (SerialNumber, error) {
 	}
 	return SerialNumber(n), nil
 }
+
+func (sn SerialNumber) String() string {
+	return string(sn)
+}

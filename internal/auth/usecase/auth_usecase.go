@@ -31,7 +31,7 @@ func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -40,9 +40,6 @@ func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
 
 func (uc *AuthUsecase) CreateUser(u domain.User) error {
 	op := "AuthUsecase.CreateUser"
-	if err := encryptPassword(&u); err != nil { // TODO: move inside NewUser
-		return fmt.Errorf("%s: %w", op, err)
-	}
 
 	if err := uc.repo.SaveUser(context.Background(), u); err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
@@ -51,15 +48,6 @@ func (uc *AuthUsecase) CreateUser(u domain.User) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
-}
-
-func encryptPassword(u *domain.User) error {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	u.Password = string(hashed)
 	return nil
 }
 

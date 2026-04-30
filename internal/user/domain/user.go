@@ -6,16 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
-// WARN: fix this tag mess
 type User struct {
-	ID       uuid.UUID    `db:"id"`
-	Email    common.Email `db:"email"`
-	Password string       `db:"password"`
-	Role     common.Role  `db:"role"`
+	ID           uuid.UUID
+	Email        common.Email
+	PasswordHash PasswordHashed
+	Role         common.Role
 }
 
 func NewUser(email, password, role string) (User, error) {
 	e, err := common.NewEmail(email)
+	if err != nil {
+		return User{}, err
+	}
+	p, err := NewPasswordHashed(password)
 	if err != nil {
 		return User{}, err
 	}
@@ -24,9 +27,9 @@ func NewUser(email, password, role string) (User, error) {
 		return User{}, err
 	}
 	return User{
-		ID:       uuid.New(),
-		Email:    e,
-		Password: password,
-		Role:     r,
+		ID:           uuid.New(),
+		Email:        e,
+		PasswordHash: p,
+		Role:         r,
 	}, nil
 }

@@ -12,11 +12,11 @@ var (
 	ErrInvalidRegistrationNumber = errors.New("invalid registration number")
 )
 
-var generalAircraftRegex = regexp.MustCompile(`^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$`)
+var generalRegistrationNumberRegex = regexp.MustCompile(`^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$`)
 
 func IsValidAircraftRegistration(reg string) bool {
 	reg = strings.ToUpper(strings.TrimSpace(reg))
-	return generalAircraftRegex.MatchString(reg)
+	return generalRegistrationNumberRegex.MatchString(reg)
 }
 
 func NewRegistrationNumber(n string) (RegistrationNumber, error) {
@@ -24,4 +24,8 @@ func NewRegistrationNumber(n string) (RegistrationNumber, error) {
 		return "", ErrInvalidRegistrationNumber
 	}
 	return RegistrationNumber(n), nil
+}
+
+func (rn RegistrationNumber) String() string {
+	return string(rn)
 }

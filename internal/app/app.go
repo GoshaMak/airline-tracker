@@ -13,14 +13,17 @@ import (
 	"airline-tracker/internal/infra"
 	"airline-tracker/internal/infra/postgres"
 	"airline-tracker/internal/infra/redis"
+	"airline-tracker/internal/pkg/logger"
 	"airline-tracker/internal/user"
 	userController "airline-tracker/internal/user/handler"
+	"io"
 
 	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	rds "github.com/redis/go-redis/v9"
@@ -46,7 +49,21 @@ func NewApp() *App {
 	// TODO: add SIGINT handler
 	godotenv.Load()
 
-	setupLogger()
+	var w io.Writer = os.Stdout
+	if os.Getenv("MODE") != "DEBUG" {
+		logFileName := os.Getenv("LOG_FILE")
+		logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			panic(err)
+		}
+		defer logFile.Close()
+		w = logFile
+	}
+
+	if err := logger.SetupLogger(w); err != nil {
+		panic(err)
+	}
+	slog.Info("Logger initialized")
 
 	injector := do.New(
 		auth.Package,
@@ -79,23 +96,9 @@ func (a *App) Run() {
 	slog.Info("Program finished")
 }
 
-func setupLogger() {
-	logger := slog.New(slog.NewTextHandler(
-		os.Stdout,
-		&slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		},
-	))
-	if logger == nil {
-		os.Exit(1)
-	}
-	slog.SetDefault(logger)
-	slog.Info("Logger inited")
-}
-
 // @Summary status example
 // @Description check status
-// @Tags Health check
+// @Tags Utils
 // @Accept json
 // @Produce json
 // @Success 200 "OK"
@@ -104,8 +107,20 @@ func status(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "OK")
 }
 
+// @Summary create uuid
+// @Description creates new uuid
+// @Tags Utils
+// @Accept json
+// @Produce json
+// @Success 200 "uuid"
+// @Router /create_uuid [get]
+func createUUID(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, uuid.NewString())
+}
+
 func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	r.GET("/status", status)
+	r.GET("/create_uuid", createUUID)
 
 	authController.RegisterAuthRoutes(i, r)
 	slog.Debug("Auth routes successfully registered")

@@ -15,7 +15,7 @@ type flight struct {
 	ActualDeparture    *time.Time `json:"actual_departure"`
 	ActualArrival      *time.Time `json:"actual_arrival"`
 	Status             string     `json:"status"`
-	Plan               string     `json:"plan"`
+	Plan               *string    `json:"plan"`
 	DepartureAirportID uuid.UUID  `json:"departure_airport_id"`
 	ArrivalAirportID   uuid.UUID  `json:"arrival_airport_id"`
 	DepartureGateID    uuid.UUID  `json:"departure_gate_id"`
@@ -39,6 +39,7 @@ func ToResponseListFlights(
 }
 
 func domainToResponse(f *domain.Flight) flight {
+	var plan *string = (*string)(f.Plan)
 	return flight{
 		ID:                 f.ID,
 		AircraftID:         f.AircraftID,
@@ -47,7 +48,7 @@ func domainToResponse(f *domain.Flight) flight {
 		ActualDeparture:    f.ActualDeparture,
 		ActualArrival:      f.ActualArrival,
 		Status:             f.Status.String(),
-		Plan:               f.Plan.String(),
+		Plan:               plan,
 		DepartureAirportID: f.DepartureAirportID,
 		ArrivalAirportID:   f.ArrivalAirportID,
 		DepartureGateID:    f.DepartureGateID,

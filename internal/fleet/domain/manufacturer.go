@@ -31,3 +31,7 @@ func NewManufacturer(manufacturer string) (Manufacturer, error) {
 	}
 	return Manufacturer(manufacturer), nil
 }
+
+func (m Manufacturer) String() string {
+	return string(m)
+}

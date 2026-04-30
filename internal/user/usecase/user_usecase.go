@@ -34,7 +34,7 @@ func (uc *UserUsecase) GetUser(email, password string) (*domain.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
+	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
 		return nil, fmt.Errorf("%s: %s", op, "wrong password")
 	}
 	return &u, nil

@@ -30,7 +30,7 @@ func (r *gateRepository) Save(
 		values ($1, $2, $3)
 	`
 	_, err := r.conn.Exec(ctx, query,
-		g.ID, g.AirportID, g.Number,
+		g.ID, g.AirportID, g.Number.String(),
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError

@@ -10,5 +10,5 @@ type FlightDTO struct {
 	ActualDeparture    *time.Time `json:"actual_departure" example:""`
 	ActualArrival      *time.Time `json:"actual_arrival" example:""`
 	Status             string     `json:"status" example:"waiting"`
-	Plan               string     `json:"plan" example:"ABCDE A99 ABCDE ABC A66"`
+	Plan               *string    `json:"plan" example:"ABCDE A99 ABCDE ABC A66"`
 }

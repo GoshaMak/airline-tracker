@@ -8,6 +8,6 @@ import (
 )
 
 var Package = do.Package(
-	do.Lazy(postgres.NewPostgresConnection),
+	do.Lazy(postgres.NewPostgresPool),
 	do.Lazy(redis.NewRedisConnection),
 )
