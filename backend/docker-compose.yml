@@ -2,7 +2,7 @@ include:
   - path: ./docker-infra.yml
 
 services:
-  app:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -28,26 +28,3 @@ services:
           path: ./go.mod
         - action: rebuild
           path: ./go.sum
-
-  data_generator:
-    build:
-      context: .
-      dockerfile: Dockerfile.data_generator
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: ${DB_PORT}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./utils/gen_data.py
-          target: /utils
-        - action: rebuild
-          path:  ./requirements.txt

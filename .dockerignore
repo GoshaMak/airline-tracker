@@ -1,13 +1,10 @@
-docs/
-diagrams
 .dockerignore
 .git
 .gitignore
+docs/
 Dockerfile
-TODO.md
-docker-compose.yml
-Makefile
-README.md
+*.md
+docker-*.yml
 db/tmp
 .venv
 venv

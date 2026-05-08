@@ -9,6 +9,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN pip install -r requirements.txt
 
-COPY utils/ .
+COPY . .
 
 ENTRYPOINT ["python", "gen_data.py"]

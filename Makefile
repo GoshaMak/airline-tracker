@@ -1,23 +1,29 @@
-HANDLERS := $(shell find internal -type d -name handler | paste -sd ",")
-DTOS := $(shell find internal -type d -name dto | paste -sd ",")
+.PHONY: backend-up
+backend-up:
+	$(MAKE) -C backend up
 
-.PHONY : swagger up down test format
+.PHONY: backend-down
+backend-down:
+	$(MAKE) -C backend down
 
-swagger :
-	swag init -g app.go -o cmd/docs --parseInternal=true \
-		--dir internal/app/,$(HANDLERS),$(DTOS)
+.PHONY: frontend-up
+frontend-up:
+	docker compose -f frontend/docker-compose.yml up --build -d
 
-up: format
-up: swagger
-up:
-	goimports -w .
-	docker compose up --build -d
+.PHONY: frontend-down
+frontend-down:
+	docker compose -f frontend/docker-compose.yml down
 
-down:
-	docker compose down -v
+.PHONY: fill-db
+fill-db:
+	docker compose -p backend --env-file backend/.env -f backend/docker-infra.yml up -d --wait postgres
+	docker compose -p backend --env-file utils/.env -f utils/docker-compose.yml run --rm --build data_generator
 
-test:
-	GO111MODULE=on go test -cover -count=1 ./... 2>&1 | grep -v '\[no test files\]'
+.PHONY: all-up
+all-up: backend-up
+all-up: fill-db
+all-up: frontend-up
 
-format:
-	goimports -w .
+.PHONY: all-down
+all-down: backend-down
+all-down: frontend-down

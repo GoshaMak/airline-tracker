@@ -15,6 +15,7 @@
 --        ((select id from airports where title = 'Pulkovo Airport'), 'B1');
 --
 -- USERS
+-- pswd: myStrong123
 insert into users(id, email, password_hash, role)
 values ('39f2f5f8-5ec3-4436-be16-341f5ef4771f', 'ab@cd.ef',
         '$2a$10$KMSc6YuqxohcaO1Zo7Cs7eSssudoNr6jzvrTCdVCWbR4ht8.9RyyK', 'user');
