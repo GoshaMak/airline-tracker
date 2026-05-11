@@ -68,8 +68,25 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 	return ud, nil
 }
 
-func (r *userRepository) Exists(ctx context.Context, uid uuid.UUID) (domain.User, error) {
-	return domain.User{}, nil
+func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User, error) {
+	op := "UserRepository.Exists"
+	query := `
+	select * from users where id = $1
+	`
+	row, _ := r.conn.Query(ctx, query, uid)
+	um, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.UserModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.User{}, repository.ErrUserNotFound
+		}
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	ud, err := model.UserModelToDomain(um)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+	return ud, nil
 }
 
 func (r *userRepository) UpdateById(ctx context.Context, uid uuid.UUID) error {

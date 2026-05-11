@@ -6,8 +6,10 @@ import (
 	"airline-tracker/internal/flight/infra/postgres/model"
 	"airline-tracker/internal/utils"
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
@@ -48,11 +50,15 @@ func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
 	return nil
 }
 
-func (r *flightRepository) Exists(ctx context.Context, id uint32) (domain.Flight, error) {
+func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
+	// op := "FlightRepository.Exist"
+	// query := `
+	// select * from
+	// `
 	return domain.Flight{}, nil
 }
 
-func (r *flightRepository) UpdateById(ctx context.Context, id uint32) error {
+func (r *flightRepository) UpdateById(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
@@ -78,4 +84,31 @@ func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, er
 	}
 
 	return flights, nil
+}
+
+func (r *flightRepository) GetFlightRoute(
+	ctx context.Context,
+	fid uuid.UUID,
+) (domain.FlightRoute, error) {
+	op := "FlightRepository.GetFlightRouteId"
+	query := `
+	select *
+	from flight_routes
+	where flight_id = $1
+	`
+	rows, _ := r.conn.Query(ctx, query, fid)
+	rm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightRouteModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.FlightRoute{}, repository.ErrFlightRouteNotFound
+		}
+		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	rd, err := model.FlightRouteModelToDomain(rm)
+	if err != nil {
+		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return rd, nil
 }

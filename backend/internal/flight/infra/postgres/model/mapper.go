@@ -30,3 +30,12 @@ func FlightModelToDomain(f FlightModel) (domain.Flight, error) {
 		ArrivalGateId:      f.ArrivalGateId,
 	}, nil
 }
+
+func FlightRouteModelToDomain(rm FlightRouteModel) (domain.FlightRoute, error) {
+	return domain.FlightRoute{
+		Id:              rm.Id,
+		FlightId:        rm.FlightId,
+		DepartureGateId: rm.DepartureGateId,
+		ArrivalGateId:   rm.ArrivalGateId,
+	}, nil
+}

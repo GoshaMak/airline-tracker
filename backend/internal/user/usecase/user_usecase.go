@@ -5,6 +5,7 @@ import (
 	"airline-tracker/internal/user/domain"
 	"airline-tracker/internal/user/domain/repository"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -38,6 +39,18 @@ func (uc *UserUsecase) GetUser(email, password string) (*domain.User, error) {
 		return nil, fmt.Errorf("%s: %s", op, "wrong password")
 	}
 	return &u, nil
+}
+
+func (uc *UserUsecase) GetUserById(uid uuid.UUID) (domain.User, error) {
+	op := "UserUsecase.GetUserById"
+	u, err := uc.repo.Exist(context.Background(), uid)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return domain.User{}, ErrUserNotFound
+		}
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+	return u, nil
 }
 
 func (uc *UserUsecase) Exist(email, password string) bool {

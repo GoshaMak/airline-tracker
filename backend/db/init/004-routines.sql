@@ -62,21 +62,22 @@ end;
 $$;
 
 create or replace function scan_flights_info()
-    returns table
-            (
-                id                   uuid,
-                aircraft_id          uuid,
-                scheduled_departure  timestamp,
-                scheduled_arrival    timestamp,
-                actual_departure     timestamp,
-                actual_arrival       timestamp,
-                status               varchar(20),
-                plan                 varchar(128),
-                departure_gate_id    uuid,
-                arrival_gate_id      uuid,
-                departure_airport_id uuid,
-                arrival_airport_id   uuid
-            )
+    returns
+        table
+        (
+            id                   uuid,
+            aircraft_id          uuid,
+            scheduled_departure  timestamp,
+            scheduled_arrival    timestamp,
+            actual_departure     timestamp,
+            actual_arrival       timestamp,
+            status               varchar(20),
+            plan                 varchar(128),
+            departure_gate_id    uuid,
+            arrival_gate_id      uuid,
+            departure_airport_id uuid,
+            arrival_airport_id   uuid
+        )
     language plpgsql
 as
 $$
@@ -101,10 +102,7 @@ begin
 end;
 $$;
 
-create or replace function subscribe(
-    p_uid uuid,
-    p_fid uuid
-)
+create or replace function subscribe(p_uid uuid, p_fid uuid)
     returns void
     language plpgsql
 as
@@ -123,24 +121,23 @@ begin
 end;
 $$;
 
-create or replace function scan_user_flights_info(
-    p_uid uuid
-)
-    returns table
-            (
-                id                   uuid,
-                aircraft_id          uuid,
-                scheduled_departure  timestamp,
-                scheduled_arrival    timestamp,
-                actual_departure     timestamp,
-                actual_arrival       timestamp,
-                status               varchar(20),
-                plan                 varchar(128),
-                departure_gate_id    uuid,
-                arrival_gate_id      uuid,
-                departure_airport_id uuid,
-                arrival_airport_id   uuid
-            )
+create or replace function scan_user_flights_info(p_uid uuid)
+    returns
+        table
+        (
+            id                   uuid,
+            aircraft_id          uuid,
+            scheduled_departure  timestamp,
+            scheduled_arrival    timestamp,
+            actual_departure     timestamp,
+            actual_arrival       timestamp,
+            status               varchar(20),
+            plan                 varchar(128),
+            departure_gate_id    uuid,
+            arrival_gate_id      uuid,
+            departure_airport_id uuid,
+            arrival_airport_id   uuid
+        )
     language plpgsql
 as
 $$

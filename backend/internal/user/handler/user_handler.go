@@ -4,6 +4,7 @@ import (
 	"airline-tracker/internal/common"
 	"airline-tracker/internal/flight/dto"
 	"airline-tracker/internal/middleware"
+	notificationUsecase "airline-tracker/internal/notification/usecase"
 	"airline-tracker/internal/user/usecase"
 	"log/slog"
 	"net/http"
@@ -14,12 +15,14 @@ import (
 )
 
 type UserHandler struct {
-	uc *usecase.UserUsecase
+	userUc         *usecase.UserUsecase
+	notificationUc *notificationUsecase.NotificationUsecase
 }
 
 func NewUserHandler(i do.Injector) (*UserHandler, error) {
 	return &UserHandler{
-		uc: do.MustInvoke[*usecase.UserUsecase](i),
+		userUc:         do.MustInvoke[*usecase.UserUsecase](i),
+		notificationUc: do.MustInvoke[*notificationUsecase.NotificationUsecase](i),
 	}, nil
 }
 
@@ -28,7 +31,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 
 	user := r.Group("/user", middleware.AuthMiddleware(common.UserRole))
 	{
-		user.POST("/subscribe", h.Subscribe)
+		user.POST("/subscribe", h.Subscribe, h.SendMessage)
 		user.GET("/list_flights", h.ListFlights)
 	}
 }
@@ -49,7 +52,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	uid, err := uuid.Parse(uidStr)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusUnauthorized, gin.H{
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"msg": "unauthorized",
 		})
 		return
@@ -58,7 +61,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	fidStr := ctx.Query("flight_id")
 	fid, err := uuid.Parse(fidStr)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 			"msg": "flight not found",
 		})
 		return
@@ -66,21 +69,21 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 
 	slog.Debug(op, "uid", uid, "fid", fid)
 
-	if err := h.uc.Subscribe(uid, fid); err != nil {
+	if err := h.userUc.Subscribe(uid, fid); err != nil {
 		switch err {
 		case usecase.ErrUserNotFound:
-			ctx.JSON(http.StatusNotFound, gin.H{
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"msg": "user not found",
 			})
 			return
 		case usecase.ErrFlightNotFound:
-			ctx.JSON(http.StatusNotFound, gin.H{
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"msg": "flight not found",
 			})
 			return
 		}
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"msg": "internal error",
 		})
 		return
@@ -89,6 +92,31 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"msg": "user subscribed",
 	})
+
+	ctx.Set("flight_id", fid.String())
+	ctx.Next()
+}
+
+func (h *UserHandler) SendMessage(ctx *gin.Context) {
+	op := "UserHandler.SendMessage"
+	uidStr := ctx.GetString("user_id")
+	uid, err := uuid.Parse(uidStr)
+	if err != nil {
+		slog.Error(op, "err", err)
+		return
+	}
+
+	fidStr := ctx.GetString("flight_id")
+	fid, err := uuid.Parse(fidStr)
+	if err != nil {
+		slog.Error(op, "err", err)
+		return
+	}
+
+	if err := h.notificationUc.SendMessage(uid, fid); err != nil {
+		slog.Error(op, "err", err)
+		return
+	}
 }
 
 // @Summary list flights (only user)
@@ -113,7 +141,7 @@ func (h *UserHandler) ListFlights(ctx *gin.Context) {
 		return
 	}
 
-	flights, err := h.uc.ListFlights(uid)
+	flights, err := h.userUc.ListFlights(uid)
 	if err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{

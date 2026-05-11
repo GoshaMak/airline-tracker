@@ -1,4 +1,4 @@
-package app
+package server
 
 import (
 	"airline-tracker/cmd/docs"
@@ -13,6 +13,7 @@ import (
 	"airline-tracker/internal/infra"
 	"airline-tracker/internal/infra/postgres"
 	"airline-tracker/internal/infra/redis"
+	"airline-tracker/internal/notification"
 	"airline-tracker/internal/pkg/logger"
 	"airline-tracker/internal/user"
 	userHandler "airline-tracker/internal/user/handler"
@@ -40,12 +41,12 @@ import (
 // @in header
 // @name Authorization
 
-type App struct {
+type Server struct {
 	router   *gin.Engine
 	injector *do.RootScope
 }
 
-func NewApp() *App {
+func NewServer() *Server {
 	// TODO: add SIGINT handler
 	godotenv.Load()
 
@@ -72,19 +73,20 @@ func NewApp() *App {
 		flight.Package,
 		user.Package,
 		infra.Package,
+		notification.Package,
 	)
 
 	router := gin.Default()
 
 	registerRoutes(injector, router)
 
-	return &App{
+	return &Server{
 		router:   router,
 		injector: injector,
 	}
 }
 
-func (a *App) Run() int {
+func (a *Server) Run() int {
 	defer postgres.CloseConnection(do.MustInvoke[*pgxpool.Pool](a.injector))
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](a.injector))
 

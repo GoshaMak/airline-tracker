@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"airline-tracker/internal/infra/kafka"
 	"airline-tracker/internal/infra/postgres"
 	"airline-tracker/internal/infra/redis"
 
@@ -10,4 +11,5 @@ import (
 var Package = do.Package(
 	do.Lazy(postgres.NewPostgresPool),
 	do.Lazy(redis.NewRedisClient),
+	do.Lazy(kafka.NewNotifySender),
 )

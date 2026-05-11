@@ -13,7 +13,7 @@ type UserRepository interface {
 
 	GetUser(ctx context.Context, email string) (domain.User, error)
 
-	Exists(ctx context.Context, uid uuid.UUID) (domain.User, error)
+	Exist(ctx context.Context, uid uuid.UUID) (domain.User, error)
 
 	UpdateById(ctx context.Context, uid uuid.UUID) error
 

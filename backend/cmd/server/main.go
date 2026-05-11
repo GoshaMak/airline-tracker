@@ -1,12 +1,12 @@
 package main
 
 import (
-	"airline-tracker/internal/app"
+	"airline-tracker/internal/server"
 	"os"
 )
 
 func main() {
-	app := app.NewApp()
-	code := app.Run()
+	srv := server.NewServer()
+	code := srv.Run()
 	os.Exit(code)
 }

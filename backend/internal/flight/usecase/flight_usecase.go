@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
 
@@ -64,4 +65,9 @@ func (uc *FlightUsecase) CreateFlight(cmd command.CreateFlightCommand) error {
 		return ErrCacheSave
 	}
 	return nil
+}
+
+func (uc *FlightUsecase) GetFlightById(fid uuid.UUID) (domain.Flight, error) {
+	f := domain.Flight{}
+	return f, nil
 }

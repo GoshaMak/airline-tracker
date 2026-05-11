@@ -3,9 +3,13 @@ package postgres
 import (
 	"airline-tracker/internal/airport/domain"
 	"airline-tracker/internal/airport/domain/repository"
+	"airline-tracker/internal/airport/infra/postgres/model"
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
@@ -47,4 +51,33 @@ func (r *gateRepository) Exists(
 	a domain.Gate,
 ) (domain.Gate, error) {
 	return domain.Gate{}, nil
+}
+
+func (r *gateRepository) GetAirportByGateId(
+	ctx context.Context,
+	gid uuid.UUID,
+) (domain.Airport, error) {
+	op := "GateRepository.GetAirportByGateId"
+	query := `
+	select *
+	from airports a
+	where a.id = (select airport_id
+					from gates g
+					where g.id = $1)
+	`
+	rows, _ := r.conn.Query(ctx, query, gid)
+	am, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AirportModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Airport{}, repository.ErrAirportNotFound
+		}
+		return domain.Airport{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	ad, err := model.AirportModelToDomain(am)
+	if err != nil {
+		return domain.Airport{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return ad, nil
 }

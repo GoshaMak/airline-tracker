@@ -3,14 +3,14 @@ DTOS := $(shell find internal -type d -name dto | paste -sd ",")
 
 .PHONY : swagger
 swagger :
-	swag init -g app.go -o cmd/docs --parseInternal=true \
-		--dir internal/app/,$(HANDLERS),$(DTOS)
+	swag init -g server.go -o cmd/docs --parseInternal=true \
+		--dir internal/server/,$(HANDLERS),$(DTOS)
 
 .PHONY : up
 up: format
 up: swagger
 up:
-	docker compose up --build -d
+	docker compose up --build -d --force-recreate
 
 .PHONY : down
 down:
