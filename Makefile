@@ -16,8 +16,7 @@ frontend-down:
 
 .PHONY: fill-db
 fill-db:
-	docker compose -p backend --env-file backend/.env -f backend/docker-infra.yml up -d --wait postgres
-	docker compose -p backend --env-file utils/.env -f utils/docker-compose.yml run --rm --build data_generator
+	docker compose -p api --env-file utils/.env -f utils/docker-compose.yml run --rm --build data_generator
 
 .PHONY: all-up
 all-up: backend-up

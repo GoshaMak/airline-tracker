@@ -1,5 +1,0 @@
-package notifier
-
-func main() {
-
-}

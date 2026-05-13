@@ -1,11 +1,13 @@
 include:
-  - path: ./docker-infra.yml
+  - path: ./infra-compose.yml
 
 services:
-  backend:
+  api:
+    env_file:
+      - services/api/.env
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.api
     ports:
       - "8080:8080"
     depends_on:
@@ -15,21 +17,6 @@ services:
         condition: service_started
       kafka:
         condition: service_started
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./cmd
-          target: /app/cmd
-        - action: sync+restart
-          path: ./internal
-          target: /app/internal
-        - action: sync+restart
-          path: ./pkg
-          target: /app/pkg
-        - action: rebuild
-          path: ./go.mod
-        - action: rebuild
-          path: ./go.sum
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

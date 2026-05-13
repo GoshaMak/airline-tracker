@@ -4,13 +4,13 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8080}
+      BACKEND_URL: ${BACKEND_URL:-http://api:8080}
     networks:
-      - backend
+      - api
     ports:
       - "${FRONTEND_PORT:-3000}:80"
 
 networks:
-  backend:
+  api:
     external: true
-    name: ${BACKEND_NETWORK:-backend_default}
+    name: backend_default
