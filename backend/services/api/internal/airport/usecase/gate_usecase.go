@@ -21,7 +21,7 @@ func NewGateUsecase(i do.Injector) (*GateUsecase, error) {
 }
 
 func (uc *GateUsecase) CreateGate(cmd *command.CreateGateCommand) error {
-	op := "GateUsecase.CreateGate"
+	const op = "GateUsecase.CreateGate"
 	g, err := command.CommandToGateDomain(cmd)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)

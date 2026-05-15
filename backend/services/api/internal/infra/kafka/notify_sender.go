@@ -1,7 +1,6 @@
 package kafka
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -88,17 +87,19 @@ func newNotificationProducer(brokers []string) (sarama.SyncProducer, error) {
 // 	return sarama.NewConsumerGroup(brokers, groupId, config)
 // }
 
-func (ns *NotifySender) SendMessage(msg string) error {
+func (ns *NotifySender) SendMessage(msg []byte) error {
+	const op = "NotifySender.SendMessage"
 	m := &sarama.ProducerMessage{
 		Topic: ns.topic,
-		Value: sarama.StringEncoder(msg),
+		Value: sarama.ByteEncoder(msg),
 	}
+	slog.Debug(op, "msg", string(msg))
 	partition, offset, err := ns.p.SendMessage(m)
 	if err != nil {
 		return err
 	}
 
-	slog.Debug(fmt.Sprintf("message sent: topic=%s partition=%d offset=%d", ns.topic, partition, offset))
+	slog.Debug(op+": msg meta", "topic", ns.topic, "partition", partition, "offset", offset)
 	return nil
 }
 

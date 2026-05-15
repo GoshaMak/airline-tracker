@@ -26,7 +26,7 @@ func (r *aircraftRepository) SaveAircraft(
 	ctx context.Context,
 	a domain.Aircraft,
 ) error {
-	op := "AircraftRepository.SaveAircraft"
+	const op = "AircraftRepository.SaveAircraft"
 	query := `
 	insert into
 		aircraft(registration_number, aircraft_model_id, serial_number, mileage)
@@ -50,5 +50,5 @@ func (r *aircraftRepository) Exists(
 	ctx context.Context,
 	a domain.Aircraft,
 ) (domain.Aircraft, error) {
-	return domain.Aircraft{}, nil
+	panic("not implemented")
 }

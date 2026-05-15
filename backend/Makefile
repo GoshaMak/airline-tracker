@@ -1,4 +1,5 @@
 API_PREFIX := services/api
+NOTIFIER_PREFIX := services/notifier
 
 HANDLERS := $(shell find $(API_PREFIX)/internal -type d -name handler | paste -sd ",")
 DTOS := $(shell find $(API_PREFIX)/internal -type d -name dto | paste -sd ",")
@@ -25,3 +26,6 @@ test:
 .PHONY : format
 format:
 	goimports -w $(API_PREFIX)/
+	goimports -w $(NOTIFIER_PREFIX)/
+	cd $(API_PREFIX) && go mod tidy
+	cd $(NOTIFIER_PREFIX) && go mod tidy

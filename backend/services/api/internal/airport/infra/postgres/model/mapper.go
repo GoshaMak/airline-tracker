@@ -2,7 +2,7 @@ package model
 
 import (
 	"api/internal/airport/domain"
-	"api/internal/common"
+	"shared/common"
 )
 
 func AirportModelToDomain(am AirportModel) (domain.Airport, error) {
@@ -10,7 +10,7 @@ func AirportModelToDomain(am AirportModel) (domain.Airport, error) {
 	if err != nil {
 		return domain.Airport{}, err
 	}
-	title, err := common.NewTitle(am.Title)
+	title, err := domain.NewTitle(am.Title)
 	if err != nil {
 		return domain.Airport{}, err
 	}

@@ -1,8 +1,8 @@
 package model
 
 import (
-	"api/internal/common"
 	"api/internal/user/domain"
+	"shared/common"
 )
 
 func UserModelToDomain(user UserModel) (domain.User, error) {
@@ -11,7 +11,7 @@ func UserModelToDomain(user UserModel) (domain.User, error) {
 		return domain.User{}, err
 	}
 	p := domain.PasswordHashed(user.Password)
-	r, err := common.NewRole(user.Role)
+	r, err := domain.NewRole(user.Role)
 	if err != nil {
 		return domain.User{}, err
 	}

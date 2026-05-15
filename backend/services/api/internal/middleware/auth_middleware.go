@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"api/internal/auth/usecase"
-	"api/internal/common"
+	userDomain "api/internal/user/domain"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(role common.Role) gin.HandlerFunc {
+func AuthMiddleware(role userDomain.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		header := ctx.GetHeader("Authorization")
 		if header == "" {

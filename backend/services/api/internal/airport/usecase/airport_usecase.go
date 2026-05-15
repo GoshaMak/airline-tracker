@@ -22,7 +22,7 @@ func NewAirportUsecase(i do.Injector) (*AirportUsecase, error) {
 }
 
 func (uc *AirportUsecase) CreateAirport(cmd *command.CreateAirportCommand) error {
-	op := "AirportUsecase.CreateAirport"
+	const op = "AirportUsecase.CreateAirport"
 	a, err := command.CommandToAirportDomain(cmd)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -39,7 +39,7 @@ func (uc *AirportUsecase) CreateAirport(cmd *command.CreateAirportCommand) error
 }
 
 func (uc *AirportUsecase) ListAirports() (query.ListAirportsQuery, error) {
-	op := "AirportUsecase.ListAirports"
+	const op = "AirportUsecase.ListAirports"
 	airports, err := uc.repo.ListAirports(context.Background())
 	if err != nil {
 		return query.ListAirportsQuery{}, fmt.Errorf("%s: %w", op, err)

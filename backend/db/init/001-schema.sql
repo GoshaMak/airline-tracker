@@ -5,7 +5,7 @@ create table if not exists users
     password_hash varchar(128)        not null,
     role          varchar(20)         not null,
 
-    constraint role_check check (role in ('user', 'admin'))
+    constraint user_role_check check (role in ('user', 'admin'))
 );
 
 create table if not exists airports

@@ -40,16 +40,17 @@ func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 500
 // @Router /register [post]
 func (h *AuthHandler) Register(ctx *gin.Context) {
-	op := "AuthHandler.Register"
+	const op = "AuthHandler.Register"
 	var req dto.CreateUserDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		slog.Debug(op, "err", err)
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	u, err := userDomain.NewUser(req.Email, req.Password, req.Role)
 	if err != nil {
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"msg": "bad request",
 		})
@@ -57,6 +58,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 	}
 	if err := h.uc.CreateUser(u); err != nil {
 		if errors.Is(err, usecase.ErrUserAlreadyExists) {
+			slog.Warn(op, "err", err)
 			ctx.JSON(http.StatusConflict, gin.H{
 				"msg": "email is used",
 			})
@@ -84,18 +86,19 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 // @Failure 500
 // @Router /login [post]
 func (h *AuthHandler) Login(ctx *gin.Context) {
-	op := "AuthHandler.Login"
+	const op = "AuthHandler.Login"
 	var req dto.LoginRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		slog.Debug(op, "err", err)
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	slog.Info(op, "req", req)
+	slog.Debug(op, "req", req)
 
 	user, err := h.uc.GetUser(req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
+			slog.Warn(op, "err", err)
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 			return
 		}

@@ -50,14 +50,14 @@ func (r *gateRepository) Exists(
 	ctx context.Context,
 	a domain.Gate,
 ) (domain.Gate, error) {
-	return domain.Gate{}, nil
+	panic("not implemented")
 }
 
 func (r *gateRepository) GetAirportByGateId(
 	ctx context.Context,
 	gid uuid.UUID,
 ) (domain.Airport, error) {
-	op := "GateRepository.GetAirportByGateId"
+	const op = "GateRepository.GetAirportByGateId"
 	query := `
 	select *
 	from airports a

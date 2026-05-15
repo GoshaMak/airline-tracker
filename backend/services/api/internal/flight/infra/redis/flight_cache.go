@@ -37,7 +37,7 @@ func (c *flightCache) Save(
 	ctx context.Context,
 	flight domain.Flight,
 ) error {
-	op := "FlightCache.Save"
+	const op = "FlightCache.Save"
 	fm, err := model.FlightDomainToModel(flight)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -63,7 +63,7 @@ func (c *flightCache) GetById(
 	ctx context.Context,
 	id uuid.UUID,
 ) (domain.Flight, error) {
-	op := "FlightCache.GetByID"
+	const op = "FlightCache.GetByID"
 	idStr := id.String()
 	key := formKey(idStr)
 
@@ -93,7 +93,7 @@ func (c *flightCache) DeleteById(
 	ctx context.Context,
 	id uuid.UUID,
 ) error {
-	op := "FlightCache.Delete"
+	const op = "FlightCache.Delete"
 	idStr := id.String()
 	key := formKey(idStr)
 
@@ -111,7 +111,7 @@ func (c *flightCache) DeleteById(
 }
 
 func (c *flightCache) SaveFlights(ctx context.Context, flights []domain.Flight) error {
-	op := "FlightCache.SaveFlights"
+	const op = "FlightCache.SaveFlights"
 	var (
 		err    error
 		errInd int
@@ -133,7 +133,7 @@ func (c *flightCache) SaveFlights(ctx context.Context, flights []domain.Flight) 
 }
 
 func (c *flightCache) GetFlights(ctx context.Context) ([]domain.Flight, error) {
-	op := "FlightCache.GetFlights"
+	const op = "FlightCache.GetFlights"
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

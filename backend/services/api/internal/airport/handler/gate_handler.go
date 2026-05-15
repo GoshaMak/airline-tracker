@@ -4,8 +4,8 @@ import (
 	"api/internal/airport/command"
 	"api/internal/airport/dto"
 	"api/internal/airport/usecase"
-	"api/internal/common"
 	"api/internal/middleware"
+	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -27,7 +27,7 @@ func NewGateHandler(i do.Injector) (*GateHandler, error) {
 func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*GateHandler](i)
 
-	admin := r.Group("/gate", middleware.AuthMiddleware(common.AdminRole))
+	admin := r.Group("/gate", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
 		admin.POST("/create", h.CreateGate)
 		admin.GET("/list", h.ListGates)

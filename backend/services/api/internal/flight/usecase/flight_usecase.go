@@ -25,7 +25,7 @@ func NewFlightUsecase(i do.Injector) (*FlightUsecase, error) {
 }
 
 func (uc *FlightUsecase) ListFlights() ([]domain.Flight, error) {
-	op := "FlightUsecase.ListFlights"
+	const op = "FlightUsecase.ListFlights"
 	var flights []domain.Flight
 	flights, err := uc.cache.GetFlights(context.Background())
 	if err != nil {
@@ -52,7 +52,7 @@ func (uc *FlightUsecase) ListFlights() ([]domain.Flight, error) {
 }
 
 func (uc *FlightUsecase) CreateFlight(cmd command.CreateFlightCommand) error {
-	op := "FlightUsecase.CreateFlight"
+	const op = "FlightUsecase.CreateFlight"
 	f, err := command.CommandToFlightDomain(cmd)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)

@@ -24,7 +24,7 @@ func NewUserUsecase(i do.Injector) (*UserUsecase, error) {
 }
 
 func (uc *UserUsecase) GetUser(email, password string) (*domain.User, error) {
-	op := "UserUsecase.GetUser"
+	const op = "UserUsecase.GetUser"
 	var u domain.User
 	var err error
 	if email != "" {
@@ -42,7 +42,7 @@ func (uc *UserUsecase) GetUser(email, password string) (*domain.User, error) {
 }
 
 func (uc *UserUsecase) GetUserById(uid uuid.UUID) (domain.User, error) {
-	op := "UserUsecase.GetUserById"
+	const op = "UserUsecase.GetUserById"
 	u, err := uc.repo.Exist(context.Background(), uid)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
@@ -62,7 +62,7 @@ func (uc *UserUsecase) Exist(email, password string) bool {
 }
 
 func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
-	op := "UserUsecase.Subscribe"
+	const op = "UserUsecase.Subscribe"
 	if err := uc.repo.Subscribe(context.Background(), uid, fid); err != nil {
 		switch err {
 		case repository.ErrUserNotFound:
@@ -78,7 +78,7 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 }
 
 func (uc *UserUsecase) ListFlights(uid uuid.UUID) ([]flightDomain.Flight, error) {
-	op := "UserUsecase.ListFlights"
+	const op = "UserUsecase.ListFlights"
 	flights, err := uc.repo.ListFlights(context.Background(), uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

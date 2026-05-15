@@ -7,7 +7,7 @@ services:
       - services/api/.env
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: services/api/Dockerfile
     ports:
       - "8080:8080"
     depends_on:
@@ -16,7 +16,17 @@ services:
       redis:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
+
+  notifier:
+    env_file:
+      - ./services/notifier/.env
+    build:
+      context: .
+      dockerfile: ./services/notifier/Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -26,4 +36,5 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy

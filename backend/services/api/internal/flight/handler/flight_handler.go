@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"api/internal/common"
 	"api/internal/flight/command"
 	"api/internal/flight/dto"
 	"api/internal/flight/usecase"
 	"api/internal/middleware"
+	userDomain "api/internal/user/domain"
 	"log/slog"
 	"net/http"
 
@@ -31,7 +31,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 		r.GET("/flight/:id", c.FlightById)
 	}
 
-	admin := r.Group("", middleware.AuthMiddleware(common.AdminRole))
+	admin := r.Group("", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
 		admin.POST("/add_flight", c.CreateFlight)
 		admin.PATCH("/flight/:id", c.UpdateFlight)
@@ -49,7 +49,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 500
 // @Router /list_flights [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
-	op := "FlightHandler.ListFlights"
+	const op = "FlightHandler.ListFlights"
 	flights, err := h.uc.ListFlights()
 	if err != nil && err != usecase.ErrCacheSave {
 		slog.Warn(op, "err", err)

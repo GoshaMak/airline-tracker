@@ -5,8 +5,10 @@ import (
 	flightRepository "api/internal/flight/domain/repository"
 	"api/internal/infra/kafka"
 	"api/internal/notification/domain"
+	"api/internal/notification/usecase/model"
 	userRepository "api/internal/user/domain/repository"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -32,7 +34,7 @@ func NewNotificationUsecase(i do.Injector) (*NotificationUsecase, error) {
 }
 
 func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
-	op := "NotificationUsecase.SendMessage"
+	const op = "NotificationUsecase.SendMessage"
 	u, err := nu.userRepo.Exist(context.Background(), uid)
 	if err != nil {
 		if errors.Is(err, userRepository.ErrUserNotFound) {
@@ -72,14 +74,19 @@ func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	msg := formMessage(n)
+	nm, err := model.NotificationDomainToModel(n)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	msg, err := json.Marshal(nm)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	if err := nu.ns.SendMessage(msg); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
-}
-
-func formMessage(n domain.Notification) string {
-	return n.String()
 }

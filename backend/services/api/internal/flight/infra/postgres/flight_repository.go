@@ -26,7 +26,7 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 }
 
 func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
-	op := "FlightRepository.SaveFlight"
+	const op = "FlightRepository.SaveFlight"
 	var plan *string
 	if f.Plan != nil {
 		plan = utils.Ptr(f.Plan.String())
@@ -51,19 +51,32 @@ func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
 }
 
 func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
-	// op := "FlightRepository.Exist"
-	// query := `
-	// select * from
-	// `
-	return domain.Flight{}, nil
+	const op = "FlightRepository.Exist"
+	query := `
+	select * from scan_flight_info($1)
+	`
+	row, _ := r.conn.Query(ctx, query, fid)
+	fm, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.FlightModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Flight{}, repository.ErrFlightNotFound
+		}
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	fd, err := model.FlightModelToDomain(fm)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+	}
+	return fd, nil
 }
 
 func (r *flightRepository) UpdateById(ctx context.Context, id uuid.UUID) error {
-	return nil
+	panic("not implemented")
 }
 
 func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, error) {
-	op := "FlightRepository.ListAllFlights"
+	const op = "FlightRepository.ListAllFlights"
 	query := `
 	select *
 	from scan_flights_info()
@@ -90,7 +103,7 @@ func (r *flightRepository) GetFlightRoute(
 	ctx context.Context,
 	fid uuid.UUID,
 ) (domain.FlightRoute, error) {
-	op := "FlightRepository.GetFlightRouteId"
+	const op = "FlightRepository.GetFlightRouteId"
 	query := `
 	select *
 	from flight_routes

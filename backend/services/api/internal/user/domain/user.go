@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"api/internal/common"
+	"shared/common"
 
 	"github.com/google/uuid"
 )
@@ -10,7 +10,7 @@ type User struct {
 	Id           uuid.UUID
 	Email        common.Email
 	PasswordHash PasswordHashed
-	Role         common.Role
+	Role         Role
 }
 
 func NewUser(email, password, role string) (User, error) {
@@ -22,7 +22,7 @@ func NewUser(email, password, role string) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
-	r, err := common.NewRole(role)
+	r, err := NewRole(role)
 	if err != nil {
 		return User{}, err
 	}

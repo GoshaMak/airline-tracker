@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"api/internal/common"
 	"api/internal/fleet/command"
 	"api/internal/fleet/dto"
 	"api/internal/fleet/usecase"
 	"api/internal/middleware"
+	userDomain "api/internal/user/domain"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,7 +25,7 @@ func NewAircraftHandler(i do.Injector) (*AircraftHandler, error) {
 func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*AircraftHandler](i)
 
-	admin := r.Group("/admin", middleware.AuthMiddleware(common.AdminRole))
+	admin := r.Group("/admin", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
 		admin.POST("/add_aircraft", h.AddAircraft)
 	}

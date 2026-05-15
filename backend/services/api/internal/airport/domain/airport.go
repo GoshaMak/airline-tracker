@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"api/internal/common"
+	"shared/common"
 
 	"github.com/google/uuid"
 )
@@ -9,14 +9,14 @@ import (
 type Airport struct {
 	ID       uuid.UUID
 	IATACode IATACode
-	Title    common.Title
+	Title    Title
 	City     common.City
 	Country  common.Country
 }
 
 func NewAirport(
 	iataCode IATACode,
-	title common.Title,
+	title Title,
 	city common.City,
 	country common.Country,
 ) (Airport, error) {

@@ -29,14 +29,17 @@ func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
 }
 
 func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
-	op := "UserRepository.Save"
+	const op = "UserRepository.Save"
 	query := `
-	insert into users(id, email, password, role)
+	insert into users(id, email, password_hash, role)
 		values ($1, $2, $3, $4)
 	`
 	_, err := r.conn.Exec(ctx, query,
-		user.Id, user.Email.String(),
-		user.PasswordHash.String(), user.Role.String())
+		user.Id,
+		user.Email.String(),
+		user.PasswordHash.String(),
+		user.Role.String(),
+	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -48,7 +51,7 @@ func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 }
 
 func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User, error) {
-	op := "UserRepository.GetUser"
+	const op = "UserRepository.GetUser"
 	query := `
 	select * from users where email = $1
 	`
@@ -69,7 +72,7 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 }
 
 func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User, error) {
-	op := "UserRepository.Exists"
+	const op = "UserRepository.Exists"
 	query := `
 	select * from users where id = $1
 	`
@@ -90,14 +93,14 @@ func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User,
 }
 
 func (r *userRepository) UpdateById(ctx context.Context, uid uuid.UUID) error {
-	return nil
+	panic("not implemented")
 }
 
 func (r *userRepository) Subscribe(
 	ctx context.Context,
 	uid, fid uuid.UUID,
 ) error {
-	op := "UserRepository.Subscribe"
+	const op = "UserRepository.Subscribe"
 	query := `
 	select subscribe($1, $2)
 	`
@@ -125,7 +128,7 @@ func (r *userRepository) ListFlights(
 	ctx context.Context,
 	uid uuid.UUID,
 ) ([]flightDomain.Flight, error) {
-	op := "UserRepository.ListFlights"
+	const op = "UserRepository.ListFlights"
 	query := `
 	select * from scan_user_flights_info($1)
 	`

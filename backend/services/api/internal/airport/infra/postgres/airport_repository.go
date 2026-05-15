@@ -47,7 +47,7 @@ func (r *airportRepository) Save(
 }
 
 func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport, error) {
-	op := "AirportRepository.ListAirports"
+	const op = "AirportRepository.ListAirports"
 	query := `
 	select *
 	from airports

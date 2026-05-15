@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"api/internal/common"
 	"api/internal/flight/dto"
 	"api/internal/middleware"
 	notificationUsecase "api/internal/notification/usecase"
+	"api/internal/user/domain"
 	"api/internal/user/usecase"
 	"log/slog"
 	"net/http"
@@ -29,7 +29,7 @@ func NewUserHandler(i do.Injector) (*UserHandler, error) {
 func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*UserHandler](i)
 
-	user := r.Group("/user", middleware.AuthMiddleware(common.UserRole))
+	user := r.Group("/user", middleware.AuthMiddleware(domain.UserRole))
 	{
 		user.POST("/subscribe", h.Subscribe, h.SendMessage)
 		user.GET("/list_flights", h.ListFlights)
@@ -47,7 +47,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 500
 // @Router /user/subscribe [post]
 func (h *UserHandler) Subscribe(ctx *gin.Context) {
-	op := "UserHandler.Subscribe"
+	const op = "UserHandler.Subscribe"
 	uidStr := ctx.GetString("user_id")
 	uid, err := uuid.Parse(uidStr)
 	if err != nil {
@@ -98,7 +98,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 }
 
 func (h *UserHandler) SendMessage(ctx *gin.Context) {
-	op := "UserHandler.SendMessage"
+	const op = "UserHandler.SendMessage"
 	uidStr := ctx.GetString("user_id")
 	uid, err := uuid.Parse(uidStr)
 	if err != nil {
@@ -130,7 +130,7 @@ func (h *UserHandler) SendMessage(ctx *gin.Context) {
 // @Failure 401
 // @Router /user/list_flights [get]
 func (h *UserHandler) ListFlights(ctx *gin.Context) {
-	op := "UserHandler.ListFlights"
+	const op = "UserHandler.ListFlights"
 	uidStr := ctx.GetString("user_id")
 	uid, err := uuid.Parse(uidStr)
 	if err != nil {

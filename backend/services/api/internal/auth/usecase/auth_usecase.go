@@ -22,7 +22,7 @@ func NewAuthUsecase(i do.Injector) (*AuthUsecase, error) {
 }
 
 func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
-	op := "AuthUsecase.GetUser"
+	const op = "AuthUsecase.GetUser"
 	u, err := uc.repo.GetUser(context.Background(), email)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
@@ -39,7 +39,7 @@ func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
 }
 
 func (uc *AuthUsecase) CreateUser(u domain.User) error {
-	op := "AuthUsecase.CreateUser"
+	const op = "AuthUsecase.CreateUser"
 
 	if err := uc.repo.SaveUser(context.Background(), u); err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {

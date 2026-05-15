@@ -17,8 +17,6 @@ import (
 	"api/internal/notification"
 	"api/internal/user"
 	userHandler "api/internal/user/handler"
-	"io"
-	"shared/logger"
 
 	"log/slog"
 	"net/http"
@@ -27,7 +25,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 	rds "github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 	swaggerFiles "github.com/swaggo/files"
@@ -49,27 +46,6 @@ type Server struct {
 
 func NewServer() (*Server, error) {
 	// TODO: add SIGINT handler
-	godotenv.Load()
-
-	var w io.Writer
-	switch os.Getenv("MODE") {
-	case "DEBUG":
-		w = os.Stdout
-	default:
-		logFileName := os.Getenv("LOG_FILE")
-		logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			return nil, err
-		}
-		defer logFile.Close()
-		w = logFile
-	}
-
-	if err := logger.SetupLogger(w); err != nil {
-		return nil, err
-	}
-	slog.Info("Logger initialized")
-
 	injector := do.New(
 		auth.Package,
 		airport.Package,

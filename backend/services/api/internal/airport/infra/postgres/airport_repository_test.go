@@ -8,7 +8,7 @@ import (
 
 	"api/internal/airport/domain"
 	"api/internal/airport/domain/repository"
-	"api/internal/common"
+	"shared/common"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -72,7 +72,7 @@ func mustNewAirport(t *testing.T, iata, title, city, country string) domain.Airp
 		t.Fatalf("invalid iata code %s: %v", iata, err)
 	}
 
-	titleValue, err := common.NewTitle(title)
+	titleValue, err := domain.NewTitle(title)
 	if err != nil {
 		t.Fatalf("invalid title %s: %v", title, err)
 	}

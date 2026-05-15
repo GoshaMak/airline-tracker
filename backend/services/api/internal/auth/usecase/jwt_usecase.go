@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"api/internal/common"
 	"api/internal/user/domain"
+	userDomain "api/internal/user/domain"
 	"os"
 	"time"
 
@@ -13,11 +13,11 @@ import (
 var jwtKey = []byte("")
 
 type JWTClaims struct {
-	Role common.Role `json:"role"`
+	Role userDomain.Role `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func newJWTClaims(userID string, role common.Role) *JWTClaims {
+func newJWTClaims(userID string, role userDomain.Role) *JWTClaims {
 	return &JWTClaims{
 		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{

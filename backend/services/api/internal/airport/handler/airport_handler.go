@@ -5,8 +5,8 @@ import (
 	"api/internal/airport/dto"
 	"api/internal/airport/query"
 	"api/internal/airport/usecase"
-	"api/internal/common"
 	"api/internal/middleware"
+	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -28,7 +28,7 @@ func NewAirportHandler(i do.Injector) (*AirportHandler, error) {
 func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*AirportHandler](i)
 
-	admin := r.Group("/airport", middleware.AuthMiddleware(common.AdminRole))
+	admin := r.Group("/airport", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
 		admin.POST("/create", h.CreateAirport)
 	}
@@ -52,7 +52,7 @@ func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 500
 // @Router /airport/create [post]
 func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
-	op := "AirportHandler.CreateAirport"
+	const op = "AirportHandler.CreateAirport"
 	req := &dto.CreateAirportRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		slog.Debug(op, "err", err)
@@ -87,7 +87,7 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 // @Failure 500
 // @Router /airport/list [get]
 func (h *AirportHandler) ListAirports(ctx *gin.Context) {
-	op := "AirportHandler.ListAirports"
+	const op = "AirportHandler.ListAirports"
 	airports, err := h.uc.ListAirports()
 	if err != nil {
 		slog.Warn(op, "err", err)

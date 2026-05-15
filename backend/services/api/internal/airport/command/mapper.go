@@ -2,7 +2,7 @@ package command
 
 import (
 	"api/internal/airport/domain"
-	"api/internal/common"
+	"shared/common"
 )
 
 func CommandToGateDomain(cmd *CreateGateCommand) (domain.Gate, error) {
@@ -15,7 +15,7 @@ func CommandToAirportDomain(cmd *CreateAirportCommand) (domain.Airport, error) {
 	if err != nil {
 		return domain.Airport{}, err
 	}
-	title, err := common.NewTitle(cmd.Title)
+	title, err := domain.NewTitle(cmd.Title)
 	if err != nil {
 		return domain.Airport{}, err
 	}
