@@ -15,6 +15,12 @@
         </div>
       </header>
 
+      <div class="message-overlay" id="messageOverlay" hidden>
+        <div class="message-dialog" id="messageDialog" role="alertdialog" aria-live="assertive" aria-modal="true">
+          <p id="popupMessage"></p>
+        </div>
+      </div>
+
       <main class="layout">
         <aside class="sidebar">
           <section class="panel auth-panel">
@@ -31,33 +37,39 @@
               </label>
               <label>
                 Password
-                <input name="password" type="password" autocomplete="current-password" required>
+                <span class="password-field">
+                  <input name="password" type="password" autocomplete="current-password" required>
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="Show password" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </span>
               </label>
               <button type="submit">Sign in</button>
             </form>
 
             <form id="registerForm" class="form-stack compact">
-              <div class="split-row">
-                <label>
-                  New email
-                  <input name="email" type="email" autocomplete="email" required>
-                </label>
-                <label>
-                  Role
-                  <select name="role">
-                    <option value="user">user</option>
-                    <option value="admin">admin</option>
-                  </select>
-                </label>
-              </div>
+              <input name="role" type="hidden" value="user">
+              <label>
+                New email
+                <input name="email" type="email" autocomplete="email" required>
+              </label>
               <label>
                 New password
-                <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+                <span class="password-field">
+                  <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="Show password" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </span>
               </label>
               <button class="secondary-button" type="submit">Create account</button>
             </form>
-
-            <p class="message" id="authMessage"></p>
           </section>
 
           <section class="panel">
@@ -142,6 +154,6 @@
       </main>
     </div>
 
-    <script src="/app.js" defer></script>
+    <script src="/app.js" type="module"></script>
   </body>
 </html>

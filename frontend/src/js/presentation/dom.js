@@ -1,0 +1,25 @@
+export function getElements() {
+  return {
+    loginForm: document.getElementById("loginForm"),
+    registerForm: document.getElementById("registerForm"),
+    logoutButton: document.getElementById("logoutButton"),
+    sessionState: document.getElementById("sessionState"),
+    messageOverlay: document.getElementById("messageOverlay"),
+    messageDialog: document.getElementById("messageDialog"),
+    popupMessage: document.getElementById("popupMessage"),
+    airportSearch: document.getElementById("airportSearch"),
+    airportList: document.getElementById("airportList"),
+    airportCount: document.getElementById("airportCount"),
+    totalFlights: document.getElementById("totalFlights"),
+    activeFlights: document.getElementById("activeFlights"),
+    delayedFlights: document.getElementById("delayedFlights"),
+    cancelledFlights: document.getElementById("cancelledFlights"),
+    subscribedFlights: document.getElementById("subscribedFlights"),
+    flightRows: document.getElementById("flightRows"),
+    flightMeta: document.getElementById("flightMeta"),
+    flightSearch: document.getElementById("flightSearch"),
+    statusFilter: document.getElementById("statusFilter"),
+    refreshButton: document.getElementById("refreshButton"),
+    flightViewTabs: document.getElementById("flightViewTabs"),
+  };
+}
