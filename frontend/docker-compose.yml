@@ -1,0 +1,16 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8080}
+    networks:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+networks:
+  backend:
+    external: true
+    name: ${BACKEND_NETWORK:-backend_default}
