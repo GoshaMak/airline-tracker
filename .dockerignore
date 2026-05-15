@@ -1,2 +1,11 @@
+.dockerignore
+.git
+.gitignore
 docs/
-diagrams
+Dockerfile
+*.md
+docker-*.yml
+db/tmp
+.venv
+venv
+.idea

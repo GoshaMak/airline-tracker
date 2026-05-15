@@ -1,0 +1,18 @@
+services:
+  data_generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${DB_PORT}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./gen_data.py
+          target: /utils
+        - action: rebuild
+          path:  ./requirements.txt

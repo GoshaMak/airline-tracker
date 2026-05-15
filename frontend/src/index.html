@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Airline Tracker</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Airline Tracker</p>
+          <h1>Flight Operations</h1>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <section class="panel auth-panel">
+            <div class="panel-heading">
+              <h2>Session</h2>
+              <button class="ghost-button" id="logoutButton" type="button" hidden>Sign out</button>
+            </div>
+            <p class="session-state" id="sessionState">Signed out</p>
+
+            <form id="loginForm" class="form-stack">
+              <label>
+                Email
+                <input name="email" type="email" autocomplete="email" required>
+              </label>
+              <label>
+                Password
+                <input name="password" type="password" autocomplete="current-password" required>
+              </label>
+              <button type="submit">Sign in</button>
+            </form>
+
+            <form id="registerForm" class="form-stack compact">
+              <div class="split-row">
+                <label>
+                  New email
+                  <input name="email" type="email" autocomplete="email" required>
+                </label>
+                <label>
+                  Role
+                  <select name="role">
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                New password
+                <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+              </label>
+              <button class="secondary-button" type="submit">Create account</button>
+            </form>
+
+            <p class="message" id="authMessage"></p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Airports</h2>
+              <span class="count" id="airportCount">0</span>
+            </div>
+            <input id="airportSearch" class="search-input" type="search" placeholder="Search airports">
+            <div class="airport-list" id="airportList"></div>
+          </section>
+        </aside>
+
+        <section class="content">
+          <div class="metrics" id="metrics">
+            <article>
+              <span>Total flights</span>
+              <strong id="totalFlights">0</strong>
+            </article>
+            <article>
+              <span>In motion</span>
+              <strong id="activeFlights">0</strong>
+            </article>
+            <article>
+              <span>Delayed</span>
+              <strong id="delayedFlights">0</strong>
+            </article>
+            <article>
+              <span>Cancelled</span>
+              <strong id="cancelledFlights">0</strong>
+            </article>
+            <article>
+              <span>Subscribed</span>
+              <strong id="subscribedFlights">0</strong>
+            </article>
+          </div>
+
+          <section class="table-section">
+            <div class="table-toolbar">
+              <div>
+                <h2>Flights</h2>
+                <p id="flightMeta">No flights loaded</p>
+              </div>
+              <div class="filters">
+                <div class="view-tabs" id="flightViewTabs" aria-label="Flight view">
+                  <button type="button" data-view="all" class="active">All</button>
+                  <button type="button" data-view="subscribed">Subscribed</button>
+                </div>
+                <input id="flightSearch" class="search-input" type="search" placeholder="Search flights">
+                <select id="statusFilter">
+                  <option value="">All statuses</option>
+                  <option value="scheduled">scheduled</option>
+                  <option value="boarding">boarding</option>
+                  <option value="departed">departed</option>
+                  <option value="landed">landed</option>
+                  <option value="arrived">arrived</option>
+                  <option value="delayed">delayed</option>
+                  <option value="cancelled">cancelled</option>
+                  <option value="rescheduled">rescheduled</option>
+                </select>
+                <button class="secondary-button" id="refreshButton" type="button">Refresh</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Flight</th>
+                    <th>Route</th>
+                    <th>Status</th>
+                    <th>Scheduled</th>
+                    <th>Actual</th>
+                    <th>Plan</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="flightRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
