@@ -1,17 +1,29 @@
 package main
 
 import (
+	"api/internal/airport"
+	"api/internal/auth"
+	"api/internal/fleet"
+	"api/internal/flight"
+	"api/internal/infra"
+	"api/internal/publisher"
 	"api/internal/server"
+	"api/internal/user"
+	"context"
 	"io"
 	"log/slog"
 	"os"
+	"os/signal"
 	"shared/logger"
+	"syscall"
 
 	"github.com/joho/godotenv"
+	"github.com/samber/do/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	godotenv.Load()
+	godotenv.Load() // TODO: mb too much. as long as docker loads all the variables
 
 	var w io.Writer
 	switch os.Getenv("MODE") {
@@ -32,14 +44,47 @@ func main() {
 		return
 	}
 
-	srv, err := server.NewServer()
+	injector := do.New(
+		auth.Package,
+		airport.Package,
+		fleet.Package,
+		flight.Package,
+		user.Package,
+		infra.Package,
+		//notification.Package,
+		publisher.Package,
+	)
+
+	srv, err := server.NewServer(injector)
 	if err != nil {
-		slog.Error("error creating a server", "err", err)
+		slog.Error("error creating server", "err", err)
 	}
-	if err := srv.Run(); err != nil {
-		slog.Info("server execution error", "err", err)
+
+	pub, err := publisher.NewPublisher(injector)
+	if err != nil {
+		slog.Info("error creating publisher", "err", err)
+	}
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return srv.Run(ctx)
+	})
+
+	g.Go(func() error {
+		return pub.Run(ctx)
+	})
+
+	if err := g.Wait(); err != nil {
+		slog.Info("app error", "err", err)
 		os.Exit(1)
 	}
 	slog.Info("finished successfully")
-	os.Exit(0)
 }

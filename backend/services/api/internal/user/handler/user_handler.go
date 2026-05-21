@@ -3,7 +3,6 @@ package handler
 import (
 	"api/internal/flight/dto"
 	"api/internal/middleware"
-	notificationUsecase "api/internal/notification/usecase"
 	"api/internal/user/domain"
 	"api/internal/user/usecase"
 	"log/slog"
@@ -15,14 +14,14 @@ import (
 )
 
 type UserHandler struct {
-	userUc         *usecase.UserUsecase
-	notificationUc *notificationUsecase.NotificationUsecase
+	userUc *usecase.UserUsecase
+	//notificationUc *notificationUsecase.NotificationUsecase
 }
 
 func NewUserHandler(i do.Injector) (*UserHandler, error) {
 	return &UserHandler{
-		userUc:         do.MustInvoke[*usecase.UserUsecase](i),
-		notificationUc: do.MustInvoke[*notificationUsecase.NotificationUsecase](i),
+		userUc: do.MustInvoke[*usecase.UserUsecase](i),
+		//notificationUc: do.MustInvoke[*notificationUsecase.NotificationUsecase](i),
 	}, nil
 }
 
@@ -31,10 +30,20 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 
 	user := r.Group("/user", middleware.AuthMiddleware(domain.UserRole))
 	{
-		user.POST("/subscribe", h.Subscribe, h.SendMessage)
+		user.POST("/subscribe", h.Subscribe)
 		user.GET("/list_flights", h.ListFlights)
 	}
 }
+
+// пришла подписка -> записать в подписки -> записать в outbox событие для кафки
+// тоже самое если обновление полей полёта -> записать в outbox событие для кафки
+//
+// publisher читает неотправленные в outbox -> отправляет в кафку сообщение -> отмечает отправленным (в outbox'е)
+//
+// notifier получает сообщение из кафки -> отправляет сообщение об изменении/о вылете
+// notifier:
+// если подписка, то записывает в свою таблицу из которой читает worker и отправляет, когда надо
+// если обновление, то обновляет таблицу и отправляет сообщение об изменении
 
 // @Summary subscribe user (only user)
 // @Tags User
@@ -92,31 +101,30 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"msg": "user subscribed",
 	})
-
-	ctx.Set("flight_id", fid.String())
-	ctx.Next()
 }
 
+// TODO: move to publisher goroutine
 func (h *UserHandler) SendMessage(ctx *gin.Context) {
-	const op = "UserHandler.SendMessage"
-	uidStr := ctx.GetString("user_id")
-	uid, err := uuid.Parse(uidStr)
-	if err != nil {
-		slog.Error(op, "err", err)
-		return
-	}
-
-	fidStr := ctx.GetString("flight_id")
-	fid, err := uuid.Parse(fidStr)
-	if err != nil {
-		slog.Error(op, "err", err)
-		return
-	}
-
-	if err := h.notificationUc.SendMessage(uid, fid); err != nil {
-		slog.Error(op, "err", err)
-		return
-	}
+	panic("sad")
+	// const op = "UserHandler.SendMessage"
+	// uidStr := ctx.GetString("user_id")
+	// uid, err := uuid.Parse(uidStr)
+	// if err != nil {
+	// 	slog.Error(op, "err", err)
+	// 	return
+	// }
+	//
+	// fidStr := ctx.GetString("flight_id")
+	// fid, err := uuid.Parse(fidStr)
+	// if err != nil {
+	// 	slog.Error(op, "err", err)
+	// 	return
+	// }
+	//
+	// if err := h.notificationUc.SendMessage(uid, fid); err != nil {
+	// 	slog.Error(op, "err", err)
+	// 	return
+	// }
 }
 
 // @Summary list flights (only user)

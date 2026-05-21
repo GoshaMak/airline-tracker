@@ -2,21 +2,15 @@ package server
 
 import (
 	"api/cmd/docs"
-	"api/internal/airport"
 	airportHandler "api/internal/airport/handler"
-	"api/internal/auth"
 	authHandler "api/internal/auth/handler"
-	"api/internal/fleet"
 	fleetHandler "api/internal/fleet/handler"
-	"api/internal/flight"
 	flightHandler "api/internal/flight/handler"
-	"api/internal/infra"
 	"api/internal/infra/kafka"
 	"api/internal/infra/postgres"
 	"api/internal/infra/redis"
-	"api/internal/notification"
-	"api/internal/user"
 	userHandler "api/internal/user/handler"
+	"context"
 
 	"log/slog"
 	"net/http"
@@ -41,21 +35,10 @@ import (
 
 type Server struct {
 	router   *gin.Engine
-	injector *do.RootScope
+	injector do.Injector
 }
 
-func NewServer() (*Server, error) {
-	// TODO: add SIGINT handler
-	injector := do.New(
-		auth.Package,
-		airport.Package,
-		fleet.Package,
-		flight.Package,
-		user.Package,
-		infra.Package,
-		notification.Package,
-	)
-
+func NewServer(injector *do.RootScope) (*Server, error) {
 	router := gin.Default()
 
 	registerRoutes(injector, router)
@@ -66,7 +49,7 @@ func NewServer() (*Server, error) {
 	}, nil
 }
 
-func (s *Server) Run() error {
+func (s *Server) Run(ctx context.Context) error {
 	defer postgres.CloseConnection(do.MustInvoke[*pgxpool.Pool](s.injector))
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](s.injector))
 	defer kafka.CloseConnection(do.MustInvoke[*kafka.NotifySender](s.injector))

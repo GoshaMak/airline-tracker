@@ -68,6 +68,5 @@ func (uc *FlightUsecase) CreateFlight(cmd command.CreateFlightCommand) error {
 }
 
 func (uc *FlightUsecase) GetFlightById(fid uuid.UUID) (domain.Flight, error) {
-	f := domain.Flight{}
-	return f, nil
+	panic("not implemented")
 }

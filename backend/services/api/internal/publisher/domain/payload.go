@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type Notification struct {
+type Payload struct {
 	Email common.Email
 
 	ScheduledDeparture time.Time
@@ -25,13 +25,13 @@ type Notification struct {
 	ArrivalAirportCountry  common.Country
 }
 
-func NewNotification(
+func NewPayload(
 	email common.Email,
 	flight flightDomain.Flight,
 	depAirport,
 	arrAirport airportDomain.Airport,
-) (Notification, error) {
-	return Notification{
+) (Payload, error) {
+	return Payload{
 		Email: email,
 
 		ScheduledDeparture: flight.ScheduledDeparture,

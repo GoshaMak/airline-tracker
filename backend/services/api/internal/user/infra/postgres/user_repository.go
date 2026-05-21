@@ -98,7 +98,8 @@ func (r *userRepository) UpdateById(ctx context.Context, uid uuid.UUID) error {
 
 func (r *userRepository) Subscribe(
 	ctx context.Context,
-	uid, fid uuid.UUID,
+	uid,
+	fid uuid.UUID,
 ) error {
 	const op = "UserRepository.Subscribe"
 	query := `

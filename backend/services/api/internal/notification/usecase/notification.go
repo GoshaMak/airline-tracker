@@ -84,7 +84,7 @@ func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := nu.ns.SendMessage(msg); err != nil {
+	if err := nu.ns.SendMessage("flights", msg); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
