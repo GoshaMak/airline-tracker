@@ -5,28 +5,35 @@ import (
 	"fmt"
 	"log/slog"
 	"net/smtp"
+	"os"
 	"shared/common"
+
+	"github.com/samber/do/v2"
 )
 
 type Mailer struct {
 	Addr        string
-	From        common.Email
+	AppEmail    common.Email
 	AppPassword string
 	Auth        smtp.Auth
 }
 
-func NewMailer(from common.Email, appPassword string) (*Mailer, error) {
-	// from := "trackerairline@gmail.com"
-
+func NewMailer(i do.Injector) (*Mailer, error) {
+	const op = "NewMailer"
+	appPassword := os.Getenv("APP_PASSWORD")
 	if len(appPassword) == 0 {
-		return nil, errors.New("empty appPassword")
+		return nil, errors.New("empty app password")
+	}
+	appEmail, err := common.NewEmail(os.Getenv("APP_EMAIL"))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	auth := smtp.PlainAuth("", from.String(), appPassword, "smtp.gmail.com")
+	auth := smtp.PlainAuth("", appEmail.String(), appPassword, "smtp.gmail.com")
 
 	return &Mailer{
 		Addr:        "smtp.gmail.com:587",
-		From:        from,
+		AppEmail:    appEmail,
 		AppPassword: appPassword,
 		Auth:        auth,
 	}, nil
@@ -41,6 +48,9 @@ func (m *Mailer) SendEmail(to []common.Email, msg []byte) error {
 	}
 	slog.Debug(op, "toEmails", toEmails, "msg", string(msg))
 
+	slog.Info("sending email faked")
+	return nil
+
 	targetEmail := "je6t8r@gmail.com"
 	if toEmails[0] != targetEmail {
 		slog.Info("sending email faked")
@@ -50,7 +60,7 @@ func (m *Mailer) SendEmail(to []common.Email, msg []byte) error {
 	err := smtp.SendMail(
 		m.Addr,
 		m.Auth,
-		m.From.String(),
+		m.AppEmail.String(),
 		toEmails,
 		msg,
 	)

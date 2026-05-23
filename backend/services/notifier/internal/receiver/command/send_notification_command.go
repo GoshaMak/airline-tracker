@@ -1,7 +1,7 @@
 package command
 
 import (
-	"notifier/internal/notifier/dto"
+	"notifier/internal/receiver/dto"
 	"time"
 )
 

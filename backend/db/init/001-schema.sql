@@ -85,6 +85,28 @@ create table if not exists subscriptions
     id        uuid primary key default gen_random_uuid(),
     user_id   uuid references users (id)   not null,
     flight_id uuid references flights (id) not null,
+    -- TODO: delay timestamp,
 
     constraint unique_flight_subscription_per_user unique (user_id, flight_id)
+);
+
+create table if not exists outbox
+(
+    id         uuid primary key   default gen_random_uuid(),
+    topic      text      not null,
+    payload    jsonb     not null,
+    created_at timestamp not null default now(),
+    sent_at    timestamp
+);
+
+create table if not exists notifications
+(
+    id         uuid primary key     default gen_random_uuid(),
+    payload    jsonb       not null,
+    created_at timestamp   not null default now(),
+    send_at    timestamp   not null,
+    status     varchar(20) not null,
+
+    constraint send_notification_after_creation check (send_at > created_at),
+    constraint notification_status_check check (status in ('created', 'pending', 'sent')) -- TODO: remove pending
 );

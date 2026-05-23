@@ -12,3 +12,4 @@ venv
 .agents
 .codex
 tmp
+*.ignored

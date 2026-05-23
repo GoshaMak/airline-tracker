@@ -1,40 +1,41 @@
-package kafka
+package receiver
 
 import (
 	"context"
-	"errors"
-	"os"
-	"strings"
+	"fmt"
+	"log/slog"
+	"notifier/internal/receiver/handler"
 
 	"github.com/IBM/sarama"
 )
 
 var (
 	kafkaVersion = sarama.DefaultVersion.String()
+	groupId      = "notifier-service"
 )
 
 type NotifyReceiver struct {
-	cg      sarama.ConsumerGroup
-	topic   string
-	groupId string
-	msgs    chan []byte
+	cg       sarama.ConsumerGroup
+	topics   []string
+	groupId  string
+	handlers map[string]handler.HandlerFunc
 }
 
-func NewNotifyReceiver(topic string) (*NotifyReceiver, error) {
-	brokers := strings.Split(os.Getenv("KAFKA_PEERS"), ",")
-
-	groupId := topic + "-group"
-
+func NewNotifyReceiver(
+	brokers,
+	topics []string,
+	handlers map[string]handler.HandlerFunc,
+) (*NotifyReceiver, error) {
 	cg, err := newNotificationConsumerGroup(brokers, groupId)
 	if err != nil {
 		return nil, err
 	}
 
 	return &NotifyReceiver{
-		cg:      cg,
-		topic:   topic,
-		groupId: groupId,
-		msgs:    make(chan []byte),
+		cg:       cg,
+		topics:   topics,
+		groupId:  groupId,
+		handlers: handlers,
 	}, nil
 }
 
@@ -64,11 +65,11 @@ func newNotificationConsumerGroup(
 
 func (n *NotifyReceiver) StartConsuming(ctx context.Context) error {
 	handler := &consumerGroupHandler{
-		msgs: n.msgs,
+		handlers: n.handlers,
 	}
 
 	for {
-		if err := n.cg.Consume(ctx, []string{n.topic}, handler); err != nil {
+		if err := n.cg.Consume(ctx, n.topics, handler); err != nil {
 			return err
 		}
 
@@ -78,21 +79,11 @@ func (n *NotifyReceiver) StartConsuming(ctx context.Context) error {
 	}
 }
 
-func (n *NotifyReceiver) ReadMessage(ctx context.Context) ([]byte, error) {
-	select {
-	case msg := <-n.msgs:
-		return msg, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-}
-
 func (n *NotifyReceiver) Close() error {
-	var err error
-	if e := n.cg.Close(); e != nil {
-		err = errors.Join(err, e)
+	if err := n.cg.Close(); err != nil {
+		return err
 	}
-	return err
+	return nil
 }
 
 func CloseConnection(ns *NotifyReceiver) error {
@@ -100,7 +91,7 @@ func CloseConnection(ns *NotifyReceiver) error {
 }
 
 type consumerGroupHandler struct {
-	msgs chan<- []byte
+	handlers map[string]handler.HandlerFunc
 }
 
 func (h *consumerGroupHandler) Setup(session sarama.ConsumerGroupSession) error {
@@ -115,11 +106,20 @@ func (h *consumerGroupHandler) ConsumeClaim(
 	session sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim,
 ) error {
+	const op = "consumerGroupHandler.ConsumeClaim"
 	for msg := range claim.Messages() {
-		h.msgs <- msg.Value
-
+		handler, ok := h.handlers[msg.Topic]
+		if !ok {
+			slog.Warn(op, "unknown topic", msg.Topic, "msg", msg.Value)
+			session.MarkMessage(msg, "")
+			continue
+		}
+		slog.Debug(op, "handling message", msg)
+		if err := handler(session.Context(), msg); err != nil {
+			slog.Error(op, "err", err)
+			return fmt.Errorf("%s: %w", op, err)
+		}
 		session.MarkMessage(msg, "")
 	}
-
 	return nil
 }

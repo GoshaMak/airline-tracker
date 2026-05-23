@@ -1,13 +1,22 @@
 package main
 
 import (
+	"context"
 	"io"
 	"log/slog"
+	"notifier/internal/infra"
+	"notifier/internal/mailer"
 	"notifier/internal/notifier"
+	"notifier/internal/receiver"
+	"notifier/internal/sender"
 	"os"
+	"os/signal"
 	"shared/logger"
+	"syscall"
 
 	"github.com/joho/godotenv"
+	"github.com/samber/do/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -32,12 +41,36 @@ func main() {
 		return
 	}
 
-	notifier, err := notifier.NewNotifier()
+	injector := do.New(
+		notifier.Package,
+		infra.Package,
+		mailer.Package,
+		receiver.Package,
+		sender.Package,
+	)
+
+	notifier, err := notifier.NewNotifier(injector)
 	if err != nil {
 		slog.Error("can't start notifier", "err", err)
 		os.Exit(1)
 	}
-	if err := notifier.Run(); err != nil {
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		if err := notifier.Run(ctx); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
 		slog.Error("notifier faced error", "err", err)
 		os.Exit(1)
 	}

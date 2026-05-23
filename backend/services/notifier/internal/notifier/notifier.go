@@ -4,57 +4,67 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"notifier/internal/infra/kafka"
-	"notifier/internal/notifier/handler"
+	"notifier/internal/receiver"
+	"notifier/internal/receiver/handler"
+	"notifier/internal/sender"
+	"os"
+	"strings"
+
+	"github.com/samber/do/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 type Notifier struct {
-	nr *kafka.NotifyReceiver
-	h  *handler.NotifierHandler
+	nr   *receiver.NotifyReceiver
+	sndr *sender.Sender
 }
 
-func NewNotifier() (*Notifier, error) {
+func NewNotifier(i do.Injector) (*Notifier, error) {
 	const op = "NewNotifier"
-	nr, err := kafka.NewNotifyReceiver("flights")
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+	brokers := strings.Split(os.Getenv("KAFKA_PEERS"), ",")
+	topics := strings.Split(os.Getenv("SUBSCRIPTION_CREATED_TOPIC"), ",")
+	handlers := map[string]handler.HandlerFunc{
+		"subscription.created": handler.SubscriptionCreatedHandler(i),
 	}
-
-	h, err := handler.NewNotifierHandler(nr)
+	nr, err := receiver.NewNotifyReceiver(brokers, topics, handlers)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &Notifier{
-		nr: nr,
-		h:  h,
+		nr:   nr,
+		sndr: do.MustInvoke[*sender.Sender](i),
 	}, nil
 }
 
-func (n *Notifier) Run() error {
+func (n *Notifier) Run(ctx context.Context) error {
 	const op = "Notifier.Run"
-	go func() {
-		if err := n.nr.StartConsuming(context.Background()); err != nil {
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		if err := n.nr.StartConsuming(ctx); err != nil {
 			slog.Error("error while consuming", "err", err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
-	}()
+		return nil
+	})
 
-	for {
-		msg, err := n.nr.ReadMessage(context.Background())
-		if err != nil {
-			slog.Error("can't read message", "err", err)
-			continue
+	g.Go(func() error {
+		if err := n.sndr.Run(ctx); err != nil {
+			slog.Error("error while sending", "err", err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
-		slog.Debug(op, "msg", string(msg))
+		return nil
+	})
 
-		if err := n.h.ProcessMessage(msg); err != nil {
-			slog.Error(op, "err", err)
-			continue
-		}
+	if err := g.Wait(); err != nil {
+		slog.Error(op, "err", err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
-	//
-	// if err := n.nr.Close(); err != nil {
-	// 	return fmt.Errorf("%s: %w", op, err)
-	// }
-	// return nil
+
+	if err := n.nr.Close(); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }
