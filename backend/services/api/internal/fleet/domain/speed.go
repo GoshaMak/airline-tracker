@@ -36,3 +36,7 @@ func NewAircraftMaxSpeed(speed int) (AircraftMaxSpeed, error) {
 func (s AircraftMaxSpeed) String() string {
 	return strconv.Itoa(int(s))
 }
+
+func (s AircraftMaxSpeed) Value() int {
+	return int(s)
+}

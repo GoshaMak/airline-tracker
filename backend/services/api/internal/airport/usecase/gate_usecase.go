@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"api/internal/airport/command"
+	"api/internal/airport/domain"
 	"api/internal/airport/domain/repository"
 	"context"
 	"errors"
@@ -35,4 +36,13 @@ func (uc *GateUsecase) CreateGate(cmd *command.CreateGateCommand) error {
 	}
 
 	return nil
+}
+
+func (uc *GateUsecase) ListGates() ([]domain.Gate, error) {
+	const op = "GateUsecase.ListGates"
+	gs, err := uc.repo.List(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return gs, nil
 }

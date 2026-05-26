@@ -32,7 +32,30 @@ func SubscriptionCreatedHandler(i do.Injector) HandlerFunc {
 		if err := uc.SaveNotification(ctx, cmd); err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		slog.Debug(op, "notification saved", "")
+		slog.Debug(op + ": notification saved")
+		return nil
+	}
+}
+
+func FlightUpdatedHandler(i do.Injector) HandlerFunc {
+	uc := do.MustInvoke[*usecase.NotifierUsecase](i)
+	return func(ctx context.Context, msg *sarama.ConsumerMessage) error {
+		const op = "FlightUpdatedHandler"
+		var req dto.FlightUpdatedDTO
+		if err := json.Unmarshal(msg.Value, &req); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		slog.Debug(op, "req", req)
+
+		cmd, err := command.NewFlightUpdatedCommand(&req)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		if err := uc.UpdateFlight(ctx, cmd); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		slog.Debug(op + ": flight updated")
 		return nil
 	}
 }

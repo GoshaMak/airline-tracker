@@ -9,4 +9,5 @@ import (
 var Package = do.Package(
 	do.Lazy(NewSender),
 	do.Lazy(usecase.NewSenderUsecase),
+	do.Lazy(usecase.NewEmailSenderUsecase),
 )

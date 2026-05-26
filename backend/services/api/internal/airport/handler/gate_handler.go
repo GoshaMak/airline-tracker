@@ -47,24 +47,27 @@ func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 500
 // @Router /gate/create [post]
 func (h *GateHandler) CreateGate(ctx *gin.Context) {
+	const op = "GateHandler.CreateGate"
 	req := &dto.CreateGateRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	cmd, err := command.NewCreateGateCommand(req)
 	if err != nil {
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	if err := h.uc.CreateGate(cmd); err != nil {
+		slog.Warn(op, "err", err)
 		if errors.Is(err, usecase.ErrGateAlreadyExists) {
 			ctx.JSON(http.StatusConflict, gin.H{"msg": "gate already exists"})
 			return
 		}
-		slog.Info("handler.create_gate", "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
@@ -77,8 +80,20 @@ func (h *GateHandler) CreateGate(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Success 200 ""
+// @Success 200 {object} dto.ListGatesResponse
 // @Failure 400
+// @Failure 401
 // @Failure 500
 // @Router /gate/list [get]
-func (h *GateHandler) ListGates(ctx *gin.Context) {}
+func (h *GateHandler) ListGates(ctx *gin.Context) {
+	const op = "GateHandler.ListGates"
+	gs, err := h.uc.ListGates()
+	if err != nil {
+		slog.Warn(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		return
+	}
+
+	resp := dto.ToResponseListGates(gs)
+	ctx.JSON(http.StatusOK, resp)
+}

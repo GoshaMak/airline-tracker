@@ -32,3 +32,15 @@ func CommandToFlightDomain(cmd CreateFlightCommand) (domain.Flight, error) {
 	)
 	return f, err
 }
+
+func UpdateFlightCommandToDomain(cmd UpdateFlightCommand) (domain.UpdateFlightInfo, error) {
+	return domain.UpdateFlightInfo{
+		FlightId:           cmd.FlightId,
+		ScheduledDeparture: cmd.ScheduledDeparture,
+		ActualDeparture:    cmd.ActualDeparture,
+		ScheduledArrival:   cmd.ScheduledArrival,
+		ActualArrival:      cmd.ActualArrival,
+		Status:             cmd.Status,
+		Plan:               cmd.Plan,
+	}, nil
+}

@@ -7,13 +7,11 @@ import (
 
 type GateNumber string
 
+var gateNumberRegexp = regexp.MustCompile(`^[A-Z]\d{1,3}$`)
+
 func NewGateNumber(v string) (GateNumber, error) {
-	matched, err := regexp.MatchString(`^[A-Z]\d{1,4}$`, v)
-	if err != nil {
-		return "", err
-	}
-	if !matched {
-		return "", fmt.Errorf("invalid gate number")
+	if !gateNumberRegexp.MatchString(v) {
+		return "", fmt.Errorf("invalid gate number: %s", v)
 	}
 	return GateNumber(v), nil
 }

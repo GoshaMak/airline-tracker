@@ -92,10 +92,6 @@ func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User,
 	return ud, nil
 }
 
-func (r *userRepository) UpdateById(ctx context.Context, uid uuid.UUID) error {
-	panic("not implemented")
-}
-
 func (r *userRepository) Subscribe(
 	ctx context.Context,
 	uid,

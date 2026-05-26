@@ -5,9 +5,9 @@ import (
 )
 
 type Aircraft struct {
-	ID                 uuid.UUID
+	Id                 uuid.UUID
 	RegistrationNumber RegistrationNumber
-	AircraftModelID    uuid.UUID
+	AircraftModelId    uuid.UUID
 	SerialNumber       SerialNumber
 	Mileage            Mileage
 }
@@ -31,9 +31,9 @@ func NewAircraft(
 		return Aircraft{}, err
 	}
 	return Aircraft{
-		ID:                 uuid.New(),
+		Id:                 uuid.New(),
 		RegistrationNumber: rn,
-		AircraftModelID:    aircraftModelID,
+		AircraftModelId:    aircraftModelID,
 		SerialNumber:       sn,
 		Mileage:            m,
 	}, nil

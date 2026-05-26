@@ -34,7 +34,7 @@ func (r *gateRepository) Save(
 		values ($1, $2, $3)
 	`
 	_, err := r.conn.Exec(ctx, query,
-		g.ID, g.AirportID, g.Number.String(),
+		g.Id, g.AirportId, g.Number.String(),
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -44,13 +44,6 @@ func (r *gateRepository) Save(
 		return err
 	}
 	return nil
-}
-
-func (r *gateRepository) Exists(
-	ctx context.Context,
-	a domain.Gate,
-) (domain.Gate, error) {
-	panic("not implemented")
 }
 
 func (r *gateRepository) GetAirportByGateId(
@@ -80,4 +73,27 @@ func (r *gateRepository) GetAirportByGateId(
 	}
 
 	return ad, nil
+}
+
+func (r *gateRepository) List(ctx context.Context) ([]domain.Gate, error) {
+	const op = "GateRepository.List"
+	query := `
+	select *
+	from gates
+	`
+	rows, _ := r.conn.Query(ctx, query)
+	gms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.GateModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	gsd := make([]domain.Gate, len(gms))
+	for i, gm := range gms {
+		gd, err := model.GateModelToDomain(gm)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		gsd[i] = gd
+	}
+	return gsd, nil
 }

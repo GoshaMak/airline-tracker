@@ -36,3 +36,7 @@ func NewAircraftMaxAltitude(altitude int) (AircraftMaxAltitude, error) {
 func (a AircraftMaxAltitude) String() string {
 	return strconv.Itoa(int(a))
 }
+
+func (a AircraftMaxAltitude) Value() int {
+	return int(a)
+}

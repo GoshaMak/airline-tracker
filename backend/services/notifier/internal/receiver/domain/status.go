@@ -10,13 +10,13 @@ var (
 
 const (
 	NotificationCreated NotificationStatus = iota
-	NotificationPending
+	NotificationUrgent
 	NotificationSent
 )
 
 const (
 	created = "created"
-	pending = "pending"
+	urgent  = "urgent"
 	sent    = "sent"
 )
 
@@ -25,8 +25,8 @@ func NewNotificationStatus(status string) (NotificationStatus, error) {
 	case created:
 		return NotificationCreated, nil
 
-	case pending:
-		return NotificationPending, nil
+	case urgent:
+		return NotificationUrgent, nil
 
 	case sent:
 		return NotificationSent, nil
@@ -37,5 +37,5 @@ func NewNotificationStatus(status string) (NotificationStatus, error) {
 }
 
 func (s NotificationStatus) String() string {
-	return [...]string{created, pending, sent}[s]
+	return [...]string{created, urgent, sent}[s]
 }

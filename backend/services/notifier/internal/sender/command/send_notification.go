@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type SendNotificationCommand struct {
+type SendSubscribedNotificationCommand struct {
 	ToEmail common.Email
 
 	Departure time.Time
@@ -27,15 +27,15 @@ type SendNotificationCommand struct {
 	ArrivalAirportCountry  common.Country
 }
 
-func NewSendNotificationCommand(n domain.Notification) (SendNotificationCommand, error) {
-	var pm receiverCommand.PayloadModel
+func NewSendSubscribedNotificationCommand(n domain.Notification) (SendSubscribedNotificationCommand, error) {
+	var pm receiverCommand.SubscriptionCreatedPayloadModel
 	if err := json.Unmarshal(n.Payload, &pm); err != nil {
-		return SendNotificationCommand{}, err
+		return SendSubscribedNotificationCommand{}, err
 	}
 
 	email, err := common.NewEmail(pm.Email)
 	if err != nil {
-		return SendNotificationCommand{}, err
+		return SendSubscribedNotificationCommand{}, err
 	}
 
 	dep := pm.ScheduledDeparture
@@ -45,23 +45,23 @@ func NewSendNotificationCommand(n domain.Notification) (SendNotificationCommand,
 
 	depCity, err := common.NewCity(pm.DepartureAirportCity)
 	if err != nil {
-		return SendNotificationCommand{}, err
+		return SendSubscribedNotificationCommand{}, err
 	}
 	depCountry, err := common.NewCountry(pm.DepartureAirportCountry)
 	if err != nil {
-		return SendNotificationCommand{}, err
+		return SendSubscribedNotificationCommand{}, err
 	}
 
 	arrCity, err := common.NewCity(pm.ArrivalAirportCity)
 	if err != nil {
-		return SendNotificationCommand{}, err
+		return SendSubscribedNotificationCommand{}, err
 	}
 	arrCountry, err := common.NewCountry(pm.ArrivalAirportCountry)
 	if err != nil {
-		return SendNotificationCommand{}, err
+		return SendSubscribedNotificationCommand{}, err
 	}
 
-	return SendNotificationCommand{
+	return SendSubscribedNotificationCommand{
 		ToEmail: email,
 
 		Departure: dep,

@@ -1,21 +1,18 @@
 package domain
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
 )
 
 type IATACode string
 
-var (
-	ErrInvalidIATACode = errors.New("invalid IATA code")
-)
+var iataCodeRegexp = regexp.MustCompile(`^[A-Z]{3}$`)
 
 // TODO: better matching
 func NewIATACode(v string) (IATACode, error) {
-	matched, err := regexp.MatchString(`^[A-Z]{3}$`, v)
-	if err != nil || !matched {
-		return "", ErrInvalidIATACode
+	if !iataCodeRegexp.MatchString(v) {
+		return "", fmt.Errorf("invalid IATA code: %s", v)
 	}
 	return IATACode(v), nil
 }

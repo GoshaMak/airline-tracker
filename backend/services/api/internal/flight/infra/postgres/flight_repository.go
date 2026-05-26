@@ -1,13 +1,19 @@
 package postgres
 
 import (
+	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
 	"api/internal/flight/domain/repository"
 	"api/internal/flight/infra/postgres/model"
+	userDomain "api/internal/user/domain"
+	userModel "api/internal/user/infra/postgres/model"
+
 	"api/internal/utils"
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -32,7 +38,7 @@ func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
 		plan = utils.Ptr(f.Plan.String())
 	}
 	_, err := r.conn.Exec(ctx,
-		"call add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+		"select add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
 		f.Id,
 		f.ScheduledDeparture,
 		f.ScheduledArrival,
@@ -53,7 +59,8 @@ func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
 func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
 	const op = "FlightRepository.Exist"
 	query := `
-	select * from scan_flight_info($1)
+	select *
+	from scan_flight_info($1)
 	`
 	row, _ := r.conn.Query(ctx, query, fid)
 	fm, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.FlightModel])
@@ -71,8 +78,57 @@ func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Fli
 	return fd, nil
 }
 
-func (r *flightRepository) UpdateById(ctx context.Context, id uuid.UUID) error {
-	panic("not implemented")
+func (r *flightRepository) Update(
+	ctx context.Context,
+	ufi domain.UpdateFlightInfo,
+) error {
+	const op = "FlightRepository.Update"
+	query := `
+	update flights
+	set`
+	args := []any{}
+	if ufi.ScheduledDeparture != nil {
+		query += " scheduled_departure = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"
+		args = append(args, ufi.ScheduledDeparture)
+	}
+	if ufi.ActualDeparture != nil {
+		query += " actual_departure = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"
+		args = append(args, ufi.ActualDeparture)
+	}
+	if ufi.ScheduledArrival != nil {
+		query += " scheduled_arrival = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"
+		args = append(args, ufi.ScheduledArrival)
+	}
+	if ufi.ActualArrival != nil {
+		query += " actual_arrival = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"
+		args = append(args, ufi.ActualArrival)
+	}
+	if ufi.Status != nil {
+		query += " status = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"
+		args = append(args, ufi.Status)
+	}
+	if ufi.Plan != nil {
+		query += " plan = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"
+		args = append(args, ufi.Plan)
+	}
+
+	if len(args) == 0 {
+		slog.Debug(op + ": nothing to update")
+		return nil
+	}
+
+	query = query[:len(query)-2] + "\n"
+
+	query += "where id = $" + strconv.FormatInt(int64(len(args)+1), 10)
+	args = append(args, ufi.FlightId)
+	slog.Debug(op, "query", query, "args", args)
+
+	_, err := r.conn.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, error) {
@@ -124,4 +180,72 @@ func (r *flightRepository) GetFlightRoute(
 	}
 
 	return rd, nil
+}
+
+func (r *flightRepository) ListSubscribers(
+	ctx context.Context,
+	fid uuid.UUID,
+) ([]userDomain.User, error) {
+	const op = "FlightRepository.ListSubscribers"
+	query := `
+	select u.id as id, u.email as email, u.password_hash as password_hash, u.role as role
+	from subscriptions s
+		join users u on s.user_id = u.id
+	where s.flight_id = $1::uuid;
+	`
+
+	rows, _ := r.conn.Query(ctx, query, fid)
+	userMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[userModel.UserModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	users := make([]userDomain.User, len(userMs))
+	for i, um := range userMs {
+		u, err := userModel.UserModelToDomain(um)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		users[i] = u
+	}
+	return users, nil
+}
+
+func (r *flightRepository) GetFlightAirports(
+	ctx context.Context,
+	fid uuid.UUID,
+) (dep airportDomain.Airport, arr airportDomain.Airport, err error) {
+	const op = "FlightRepository.GetFlightAirports"
+	query := `
+	with arps as (select ag.airport_id as dep, dg.airport_id as arr
+				  from flight_routes fr
+						   join gates ag on fr.departure_gate_id = ag.id
+						   join gates dg on fr.arrival_gate_id = dg.id
+					  and fr.flight_id = $1::uuid)
+	select
+		da.id        as departure_airport_id,
+		da.iata_code as departure_airport_iata_code,
+		da.title     as departure_airport_title,
+		da.city      as departure_airport_city,
+		da.country   as departure_airport_country,
+
+		aa.id        as arrival_airport_id,
+		aa.iata_code as arrival_airport_iata_code,
+		aa.title     as arrival_airport_title,
+		aa.city      as arrival_airport_city,
+		aa.country   as arrival_airport_country
+	from arps
+			 join airports da on arps.dep = da.id
+			 join airports aa on arps.arr = aa.id;
+	`
+	rows, _ := r.conn.Query(ctx, query, fid)
+	fam, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightAirportsModel])
+	slog.Debug(op, "fam", fam)
+	if err != nil {
+		return dep, arr, fmt.Errorf("%s: %w", op, err)
+	}
+	dep, arr, err = model.FlightAirportsModelToDomain(fam)
+	if err != nil {
+		return dep, arr, fmt.Errorf("%s: %w", op, err)
+	}
+	return dep, arr, nil
 }

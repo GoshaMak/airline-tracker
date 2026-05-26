@@ -36,3 +36,7 @@ func NewMileage(m int) (Mileage, error) {
 func (m Mileage) String() string {
 	return strconv.Itoa(int(m))
 }
+
+func (m Mileage) Value() int {
+	return int(m)
+}

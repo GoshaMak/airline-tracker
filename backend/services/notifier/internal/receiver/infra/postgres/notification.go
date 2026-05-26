@@ -28,29 +28,34 @@ func (r *notificationRepository) Save(
 ) error {
 	const op = "NotificationRepository.Save"
 	query := `
-	insert into notifications(id, payload, created_at, send_at, status)
-	values ($1, $2, $3, $4, $5)
+	insert into notifications(id, payload, created_at, send_at, status, type)
+	values ($1, $2, $3, $4, $5, $6)
 	`
 
-	_, err := r.conn.Exec(ctx, query,
-		n.Id, n.Payload, n.CreatedAt, n.SendAt, n.Status)
+	nm, err := model.NotificationDomainToModel(n)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = r.conn.Exec(ctx, query,
+		nm.Id, nm.Payload, nm.CreatedAt, nm.SendAt, nm.Status, nm.Type,
+	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
 
-func (r *notificationRepository) ListByStatus(
+func (r *notificationRepository) ListNotSent(
 	ctx context.Context,
-	status domain.NotificationStatus,
 ) ([]domain.Notification, error) {
 	const op = "NotificationRepository.ListByStatus"
 	query := `
 	select *
 	from notifications
-	where status = $1
+	where status <> $1
 	`
-	rows, _ := r.conn.Query(ctx, query, status)
+	rows, _ := r.conn.Query(ctx, query, domain.NotificationSent.String())
 	nms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.NotificationModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

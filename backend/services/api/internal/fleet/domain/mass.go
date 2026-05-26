@@ -36,3 +36,7 @@ func NewAircraftMass(mass int) (AircraftMass, error) {
 func (m AircraftMass) String() string {
 	return strconv.Itoa(int(m))
 }
+
+func (m AircraftMass) Value() int {
+	return int(m)
+}

@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/google/uuid"
@@ -85,62 +86,65 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
+	slog.Debug(op + ": user subscribed")
 
 	topic := os.Getenv("SUBSCRIPTION_CREATED_TOPIC") // TODO: get it from config?
 	payload, err := uc.formPayload(uid, fid)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	ob, err := publisherDomain.NewOutbox(topic, payload)
+	slog.Debug(op+": payload formed", "payload", payload)
+	ob, err := publisherDomain.NewOutbox(topic, &payload)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := uc.outboxRepo.Save(context.Background(), ob); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+	slog.Debug(op+": saved to outbox", "outbox", ob)
 
 	return nil
 }
 
-func (uc *UserUsecase) formPayload(uid, fid uuid.UUID) (publisherDomain.Payload, error) {
+func (uc *UserUsecase) formPayload(uid, fid uuid.UUID) (domain.SubscriptionCreatedPayload, error) {
 	const op = "UserUsecase.formPayload"
 	u, err := uc.userRepo.Exist(context.Background(), uid)
 	if err != nil {
 		if errors.Is(err, userRepository.ErrUserNotFound) {
-			return publisherDomain.Payload{}, ErrUserNotFound
+			return domain.SubscriptionCreatedPayload{}, ErrUserNotFound
 		}
-		return publisherDomain.Payload{}, fmt.Errorf("%s: %w", op, err)
+		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	f, err := uc.flightRepo.Exist(context.Background(), fid)
 	if err != nil {
 		if errors.Is(err, flightRepository.ErrFlightNotFound) {
-			return publisherDomain.Payload{}, ErrFlightNotFound
+			return domain.SubscriptionCreatedPayload{}, ErrFlightNotFound
 		}
-		return publisherDomain.Payload{}, fmt.Errorf("%s: %w", op, err)
+		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	route, err := uc.flightRepo.GetFlightRoute(context.Background(), fid)
 	if err != nil {
 		if errors.Is(err, flightRepository.ErrFlightRouteNotFound) {
-			return publisherDomain.Payload{}, ErrFlightRouteNotFound
+			return domain.SubscriptionCreatedPayload{}, ErrFlightRouteNotFound
 		}
-		return publisherDomain.Payload{}, fmt.Errorf("%s: %w", op, err)
+		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	depAirport, err := uc.gateRepo.GetAirportByGateId(context.Background(), route.DepartureGateId)
 	if err != nil {
-		return publisherDomain.Payload{}, fmt.Errorf("%s: %w", op, err)
+		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	arrAirport, err := uc.gateRepo.GetAirportByGateId(context.Background(), route.ArrivalGateId)
 	if err != nil {
-		return publisherDomain.Payload{}, fmt.Errorf("%s: %w", op, err)
+		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	p, err := publisherDomain.NewPayload(u.Email, f, depAirport, arrAirport)
+	p, err := domain.NewSubscriptionCreatedPayload(u.Email, f, depAirport, arrAirport)
 	if err != nil {
-		return publisherDomain.Payload{}, fmt.Errorf("%s: %w", op, err)
+		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 	return p, nil
 }

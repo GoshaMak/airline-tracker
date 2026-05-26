@@ -3,11 +3,10 @@ package usecase
 import (
 	"api/internal/infra/kafka"
 	"api/internal/publisher/domain/repository"
-	"api/internal/publisher/infra/postgres/model"
 	"api/internal/utils"
 	"context"
-	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/do/v2"
@@ -26,9 +25,23 @@ func NewPublisherUsecase(i do.Injector) (*PublisherUsecase, error) {
 	}, nil
 }
 
+type SendPayload struct {
+	data []byte
+}
+
+func (p *SendPayload) MarshalJSON() ([]byte, error) {
+	return p.data, nil
+}
+
+func (p *SendPayload) UnmarshalJSON(data []byte) error {
+	p.data = slices.Clone(data)
+	return nil
+}
+
 func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 	const op = "PublisherUsecase.Publish"
-	obs, err := uc.repo.ListNotSent(ctx)
+	var payload SendPayload
+	obs, err := uc.repo.ListNotSent(ctx, &payload)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -36,12 +49,7 @@ func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	for i, ob := range obs {
 		g.Go(func() error {
-			pm, err := model.PayloadDomainToModel(ob.Payload)
-			if err != nil {
-				return fmt.Errorf("%s: %w", op, err)
-			}
-
-			msg, err := json.Marshal(pm)
+			msg, err := ob.Payload.MarshalJSON()
 			if err != nil {
 				return fmt.Errorf("%s: %w", op, err)
 			}
@@ -60,7 +68,7 @@ func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 	}
 
 	if err := g.Wait(); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }

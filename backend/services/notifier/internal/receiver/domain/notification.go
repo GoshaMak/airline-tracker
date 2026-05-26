@@ -12,14 +12,21 @@ type Notification struct {
 	CreatedAt time.Time
 	SendAt    time.Time
 	Status    NotificationStatus
+	Type      NotificationType
 }
 
-func NewNotification(payload []byte, sendAt time.Time, status NotificationStatus) (Notification, error) {
+func NewNotification(
+	payload []byte,
+	sendAt time.Time,
+	status NotificationStatus,
+	nt NotificationType,
+) (Notification, error) {
 	return Notification{
 		Id:        uuid.New(),
 		Payload:   payload,
 		CreatedAt: time.Now(),
 		SendAt:    sendAt,
 		Status:    status,
+		Type:      nt,
 	}, nil
 }

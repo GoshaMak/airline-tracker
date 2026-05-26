@@ -28,6 +28,7 @@ func (r *airportRepository) Save(
 	ctx context.Context,
 	a domain.Airport,
 ) error {
+	const op = "AirportRepository.Save"
 	query := `
 	insert into airports(id, iata_code, title, city, country)
 		values ($1, $2, $3, $4, $5)
@@ -41,7 +42,7 @@ func (r *airportRepository) Save(
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return repository.ErrAirportAlreadyExists
 		}
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }

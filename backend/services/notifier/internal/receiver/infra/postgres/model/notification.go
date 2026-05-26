@@ -7,9 +7,10 @@ import (
 )
 
 type NotificationModel struct {
-	Id        uuid.UUID `json:"id"`
-	Payload   []byte    `json:"payload"`
-	CreatedAt time.Time `json:"created_at"`
-	SendAt    time.Time `json:"send_at"`
-	Status    string    `json:"status"`
+	Id        uuid.UUID `db:"id"`
+	Payload   []byte    `db:"payload"`
+	CreatedAt time.Time `db:"created_at"`
+	SendAt    time.Time `db:"send_at"`
+	Status    string    `db:"status"`
+	Type      string    `db:"type"`
 }

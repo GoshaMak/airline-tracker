@@ -30,3 +30,15 @@ func AirportModelToDomain(am AirportModel) (domain.Airport, error) {
 		Country:  country,
 	}, nil
 }
+
+func GateModelToDomain(gm GateModel) (domain.Gate, error) {
+	n, err := domain.NewGateNumber(gm.Number)
+	if err != nil {
+		return domain.Gate{}, err
+	}
+	return domain.Gate{
+		Id:        gm.Id,
+		AirportId: gm.AirportId,
+		Number:    n,
+	}, nil
+}

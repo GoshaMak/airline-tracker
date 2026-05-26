@@ -3,22 +3,25 @@ package postgres
 import (
 	"api/internal/fleet/domain"
 	"api/internal/fleet/domain/repository"
+	"api/internal/fleet/infra/postgres/model"
 	"context"
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type aircraftModelRepository struct {
-	pool *pgxpool.Pool
+	conn *pgxpool.Pool
 }
 
 func NewAircraftModelRepository(i do.Injector) (repository.AircraftModelRepository, error) {
 	return &aircraftModelRepository{
-		pool: do.MustInvoke[*pgxpool.Pool](i),
+		conn: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
 }
 
@@ -32,23 +35,43 @@ func (r *aircraftModelRepository) SaveAircraftModel(
 		aircraft_models(manufacturer, model, mass, max_altitude, max_speed)
 		values ($1, $2, $3, $4, $5)
 	`
-	_, err := r.pool.Exec(ctx, query,
+	_, err := r.conn.Exec(ctx, query,
 		am.Manufacturer.String(), am.Model.String(),
 		am.Mass.String(), am.MaxAltitude.String(), am.MaxSpeed.String(),
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return ErrAircraftModelAlreadyExists
+			return repository.ErrAircraftModelAlreadyExists
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
 
-func (r *aircraftModelRepository) Exists(
+func (r *aircraftModelRepository) GetAircraftModelById(
 	ctx context.Context,
-	am domain.AircraftModel,
+	id uuid.UUID,
 ) (domain.AircraftModel, error) {
-	panic("not implemented")
+	const op = "AircraftModelRepository.GetAircraftModelById"
+	query := `
+	select  *
+	from aircraft_models
+	where id = $1
+	`
+	rows, _ := r.conn.Query(ctx, query, id)
+	amm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AircraftModelModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.AircraftModel{}, repository.ErrAircraftModelNotFound
+		}
+		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	amd, err := model.AircraftModelModelToDomain(amm)
+	if err != nil {
+		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return amd, nil
 }

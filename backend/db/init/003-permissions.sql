@@ -25,6 +25,7 @@ grant all privileges on table outbox to publisher;
 
 grant all privileges on table notifications to notifier;
 
+grant dispatcher to app_user;
 grant manager to app_user;
 grant spectator to app_user;
 grant publisher to app_user;

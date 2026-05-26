@@ -49,7 +49,7 @@ func main() {
 		sender.Package,
 	)
 
-	notifier, err := notifier.NewNotifier(injector)
+	notifier, err := do.Invoke[*notifier.Notifier](injector)
 	if err != nil {
 		slog.Error("can't start notifier", "err", err)
 		os.Exit(1)

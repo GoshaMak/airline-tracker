@@ -5,7 +5,7 @@ import (
 )
 
 type AircraftModel struct {
-	ID           uuid.UUID
+	Id           uuid.UUID
 	Manufacturer Manufacturer
 	Model        Model
 	Mass         AircraftMass
@@ -41,7 +41,7 @@ func NewAircraftModel(
 		return AircraftModel{}, err
 	}
 	return AircraftModel{
-		ID:           uuid.New(),
+		Id:           uuid.New(),
 		Manufacturer: mnfct,
 		Model:        mdl,
 		Mass:         m,

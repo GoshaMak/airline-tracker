@@ -46,7 +46,7 @@ create table if not exists aircraft
     id                  uuid primary key default gen_random_uuid(),
     aircraft_model_id   uuid references aircraft_models (id) not null,
     registration_number varchar(10)                          not null unique,
-    serial_number       varchar(10)                          not null,
+    serial_number       varchar(10)                          not null unique,
     mileage             int                                  not null,
 
     constraint non_negative_mileage check (mileage >= 0)
@@ -106,7 +106,14 @@ create table if not exists notifications
     created_at timestamp   not null default now(),
     send_at    timestamp   not null,
     status     varchar(20) not null,
+    type       varchar(20) not null,
 
-    constraint send_notification_after_creation check (send_at > created_at),
-    constraint notification_status_check check (status in ('created', 'pending', 'sent')) -- TODO: remove pending
+    constraint notification_send_after_creation check (send_at > created_at),
+    constraint notification_status_check check (status in ('created', 'urgent', 'sent')),
+    constraint notification_type_check check (type in ('subscribed', 'flight_updated'))
 );
+
+select u.id as id, u.email as email, u.password_hash as password_hash, u.role as role
+from subscriptions s
+         join users u on s.user_id = u.id
+where s.flight_id = 'a094af47-17d5-46b8-b8ac-276b9e66c02f'::uuid;

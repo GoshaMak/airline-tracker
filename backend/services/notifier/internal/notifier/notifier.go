@@ -22,9 +22,12 @@ type Notifier struct {
 func NewNotifier(i do.Injector) (*Notifier, error) {
 	const op = "NewNotifier"
 	brokers := strings.Split(os.Getenv("KAFKA_PEERS"), ",")
-	topics := strings.Split(os.Getenv("SUBSCRIPTION_CREATED_TOPIC"), ",")
+	subCreated := os.Getenv("SUBSCRIPTION_CREATED_TOPIC")
+	flightUpdated := os.Getenv("FLIGHT_UPDATED_TOPIC")
+	topics := []string{subCreated, flightUpdated}
 	handlers := map[string]handler.HandlerFunc{
-		"subscription.created": handler.SubscriptionCreatedHandler(i),
+		subCreated:    handler.SubscriptionCreatedHandler(i),
+		flightUpdated: handler.FlightUpdatedHandler(i),
 	}
 	nr, err := receiver.NewNotifyReceiver(brokers, topics, handlers)
 	if err != nil {

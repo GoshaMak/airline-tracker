@@ -5,6 +5,7 @@ import (
 )
 
 type GateDTO struct {
-	AirportID uuid.UUID `json:"airport_id" example:"add manually"`
+	Id        uuid.UUID `json:"id"`
+	AirportId uuid.UUID `json:"airport_id" example:"add manually"`
 	Number    string    `json:"number" example:"A1"`
 }

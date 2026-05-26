@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"notifier/internal/mailer"
@@ -39,6 +40,29 @@ func (uc *NotifierUsecase) SaveNotification(
 		return nil
 	}
 	n, err := command.SubscriptionCreatedCommandToDomain(&cmd, sendAt, domain.NotificationCreated)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := uc.repo.Save(ctx, n); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (uc *NotifierUsecase) UpdateFlight(
+	ctx context.Context,
+	cmd command.FlightUpdatedCommand,
+) error {
+	const op = "NotifierUsecase.UpdateFlight"
+	if len(cmd.Users) == 0 || (cmd.ScheduledDeparture == nil &&
+		cmd.ActualDeparture == nil && cmd.ScheduledArrival == nil &&
+		cmd.ActualArrival == nil && cmd.Status == nil && cmd.Plan == nil) {
+		return errors.New("nothing to update")
+	}
+
+	sendAt := time.Now().UTC()
+	n, err := command.FlightUpdatedCommandToDomain(cmd, sendAt, domain.NotificationUrgent)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

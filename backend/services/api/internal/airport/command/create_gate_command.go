@@ -13,13 +13,13 @@ type CreateGateCommand struct {
 }
 
 func NewCreateGateCommand(req *dto.CreateGateRequest) (*CreateGateCommand, error) {
-	num, err := domain.NewGateNumber(req.Gate.Number)
+	gn, err := domain.NewGateNumber(req.Gate.Number)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CreateGateCommand{
-		AirportID:  req.Gate.AirportID,
-		GateNumber: num,
+		AirportID:  req.Gate.AirportId,
+		GateNumber: gn,
 	}, nil
 }

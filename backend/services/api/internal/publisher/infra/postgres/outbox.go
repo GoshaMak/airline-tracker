@@ -6,6 +6,8 @@ import (
 	"api/internal/publisher/infra/postgres/model"
 	"context"
 	"fmt"
+	"log/slog"
+	"reflect"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,7 +24,10 @@ func NewOutboxRepository(i do.Injector) (repository.OutboxRepository, error) {
 	}, nil
 }
 
-func (r *outboxRepository) Save(ctx context.Context, ob domain.Outbox) error {
+func (r *outboxRepository) Save(
+	ctx context.Context,
+	ob domain.Outbox,
+) error {
 	const op = "OutboxRepository.Save"
 	query := `
 	insert into outbox(id, topic, payload, created_at)
@@ -43,7 +48,27 @@ func (r *outboxRepository) Save(ctx context.Context, ob domain.Outbox) error {
 	return nil
 }
 
-func (r *outboxRepository) ListNotSent(ctx context.Context) ([]domain.Outbox, error) {
+func clone(p domain.Payload) domain.Payload {
+	if p == nil {
+		return nil
+	}
+
+	rv := reflect.ValueOf(p)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return p
+	}
+
+	elem := rv.Elem()
+	cp := reflect.New(elem.Type())
+	cp.Elem().Set(elem)
+
+	return cp.Interface().(domain.Payload)
+}
+
+func (r *outboxRepository) ListNotSent(
+	ctx context.Context,
+	payload domain.Payload,
+) ([]domain.Outbox, error) {
 	const op = "OutboxRepository.ListNotSent"
 	query := `
 	select *
@@ -56,10 +81,15 @@ func (r *outboxRepository) ListNotSent(ctx context.Context) ([]domain.Outbox, er
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
+	if len(obms) > 0 {
+		slog.Debug(op, "obms", obms)
+	}
 	obs := make([]domain.Outbox, len(obms))
 	for i, obm := range obms {
-		ob, err := model.OutboxModelToDomain(obm)
+		//pld := clone(payload)
+		pld := payload
+		slog.Debug(op, "payload clone", pld)
+		ob, err := model.OutboxModelToDomain(obm, payload)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

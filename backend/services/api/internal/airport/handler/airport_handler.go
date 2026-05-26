@@ -55,24 +55,24 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 	const op = "AirportHandler.CreateAirport"
 	req := &dto.CreateAirportRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		slog.Debug(op, "err", err)
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	cmd, err := command.NewCreateAirportCommand(req)
 	if err != nil {
-		slog.Debug(op, "err", err)
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	if err := h.uc.CreateAirport(cmd); err != nil {
+		slog.Warn(op, "err", err)
 		if errors.Is(err, usecase.ErrAirportAlreadyExists) {
 			ctx.JSON(http.StatusConflict, gin.H{"msg": "airport already exists"})
 			return
 		}
-		slog.Info(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
@@ -91,9 +91,7 @@ func (h *AirportHandler) ListAirports(ctx *gin.Context) {
 	airports, err := h.uc.ListAirports()
 	if err != nil {
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"msg": "internal error",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 

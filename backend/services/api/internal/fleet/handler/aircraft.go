@@ -6,6 +6,7 @@ import (
 	"api/internal/fleet/usecase"
 	"api/internal/middleware"
 	userDomain "api/internal/user/domain"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,7 @@ func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 	admin := r.Group("/admin", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
 		admin.POST("/add_aircraft", h.AddAircraft)
+		admin.GET("/aircraft/list", h.ListAircrafts)
 	}
 }
 
@@ -43,19 +45,51 @@ func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 401
 // @Router /admin/add_aircraft [post]
 func (h *AircraftHandler) AddAircraft(ctx *gin.Context) {
+	const op = "AircraftHandler.AddAircraft"
 	req := &dto.CreateAircraftRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
 		return
 	}
 	cmd, err := command.NewCreateAircraftCommand(req)
 	if err != nil {
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 	if err := h.uc.AddAircraft(cmd); err != nil {
+		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 	ctx.JSON(http.StatusCreated, "created")
+}
+
+// @Summary list aircrafts (only admin)
+// @Description list aircrafts
+// @Tags Aircraft
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Success 200 {array} dto.ListAircraftsResponse
+// @Failure 401
+// @Failure 500
+// @Router /admin/aircraft/list [get]
+func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
+	const op = "AircraftHandler.ListAircrafts"
+	as, err := h.uc.ListAircrafts()
+	if err != nil {
+		slog.Warn(op, "err", err)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		return
+	}
+
+	resp, err := dto.ToResponseListAircrafts(as)
+	if err != nil {
+		slog.Warn(op, "err", err)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		return
+	}
+	ctx.JSON(http.StatusOK, resp)
 }

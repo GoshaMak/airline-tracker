@@ -8,5 +8,5 @@ import (
 type AircraftRepository interface {
 	SaveAircraft(ctx context.Context, a domain.Aircraft) error
 
-	Exists(ctx context.Context, a domain.Aircraft) (domain.Aircraft, error)
+	List(ctx context.Context) ([]domain.Aircraft, error)
 }

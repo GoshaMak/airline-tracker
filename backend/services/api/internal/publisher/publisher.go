@@ -29,7 +29,7 @@ func (p *Publisher) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 
 		case <-ticker.C:
 			if err := p.uc.Publish(ctx); err != nil {

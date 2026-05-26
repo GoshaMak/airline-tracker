@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"notifier/internal/receiver/domain"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type PayloadModel struct {
+type SubscriptionCreatedPayloadModel struct {
 	Email string `json:"email"`
 
 	ScheduledDeparture time.Time  `json:"scheduled_departure"`
@@ -29,7 +31,7 @@ func SubscriptionCreatedCommandToDomain(
 	sendAt time.Time,
 	status domain.NotificationStatus,
 ) (domain.Notification, error) {
-	c := PayloadModel{
+	pm := SubscriptionCreatedPayloadModel{
 		Email: cmd.Email.String(),
 
 		ScheduledDeparture: cmd.ScheduledDeparture,
@@ -48,10 +50,62 @@ func SubscriptionCreatedCommandToDomain(
 		ArrivalAirportCountry:  cmd.ArrivalAirportCountry.String(),
 	}
 
-	payload, err := json.Marshal(&c)
+	payload, err := json.Marshal(&pm)
 	if err != nil {
 		return domain.Notification{}, err
 	}
 
-	return domain.NewNotification(payload, sendAt, status)
+	return domain.NewNotification(payload, sendAt, status, domain.NotificationSubscribed)
+}
+
+type FlightUpdatedPayloadModel struct {
+	FlightId uuid.UUID `json:"flight_id"`
+	Users    []string  `json:"users,omitempty"`
+
+	DepartureAirportTitle string `json:"departure_airport_title"`
+	ArrivalAirportTitle   string `json:"arrival_airport_title"`
+
+	ScheduledDeparture *time.Time `json:"scheduled_departure,omitempty"`
+	ActualDeparture    *time.Time `json:"actual_departure,omitempty"`
+
+	ScheduledArrival *time.Time `json:"scheduled_arrival,omitempty"`
+	ActualArrival    *time.Time `json:"actual_arrival,omitempty"`
+
+	Status *string `json:"status,omitempty"`
+	Plan   *string `json:"plan,omitempty"`
+}
+
+func FlightUpdatedCommandToDomain(
+	cmd FlightUpdatedCommand,
+	sendAt time.Time,
+	status domain.NotificationStatus,
+) (domain.Notification, error) {
+	users := make([]string, len(cmd.Users))
+	for i, u := range cmd.Users {
+		users[i] = u.String()
+	}
+	pm := FlightUpdatedPayloadModel{
+		FlightId:              cmd.FlightId,
+		Users:                 users,
+		DepartureAirportTitle: cmd.DepartureAirportTitle,
+		ArrivalAirportTitle:   cmd.ArrivalAirportTitle,
+		ScheduledDeparture:    cmd.ScheduledDeparture,
+		ActualDeparture:       cmd.ActualDeparture,
+		ScheduledArrival:      cmd.ScheduledArrival,
+		ActualArrival:         cmd.ActualArrival,
+		Status:                cmd.Status,
+		Plan:                  cmd.Plan,
+	}
+
+	payload, err := json.Marshal(&pm)
+	if err != nil {
+		return domain.Notification{}, err
+	}
+
+	n, err := domain.NewNotification(payload, sendAt, status, domain.NotificationFlightUpdated)
+	if err != nil {
+		return domain.Notification{}, err
+	}
+
+	return n, nil
 }

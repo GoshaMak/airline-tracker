@@ -8,43 +8,46 @@ import (
 	"github.com/google/uuid"
 )
 
-type flight struct {
-	Id                 uuid.UUID  `json:"id"`
-	AircraftId         uuid.UUID  `json:"aircraft_id" db:"aircraft_id"`
-	ScheduledDeparture time.Time  `json:"scheduled_departure"`
-	ScheduledArrival   time.Time  `json:"scheduled_arrival"`
-	ActualDeparture    *time.Time `json:"actual_departure"`
-	ActualArrival      *time.Time `json:"actual_arrival"`
-	Status             string     `json:"status"`
-	Plan               *string    `json:"plan"`
+type FlightInfo struct {
+	Id         uuid.UUID `json:"id"`
+	AircraftId uuid.UUID `json:"aircraft_id"`
+
 	DepartureAirportId uuid.UUID  `json:"departure_airport_id"`
-	ArrivalAirportId   uuid.UUID  `json:"arrival_airport_id"`
 	DepartureGateId    uuid.UUID  `json:"departure_gate_id"`
-	ArrivalGateId      uuid.UUID  `json:"arrival_gate_id"`
+	ScheduledDeparture time.Time  `json:"scheduled_departure"`
+	ActualDeparture    *time.Time `json:"actual_departure"`
+
+	ArrivalAirportId uuid.UUID  `json:"arrival_airport_id"`
+	ArrivalGateId    uuid.UUID  `json:"arrival_gate_id"`
+	ScheduledArrival time.Time  `json:"scheduled_arrival"`
+	ActualArrival    *time.Time `json:"actual_arrival"`
+
+	Status string  `json:"status"`
+	Plan   *string `json:"plan"`
 }
 
 type ListFlightsResponse struct {
-	Flights []flight `json:"flights"`
+	Flights []FlightInfo `json:"flights"`
 }
 
 func ToResponseListFlights(
 	flights []domain.Flight,
 ) (ListFlightsResponse, error) {
 	resp := ListFlightsResponse{
-		Flights: make([]flight, len(flights), cap(flights)),
+		Flights: make([]FlightInfo, len(flights), cap(flights)),
 	}
 	for i := range flights {
-		resp.Flights[i] = domainToResponse(&flights[i])
+		resp.Flights[i] = ToFlightInfoDomain(&flights[i])
 	}
 	return resp, nil
 }
 
-func domainToResponse(f *domain.Flight) flight {
+func ToFlightInfoDomain(f *domain.Flight) FlightInfo {
 	var plan *string
 	if f.Plan != nil {
 		plan = utils.Ptr(f.Plan.String())
 	}
-	return flight{
+	return FlightInfo{
 		Id:                 f.Id,
 		AircraftId:         f.AircraftId,
 		ScheduledDeparture: f.ScheduledDeparture,

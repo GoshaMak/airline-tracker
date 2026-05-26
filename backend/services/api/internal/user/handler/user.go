@@ -14,14 +14,12 @@ import (
 )
 
 type UserHandler struct {
-	userUc *usecase.UserUsecase
-	//notificationUc *notificationUsecase.NotificationUsecase
+	uc *usecase.UserUsecase
 }
 
 func NewUserHandler(i do.Injector) (*UserHandler, error) {
 	return &UserHandler{
-		userUc: do.MustInvoke[*usecase.UserUsecase](i),
-		//notificationUc: do.MustInvoke[*notificationUsecase.NotificationUsecase](i),
+		uc: do.MustInvoke[*usecase.UserUsecase](i),
 	}, nil
 }
 
@@ -78,7 +76,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 
 	slog.Debug(op, "uid", uid, "fid", fid)
 
-	if err := h.userUc.Subscribe(uid, fid); err != nil {
+	if err := h.uc.Subscribe(uid, fid); err != nil {
 		switch err {
 		case usecase.ErrUserNotFound:
 			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
@@ -103,30 +101,6 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	})
 }
 
-// TODO: move to publisher goroutine
-func (h *UserHandler) SendMessage(ctx *gin.Context) {
-	panic("sad")
-	// const op = "UserHandler.SendMessage"
-	// uidStr := ctx.GetString("user_id")
-	// uid, err := uuid.Parse(uidStr)
-	// if err != nil {
-	// 	slog.Error(op, "err", err)
-	// 	return
-	// }
-	//
-	// fidStr := ctx.GetString("flight_id")
-	// fid, err := uuid.Parse(fidStr)
-	// if err != nil {
-	// 	slog.Error(op, "err", err)
-	// 	return
-	// }
-	//
-	// if err := h.notificationUc.SendMessage(uid, fid); err != nil {
-	// 	slog.Error(op, "err", err)
-	// 	return
-	// }
-}
-
 // @Summary list flights (only user)
 // @Description get all flights in which user is subscribed
 // @Tags User
@@ -149,7 +123,7 @@ func (h *UserHandler) ListFlights(ctx *gin.Context) {
 		return
 	}
 
-	flights, err := h.userUc.ListFlights(uid)
+	flights, err := h.uc.ListFlights(uid)
 	if err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{

@@ -15,8 +15,6 @@ type UserRepository interface {
 
 	Exist(ctx context.Context, uid uuid.UUID) (domain.User, error)
 
-	UpdateById(ctx context.Context, uid uuid.UUID) error
-
 	Subscribe(ctx context.Context, uid, fid uuid.UUID) error
 
 	ListFlights(ctx context.Context, uid uuid.UUID) ([]flightDomain.Flight, error)
