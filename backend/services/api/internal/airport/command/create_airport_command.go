@@ -25,7 +25,7 @@ func NewCreateAirportCommand(req *dto.CreateAirportRequest) (*CreateAirportComma
 	if city == "" {
 		return nil, fmt.Errorf("invalid city")
 	}
-	country := req.Airport.City
+	country := req.Airport.Country
 	if country == "" {
 		return nil, fmt.Errorf("invalid country")
 	}

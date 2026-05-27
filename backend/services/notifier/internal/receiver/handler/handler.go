@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"notifier/internal/receiver/command"
@@ -53,6 +54,10 @@ func FlightUpdatedHandler(i do.Injector) HandlerFunc {
 		}
 
 		if err := uc.UpdateFlight(ctx, cmd); err != nil {
+			if errors.Is(err, usecase.ErrNothingToUpdate) {
+				slog.Debug(op + ": nothing to update")
+				return nil
+			}
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		slog.Debug(op + ": flight updated")

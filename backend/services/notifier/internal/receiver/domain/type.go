@@ -26,7 +26,7 @@ func NewNotificationType(nt string) (NotificationType, error) {
 		return NotificationFlightUpdated, nil
 
 	default:
-		return -1, ErrInvalidStatus
+		return -1, ErrInvalidType
 	}
 }
 

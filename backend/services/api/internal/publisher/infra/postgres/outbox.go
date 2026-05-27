@@ -67,7 +67,7 @@ func clone(p domain.Payload) domain.Payload {
 
 func (r *outboxRepository) ListNotSent(
 	ctx context.Context,
-	payload domain.Payload,
+	newPayload func() domain.Payload,
 ) ([]domain.Outbox, error) {
 	const op = "OutboxRepository.ListNotSent"
 	query := `
@@ -86,9 +86,7 @@ func (r *outboxRepository) ListNotSent(
 	}
 	obs := make([]domain.Outbox, len(obms))
 	for i, obm := range obms {
-		//pld := clone(payload)
-		pld := payload
-		slog.Debug(op, "payload clone", pld)
+		payload := newPayload()
 		ob, err := model.OutboxModelToDomain(obm, payload)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)

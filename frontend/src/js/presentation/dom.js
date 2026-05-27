@@ -21,5 +21,14 @@ export function getElements() {
     statusFilter: document.getElementById("statusFilter"),
     refreshButton: document.getElementById("refreshButton"),
     flightViewTabs: document.getElementById("flightViewTabs"),
+    adminPanel: document.getElementById("adminPanel"),
+    adminCreateFlightForm: document.getElementById("adminCreateFlightForm"),
+    adminEditFlightForm: document.getElementById("adminEditFlightForm"),
+    adminEditFlightSelect: document.getElementById("adminEditFlightSelect"),
+    adminCreateAircraft: document.getElementById("adminCreateAircraft"),
+    adminCreateDepartureAirport: document.getElementById("adminCreateDepartureAirport"),
+    adminCreateArrivalAirport: document.getElementById("adminCreateArrivalAirport"),
+    adminCreateDepartureGate: document.getElementById("adminCreateDepartureGate"),
+    adminCreateArrivalGate: document.getElementById("adminCreateArrivalGate"),
   };
 }

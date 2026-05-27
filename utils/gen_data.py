@@ -7,9 +7,9 @@ from datetime import datetime
 import psycopg2
 from faker import Faker
 
-USERS_AMT = 10_000
+USERS_AMT = 100
 USER_ROLES = ["admin", "user"]
-AIRPORTS_AMT = 10_000
+AIRPORTS_AMT = 100
 UPPER_CASE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 AIRCRAFT_MODELS = [
     "Airbus",
@@ -80,6 +80,10 @@ def genRandomRepresentation() -> str:
     return random.choice(reprs)
 
 
+def genGateNumber() -> str:
+    return fake.bothify(text="?%#!", letters=UPPER_CASE_LETTERS)
+
+
 def GenUsers():
     for _ in range(USERS_AMT):
         user = (
@@ -130,9 +134,9 @@ def GenGates():
         amt = genRandomInt(1, 10)  # gates amt per airport
         for _ in range(amt):
             gateId = str(uuid.uuid4())
-            gateNumber = fake.bothify(text="?%#!", letters=UPPER_CASE_LETTERS)
+            gateNumber = genGateNumber()
             while gateNumber in gateNumbers:
-                gateNumber = fake.bothify(text="?%#!")
+                gateNumber = genGateNumber()
             gateNumbers.append(gateNumber)
             gates.append((gateId, airportId, gateNumber))
             gateToAirport[gateId] = airportId
@@ -183,7 +187,7 @@ def GenAircrafts():
                     aircraftId,
                     aircraftModelId,
                     fake.unique.bothify(text="?!-###!!", letters=UPPER_CASE_LETTERS),
-                    fake.bothify(text="??-##!!!!!", letters=UPPER_CASE_LETTERS),
+                    fake.unique.bothify(text="??-##!!!!!", letters=UPPER_CASE_LETTERS),
                     random.randint(MILEAGE_MIN, MILEAGE_MAX),
                 )
             )

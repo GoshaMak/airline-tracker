@@ -150,5 +150,9 @@ func formFlightUpdatedBody(cmd command.SendFlightUpdatedCommand) string {
 		fmt.Fprintf(&body, "New flight's status is %s"+sep, *cmd.Status)
 	}
 
+	if cmd.Plan != nil {
+		fmt.Fprintf(&body, "New flight's plan is %s"+sep, *cmd.Plan)
+	}
+
 	return body.String()
 }

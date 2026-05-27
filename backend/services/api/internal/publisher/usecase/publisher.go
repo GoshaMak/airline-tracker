@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"api/internal/infra/kafka"
+	"api/internal/publisher/domain"
 	"api/internal/publisher/domain/repository"
 	"api/internal/utils"
 	"context"
@@ -40,8 +41,9 @@ func (p *SendPayload) UnmarshalJSON(data []byte) error {
 
 func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 	const op = "PublisherUsecase.Publish"
-	var payload SendPayload
-	obs, err := uc.repo.ListNotSent(ctx, &payload)
+	obs, err := uc.repo.ListNotSent(ctx, func() domain.Payload {
+		return &SendPayload{}
+	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -10,11 +10,17 @@ export function decodeTokenPayload(token) {
 }
 
 export function normalizeRole(role) {
+  const normalized = typeof role === "string" ? role.trim().toLowerCase() : role;
   if (role === 0 || role === "0" || role === "user") return "user";
-  if (role === 1 || role === "1" || role === "admin") return "admin";
+  if (role === 1 || normalized === "1" || normalized === "admin") return "admin";
+  if (normalized === "user") return "user";
   return "";
 }
 
 export function isUserRole(role) {
   return role === "user";
+}
+
+export function isAdminRole(role) {
+  return role === "admin";
 }

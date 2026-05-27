@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"notifier/internal/mailer"
@@ -58,7 +57,7 @@ func (uc *NotifierUsecase) UpdateFlight(
 	if len(cmd.Users) == 0 || (cmd.ScheduledDeparture == nil &&
 		cmd.ActualDeparture == nil && cmd.ScheduledArrival == nil &&
 		cmd.ActualArrival == nil && cmd.Status == nil && cmd.Plan == nil) {
-		return errors.New("nothing to update")
+		return ErrNothingToUpdate
 	}
 
 	sendAt := time.Now().UTC()

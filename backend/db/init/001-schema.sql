@@ -108,12 +108,6 @@ create table if not exists notifications
     status     varchar(20) not null,
     type       varchar(20) not null,
 
-    constraint notification_send_after_creation check (send_at > created_at),
     constraint notification_status_check check (status in ('created', 'urgent', 'sent')),
     constraint notification_type_check check (type in ('subscribed', 'flight_updated'))
 );
-
-select u.id as id, u.email as email, u.password_hash as password_hash, u.role as role
-from subscriptions s
-         join users u on s.user_id = u.id
-where s.flight_id = 'a094af47-17d5-46b8-b8ac-276b9e66c02f'::uuid;

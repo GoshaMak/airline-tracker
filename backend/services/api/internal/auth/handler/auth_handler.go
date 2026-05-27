@@ -102,6 +102,11 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 			return
 		}
+		if errors.Is(err, usecase.ErrWrongPassword) {
+			slog.Warn(op, "err", err)
+			ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "wrong password"})
+			return
+		}
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
