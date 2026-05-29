@@ -18,7 +18,7 @@ func isValidTitle(t string) bool {
 	}
 
 	for _, r := range t {
-		if !unicode.IsLetter(r) && r != ' ' && r != '-' && r != ',' {
+		if !unicode.IsLetter(r) && r != ' ' && r != '-' && r != ',' && r != '.' {
 			return false
 		}
 	}

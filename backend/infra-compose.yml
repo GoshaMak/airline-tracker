@@ -21,6 +21,29 @@ services:
       retries: 10
       start_period: 1s
 
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: airline_tracker
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_pswd
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - shared
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "mysql --protocol=tcp -h 127.0.0.1 -uapp_user -papp_pswd -D airline_tracker -e 'select 1' >/dev/null 2>&1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 10s
+
   redis:
     image: redis:7
     restart: unless-stopped
@@ -68,6 +91,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  mysql_data:
     driver: local
   redis_data:
     driver: local
