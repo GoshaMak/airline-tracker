@@ -21,6 +21,25 @@ services:
       retries: 10
       start_period: 1s
 
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+      MONGO_INITDB_DATABASE: airline_tracker
+    ports:
+      - "27017:27017"
+    networks:
+      - shared
+      - default
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
+      start_period: 1s
+
   redis:
     image: redis:7
     restart: unless-stopped

@@ -4,7 +4,7 @@ import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
 	"api/internal/flight/domain/repository"
-	"api/internal/flight/infra/postgres"
+	"api/internal/flight/infra/mongo"
 	"api/internal/flight/infra/redis"
 	userDomain "api/internal/user/domain"
 	"context"
@@ -17,19 +17,19 @@ import (
 )
 
 type flightRepository struct {
-	pg *postgres.PostgresDB
+	mg *mongo.MongoDB
 	rd *redis.RedisDB
 }
 
 func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	return &flightRepository{
-		pg: do.MustInvoke[*postgres.PostgresDB](i),
+		mg: do.MustInvoke[*mongo.MongoDB](i),
 		rd: do.MustInvoke[*redis.RedisDB](i),
 	}, nil
 }
 func (r *flightRepository) Save(ctx context.Context, flight domain.Flight) error {
 	const op = "FlightRepository.Save"
-	if err := r.pg.Save(ctx, flight); err != nil {
+	if err := r.mg.Save(ctx, flight); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -56,9 +56,9 @@ func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Fli
 		}
 	}
 
-	f, err = r.pg.Exist(ctx, fid)
+	f, err = r.mg.Exist(ctx, fid)
 	if err != nil {
-		if errors.Is(err, postgres.ErrFlightNotFound) {
+		if errors.Is(err, repository.ErrFlightNotFound) {
 			return domain.Flight{}, repository.ErrFlightNotFound
 		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
@@ -68,7 +68,7 @@ func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Fli
 
 func (r *flightRepository) Update(ctx context.Context, ufi domain.UpdateFlightInfo) error {
 	const op = "FlightRepository.Update"
-	if err := r.pg.Update(ctx, ufi); err != nil {
+	if err := r.mg.Update(ctx, ufi); err != nil {
 		slog.Warn(op, "err", err)
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -97,7 +97,7 @@ func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, er
 	}
 	slog.Info(op + ": flights not cached")
 
-	flights, err = r.pg.ListFlights(ctx)
+	flights, err = r.mg.ListFlights(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -117,9 +117,9 @@ func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, er
 
 func (r *flightRepository) GetFlightRoute(ctx context.Context, fid uuid.UUID) (domain.FlightRoute, error) {
 	const op = "FlightRepository.GetFlightRoute"
-	fr, err := r.pg.GetFlightRoute(ctx, fid)
+	fr, err := r.mg.GetFlightRoute(ctx, fid)
 	if err != nil {
-		if errors.Is(err, postgres.ErrFlightRouteNotFound) {
+		if errors.Is(err, repository.ErrFlightRouteNotFound) {
 			return domain.FlightRoute{}, repository.ErrFlightRouteNotFound
 		}
 		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
@@ -129,7 +129,7 @@ func (r *flightRepository) GetFlightRoute(ctx context.Context, fid uuid.UUID) (d
 
 func (r *flightRepository) ListSubscribers(ctx context.Context, fid uuid.UUID) ([]userDomain.User, error) {
 	const op = "FlightRepository.ListSubscribers"
-	subs, err := r.pg.ListSubscribers(ctx, fid)
+	subs, err := r.mg.ListSubscribers(ctx, fid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -141,7 +141,7 @@ func (r *flightRepository) GetFlightAirports(
 	fid uuid.UUID,
 ) (dep airportDomain.Airport, arr airportDomain.Airport, err error) {
 	const op = "FlightRepository.GetFlightAirports"
-	dep, arr, err = r.pg.GetFlightAirports(ctx, fid)
+	dep, arr, err = r.mg.GetFlightAirports(ctx, fid)
 	if err != nil {
 		return dep, arr, fmt.Errorf("%s: %w", op, err)
 	}

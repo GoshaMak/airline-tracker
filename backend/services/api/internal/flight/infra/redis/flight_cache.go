@@ -5,6 +5,7 @@ import (
 	"api/internal/flight/infra/redis/model"
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	rds "github.com/redis/go-redis/v9"
@@ -78,12 +79,21 @@ func (r *RedisDB) GetFlightById(
 	const op = "RedisDB.GetFlightById"
 	var fm model.FlightModel
 	fKey := formFlightKey(fid.String())
-	if err := r.cln.HGetAll(ctx, fKey).Scan(&fm); err != nil {
+	cmd := r.cln.HGetAll(ctx, fKey)
+	result, err := cmd.Result()
+	if err != nil {
 		if err == rds.Nil {
 			return domain.Flight{}, ErrFlightNotFound
 		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
 	}
+	if len(result) == 0 {
+		return domain.Flight{}, ErrFlightNotFound
+	}
+	if err := cmd.Scan(&fm); err != nil {
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+	}
+	fm.Id = fid
 	f, err := model.FlightModelToDomain(fm)
 	if err != nil {
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
@@ -161,6 +171,12 @@ func (r *RedisDB) GetFlights(ctx context.Context) ([]domain.Flight, error) {
 		if err := cmd.Scan(&fm); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+		key := strings.TrimPrefix(fmt.Sprint(cmd.Args()[1]), "flight:")
+		id, err := uuid.Parse(key)
+		if err != nil {
+			return nil, fmt.Errorf("%s: parse flight id from cache key %q: %w", op, key, err)
+		}
+		fm.Id = id
 
 		f, err := model.FlightModelToDomain(fm)
 		if err != nil {

@@ -17,8 +17,8 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 
 	connStr := "postgres://" +
-		getEnv("DB_USER", "postgres") +
-		":" + getEnv("DB_PASSWORD", "postgres") +
+		"postgres" +
+		"postgres" +
 		"@" + getEnv("DB_HOST", "localhost") +
 		":" + getEnv("DB_PORT", "5432") +
 		"/" + getEnv("DB_NAME", "airline_tracker")
@@ -111,7 +111,7 @@ func TestAirportRepository_Save(t *testing.T) {
 		{
 			name: "save one airport",
 			airports: []domain.Airport{
-				mustNewAirport(t, "SVO", "Sheremetyevo", "Moscow", "Russia"),
+				mustNewAirport(t, "SVO", "Sheremetyevo", "Moscow", "RU"),
 			},
 			cleanup: []string{"SVO"},
 			verify: func(t *testing.T, pool *pgxpool.Pool, airports []domain.Airport) {
@@ -196,8 +196,8 @@ func TestAirportRepository_Save_DuplicateIATA(t *testing.T) {
 	}{
 		{
 			name:      "duplicate iata code",
-			first:     mustNewAirport(t, "CDG", "Charles de Gaulle", "Paris", "France"),
-			duplicate: mustNewAirport(t, "CDG", "Paris North", "Paris", "France"),
+			first:     mustNewAirport(t, "CDG", "Charles de Gaulle", "Paris", "FR"),
+			duplicate: mustNewAirport(t, "CDG", "Paris North", "Paris", "FR"),
 			cleanup:   []string{"CDG"},
 			expected:  repository.ErrAirportAlreadyExists,
 		},
