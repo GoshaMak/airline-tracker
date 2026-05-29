@@ -15,6 +15,12 @@
         </div>
       </header>
 
+      <div class="message-overlay" id="messageOverlay" hidden>
+        <div class="message-dialog" id="messageDialog" role="alertdialog" aria-live="assertive" aria-modal="true">
+          <p id="popupMessage"></p>
+        </div>
+      </div>
+
       <main class="layout">
         <aside class="sidebar">
           <section class="panel auth-panel">
@@ -31,33 +37,39 @@
               </label>
               <label>
                 Password
-                <input name="password" type="password" autocomplete="current-password" required>
+                <span class="password-field">
+                  <input name="password" type="password" autocomplete="current-password" required>
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="Show password" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </span>
               </label>
               <button type="submit">Sign in</button>
             </form>
 
             <form id="registerForm" class="form-stack compact">
-              <div class="split-row">
-                <label>
-                  New email
-                  <input name="email" type="email" autocomplete="email" required>
-                </label>
-                <label>
-                  Role
-                  <select name="role">
-                    <option value="user">user</option>
-                    <option value="admin">admin</option>
-                  </select>
-                </label>
-              </div>
+              <input name="role" type="hidden" value="user">
+              <label>
+                New email
+                <input name="email" type="email" autocomplete="email" required>
+              </label>
               <label>
                 New password
-                <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+                <span class="password-field">
+                  <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="Show password" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </span>
               </label>
               <button class="secondary-button" type="submit">Create account</button>
             </form>
-
-            <p class="message" id="authMessage"></p>
           </section>
 
           <section class="panel">
@@ -93,6 +105,121 @@
               <strong id="subscribedFlights">0</strong>
             </article>
           </div>
+
+          <section class="admin-panel" id="adminPanel" hidden>
+            <div class="admin-heading">
+              <div>
+                <p class="eyebrow">Admin</p>
+                <h2>Flight Management</h2>
+              </div>
+            </div>
+
+            <div class="admin-grid">
+              <form id="adminCreateFlightForm" class="admin-form">
+                <h3>Add flight</h3>
+                <div class="admin-form-grid">
+                  <label>
+                    Aircraft
+                    <select id="adminCreateAircraft" name="aircraft_id" required></select>
+                  </label>
+                  <label>
+                    Departure airport
+                    <select id="adminCreateDepartureAirport" name="departure_airport_id" required></select>
+                  </label>
+                  <label>
+                    Arrival airport
+                    <select id="adminCreateArrivalAirport" name="arrival_airport_id" required></select>
+                  </label>
+                  <label>
+                    Departure gate
+                    <select id="adminCreateDepartureGate" name="departure_gate_id" required></select>
+                  </label>
+                  <label>
+                    Arrival gate
+                    <select id="adminCreateArrivalGate" name="arrival_gate_id" required></select>
+                  </label>
+                  <label>
+                    Status
+                    <select name="status" required>
+                      <option value="scheduled">scheduled</option>
+                      <option value="boarding">boarding</option>
+                      <option value="departed">departed</option>
+                      <option value="landed">landed</option>
+                      <option value="arrived">arrived</option>
+                      <option value="delayed">delayed</option>
+                      <option value="cancelled">cancelled</option>
+                      <option value="rescheduled">rescheduled</option>
+                    </select>
+                  </label>
+                  <label>
+                    Scheduled departure
+                    <input name="scheduled_departure" type="datetime-local" required>
+                  </label>
+                  <label>
+                    Scheduled arrival
+                    <input name="scheduled_arrival" type="datetime-local" required>
+                  </label>
+                  <label>
+                    Actual departure
+                    <input name="actual_departure" type="datetime-local">
+                  </label>
+                  <label>
+                    Actual arrival
+                    <input name="actual_arrival" type="datetime-local">
+                  </label>
+                  <label class="wide-field">
+                    Flight plan
+                    <input name="plan" type="text" placeholder="Optional">
+                  </label>
+                </div>
+                <button type="submit">Add flight</button>
+              </form>
+
+              <form id="adminEditFlightForm" class="admin-form">
+                <h3>Change flight</h3>
+                <label>
+                  Flight
+                  <select id="adminEditFlightSelect" required></select>
+                </label>
+                <div class="admin-form-grid">
+                  <label>
+                    Status
+                    <select name="status" required>
+                      <option value="scheduled">scheduled</option>
+                      <option value="boarding">boarding</option>
+                      <option value="departed">departed</option>
+                      <option value="landed">landed</option>
+                      <option value="arrived">arrived</option>
+                      <option value="delayed">delayed</option>
+                      <option value="cancelled">cancelled</option>
+                      <option value="rescheduled">rescheduled</option>
+                    </select>
+                  </label>
+                  <label>
+                    Scheduled departure
+                    <input name="scheduled_departure" type="datetime-local" required>
+                  </label>
+                  <label>
+                    Scheduled arrival
+                    <input name="scheduled_arrival" type="datetime-local" required>
+                  </label>
+                  <label>
+                    Actual departure
+                    <input name="actual_departure" type="datetime-local">
+                  </label>
+                  <label>
+                    Actual arrival
+                    <input name="actual_arrival" type="datetime-local">
+                  </label>
+                  <label class="wide-field">
+                    Flight plan
+                    <input name="plan" type="text" placeholder="Optional">
+                  </label>
+                </div>
+                <button type="submit">Save changes</button>
+              </form>
+            </div>
+          </section>
 
           <section class="table-section">
             <div class="table-toolbar">
@@ -142,6 +269,6 @@
       </main>
     </div>
 
-    <script src="/app.js" defer></script>
+    <script src="/app.js" type="module"></script>
   </body>
 </html>

@@ -1,10 +1,13 @@
-HANDLERS := $(shell find internal -type d -name handler | paste -sd ",")
-DTOS := $(shell find internal -type d -name dto | paste -sd ",")
+API_PREFIX := services/api
+NOTIFIER_PREFIX := services/notifier
+
+HANDLERS := $(shell find $(API_PREFIX)/internal -type d -name handler | paste -sd ",")
+DTOS := $(shell find $(API_PREFIX)/internal -type d -name dto | paste -sd ",")
 
 .PHONY : swagger
 swagger :
-	swag init -g app.go -o cmd/docs --parseInternal=true \
-		--dir internal/app/,$(HANDLERS),$(DTOS)
+	swag init -g server.go -o $(API_PREFIX)/cmd/docs --parseInternal=true \
+		--dir $(API_PREFIX)/internal/server/,$(HANDLERS),$(DTOS)
 
 .PHONY : up
 up: format
@@ -18,8 +21,11 @@ down:
 
 .PHONY : test
 test:
-	GO111MODULE=on go test -cover -count=1 ./... 2>&1 | grep -v '\[no test files\]'
+	GO111MODULE=on go test -cover -count=1 ./$(API_PREFIX)/... 2>&1 | grep -v '\[no test files\]'
 
 .PHONY : format
 format:
-	goimports -w .
+	goimports -w $(API_PREFIX)/
+	goimports -w $(NOTIFIER_PREFIX)/
+	cd $(API_PREFIX) && go mod tidy
+	cd $(NOTIFIER_PREFIX) && go mod tidy

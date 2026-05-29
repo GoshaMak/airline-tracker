@@ -9,3 +9,7 @@ db/tmp
 .venv
 venv
 .idea
+.agents
+.codex
+tmp
+*.ignored
