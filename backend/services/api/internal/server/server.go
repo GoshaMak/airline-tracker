@@ -7,11 +7,9 @@ import (
 	fleetHandler "api/internal/fleet/handler"
 	flightHandler "api/internal/flight/handler"
 	"api/internal/infra/kafka"
-	"api/internal/infra/mysql"
 	"api/internal/infra/redis"
 	userHandler "api/internal/user/handler"
 	"context"
-	"database/sql"
 
 	"log/slog"
 	"net/http"
@@ -50,7 +48,7 @@ func NewServer(injector *do.RootScope) (*Server, error) {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	defer mysql.CloseConnection(do.MustInvoke[*sql.DB](s.injector))
+	// defer postgres.CloseConnection(do.MustInvoke[*pgxpool.Pool](s.injector))
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](s.injector))
 	defer kafka.CloseConnection(do.MustInvoke[*kafka.NotifySender](s.injector))
 

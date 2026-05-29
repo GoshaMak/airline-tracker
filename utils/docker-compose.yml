@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["gen_data.py"]
     environment:
       POSTGRES_DB: airline_tracker
       POSTGRES_USER: postgres
@@ -12,25 +13,22 @@ services:
     networks:
       - shared
 
-  migrate_pg_to_mysql:
+  migrate:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "migrate_pg_to_mysql.py"]
+    command: ["migrate.py"]
     environment:
       POSTGRES_DB: airline_tracker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      MYSQL_DATABASE: airline_tracker
-      MYSQL_USER: app_user
-      MYSQL_PASSWORD: app_pswd
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-    depends_on:
-      data_generator:
-        condition: service_completed_successfully
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+      MONGO_USER: mongo
+      MONGO_PASSWORD: mongo 
+      MONGO_NAME: airline_tracker
     networks:
       - shared
 
