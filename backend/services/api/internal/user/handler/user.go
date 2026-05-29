@@ -29,7 +29,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	user := r.Group("/user", middleware.AuthMiddleware(domain.UserRole))
 	{
 		user.POST("/subscribe", h.Subscribe)
-		user.GET("/list_flights", h.ListFlights)
+		user.GET("/flights", h.ListFlights)
 	}
 }
 
@@ -110,7 +110,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 // @Success 200
 // @Failure 400
 // @Failure 401
-// @Router /user/list_flights [get]
+// @Router /user/flights [get]
 func (h *UserHandler) ListFlights(ctx *gin.Context) {
 	const op = "UserHandler.ListFlights"
 	uidStr := ctx.GetString("user_id")

@@ -17,7 +17,7 @@ type AirportUsecase struct {
 
 func NewAirportUsecase(i do.Injector) (*AirportUsecase, error) {
 	return &AirportUsecase{
-		repo: do.MustInvokeAs[repository.AirportRepository](i),
+		repo: do.MustInvoke[repository.AirportRepository](i),
 	}, nil
 }
 

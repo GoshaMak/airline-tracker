@@ -30,10 +30,10 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 1s
-      timeout: 1s
+      interval: 10s
+      timeout: 5s
       retries: 10
-      start_period: 1s
+      start_period: 2s
 
   kafka:
     image: apache/kafka:latest

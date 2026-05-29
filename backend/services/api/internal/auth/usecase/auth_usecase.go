@@ -17,7 +17,7 @@ type AuthUsecase struct {
 
 func NewAuthUsecase(i do.Injector) (*AuthUsecase, error) {
 	return &AuthUsecase{
-		repo: do.MustInvokeAs[repository.UserRepository](i),
+		repo: do.MustInvoke[repository.UserRepository](i),
 	}, nil
 }
 

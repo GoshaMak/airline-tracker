@@ -3,7 +3,7 @@ import { isAdminRole, isUserRole } from "../domain/auth.js";
 import { applyToken, clearToken } from "./state.js";
 
 export async function loadFlights({ api, state }) {
-  const response = await api.request("/list_flights");
+  const response = await api.request("/flights/list");
   state.flights = response.flights || [];
 }
 
@@ -18,7 +18,7 @@ export async function loadSubscriptions({ api, state }) {
     return;
   }
 
-  const response = await api.request("/user/list_flights");
+  const response = await api.request("/user/flights");
   state.subscriptions = response.flights || [];
 }
 

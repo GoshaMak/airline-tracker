@@ -20,7 +20,7 @@ type SenderUsecase struct {
 
 func NewSenderUsecase(i do.Injector) (*SenderUsecase, error) {
 	return &SenderUsecase{
-		repo:          do.MustInvokeAs[receiverRepository.NotificationRepository](i),
+		repo:          do.MustInvoke[receiverRepository.NotificationRepository](i),
 		emailSenderUc: do.MustInvoke[*EmailSenderUsecase](i),
 	}, nil
 }

@@ -28,10 +28,10 @@ type UserUsecase struct {
 
 func NewUserUsecase(i do.Injector) (*UserUsecase, error) {
 	return &UserUsecase{
-		userRepo:   do.MustInvokeAs[userRepository.UserRepository](i),
-		outboxRepo: do.MustInvokeAs[outboxRepository.OutboxRepository](i),
-		flightRepo: do.MustInvokeAs[flightRepository.FlightRepository](i),
-		gateRepo:   do.MustInvokeAs[airportRepository.GateRepository](i),
+		userRepo:   do.MustInvoke[userRepository.UserRepository](i),
+		outboxRepo: do.MustInvoke[outboxRepository.OutboxRepository](i),
+		flightRepo: do.MustInvoke[flightRepository.FlightRepository](i),
+		gateRepo:   do.MustInvoke[airportRepository.GateRepository](i),
 	}, nil
 }
 

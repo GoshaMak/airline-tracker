@@ -21,7 +21,7 @@ type NotifierUsecase struct {
 func NewNotifierUsecase(i do.Injector) (*NotifierUsecase, error) {
 	return &NotifierUsecase{
 		m:    do.MustInvoke[*mailer.Mailer](i),
-		repo: do.MustInvokeAs[repository.NotificationRepository](i),
+		repo: do.MustInvoke[repository.NotificationRepository](i),
 	}, nil
 }
 

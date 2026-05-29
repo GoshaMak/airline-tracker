@@ -20,42 +20,22 @@ import (
 
 type FlightUsecase struct {
 	repo       repository.FlightRepository
-	cache      repository.FlightCache
 	outboxRepo outboxRepository.OutboxRepository
 }
 
 func NewFlightUsecase(i do.Injector) (*FlightUsecase, error) {
 	return &FlightUsecase{
-		repo:       do.MustInvokeAs[repository.FlightRepository](i),
-		cache:      do.MustInvokeAs[repository.FlightCache](i),
-		outboxRepo: do.MustInvokeAs[outboxRepository.OutboxRepository](i),
+		repo:       do.MustInvoke[repository.FlightRepository](i),
+		outboxRepo: do.MustInvoke[outboxRepository.OutboxRepository](i),
 	}, nil
 }
 
 func (uc *FlightUsecase) ListFlights() ([]domain.Flight, error) {
 	const op = "FlightUsecase.ListFlights"
-	var flights []domain.Flight
-	flights, err := uc.cache.GetFlights(context.Background())
-	if err != nil {
-		if err != repository.ErrCacheEmpty {
-			slog.Warn("error in cache", "err", err)
-		}
-	} else {
-		slog.Info("list flights cached")
-		return flights, nil
-	}
-
-	flights, err = uc.repo.ListFlights(context.Background())
+	flights, err := uc.repo.ListFlights(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
-	// mb do it inside goroutine
-	if err := uc.cache.SaveFlights(context.Background(), flights); err != nil {
-		slog.Error("error in cache", "err", err)
-		return flights, ErrCacheSave
-	}
-
 	return flights, nil
 }
 
@@ -67,10 +47,6 @@ func (uc *FlightUsecase) CreateFlight(cmd command.CreateFlightCommand) error {
 	}
 	if err := uc.repo.Save(context.Background(), f); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
-	}
-	if err := uc.cache.Save(context.Background(), f); err != nil {
-		slog.Debug(op, "err", err)
-		return ErrCacheSave
 	}
 	return nil
 }
@@ -96,27 +72,42 @@ func (uc *FlightUsecase) UpdateFlight(cmd command.UpdateFlightCommand) error {
 	if err := uc.repo.Update(context.Background(), ufi); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	slog.Debug(op + ": user subscribed")
+	slog.Debug(op + ": flight updated")
 
 	// TODO: figure how to do it more generally (DRY)
-	dep, arr, err := uc.repo.GetFlightAirports(context.Background(), ufi.FlightId)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	topic := os.Getenv("FLIGHT_UPDATED_TOPIC") // TODO: get it from config?
-	payload, err := uc.formPayload(ufi, dep, arr)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	slog.Debug(op+": payload formed", "payload", payload)
-	ob, err := publisherDomain.NewOutbox(topic, &payload)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if err := uc.outboxRepo.Save(context.Background(), ob); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	slog.Debug(op+": saved to outbox", "outbox", ob)
+	go func() {
+		subs, err := uc.repo.ListSubscribers(context.Background(), ufi.FlightId)
+		if err != nil {
+			slog.Error(op, "err", err)
+			return
+		}
+		if len(subs) == 0 {
+			return
+		}
+
+		dep, arr, err := uc.repo.GetFlightAirports(context.Background(), ufi.FlightId)
+		if err != nil {
+			slog.Error(op, "err", err)
+			return
+		}
+		topic := os.Getenv("FLIGHT_UPDATED_TOPIC") // TODO: get it from config?
+		payload, err := uc.formPayload(ufi, dep, arr)
+		if err != nil {
+			slog.Error(op, "err", err)
+			return
+		}
+		slog.Debug(op+": payload formed", "payload", payload)
+		ob, err := publisherDomain.NewOutbox(topic, &payload)
+		if err != nil {
+			slog.Error(op, "err", err)
+			return
+		}
+		if err := uc.outboxRepo.Save(context.Background(), ob); err != nil {
+			slog.Error(op, "err", err)
+			return
+		}
+		slog.Debug(op+": saved to outbox", "outbox", ob)
+	}()
 
 	return nil
 }

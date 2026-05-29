@@ -29,7 +29,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*FlightHandler](i)
 
 	{
-		r.GET("/list_flights", c.ListFlights)
+		r.GET("/flights/list", c.ListFlights)
 		r.GET("/flight/:id", c.FlightById)
 	}
 
@@ -48,11 +48,11 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Success 200 {array} dto.ListFlightsResponse
 // @Failure 400
 // @Failure 500
-// @Router /list_flights [get]
+// @Router /flights/list [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	const op = "FlightHandler.ListFlights"
 	flights, err := h.uc.ListFlights()
-	if err != nil && err != usecase.ErrCacheSave {
+	if err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"msg": "internal error",

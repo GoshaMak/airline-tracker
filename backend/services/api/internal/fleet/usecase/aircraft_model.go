@@ -18,7 +18,7 @@ type AircraftModelUsecase struct {
 
 func NewAircraftModelUsecase(i do.Injector) (*AircraftModelUsecase, error) {
 	return &AircraftModelUsecase{
-		repo: do.MustInvokeAs[repository.AircraftModelRepository](i),
+		repo: do.MustInvoke[repository.AircraftModelRepository](i),
 	}, nil
 }
 

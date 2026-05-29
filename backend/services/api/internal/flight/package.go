@@ -5,6 +5,7 @@ import (
 	"api/internal/flight/infra/postgres"
 	"api/internal/flight/infra/redis"
 	"api/internal/flight/usecase"
+	"api/internal/flight/usecase/repository"
 
 	"github.com/samber/do/v2"
 )
@@ -12,6 +13,8 @@ import (
 var Package = do.Package(
 	do.Lazy(handler.NewFlightHandler),
 	do.Lazy(usecase.NewFlightUsecase),
-	do.Lazy(postgres.NewFlightRepository),
-	do.Lazy(redis.NewFlightCache),
+
+	do.Lazy(repository.NewFlightRepository),
+	do.Lazy(postgres.NewPostgresDB),
+	do.Lazy(redis.NewRedisDB),
 )

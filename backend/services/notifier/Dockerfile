@@ -1,13 +1,13 @@
 FROM golang:1.25.6
 
-WORKDIR /shared
+WORKDIR /backend/shared
 
 COPY shared/go.mod .
 RUN go mod download
 
 COPY shared .
 
-WORKDIR /notifier
+WORKDIR /backend/services/notifier
 
 COPY services/notifier/go.mod services/notifier/go.sum ./
 RUN go mod download

@@ -1,13 +1,13 @@
 FROM golang:1.25.6
 
-WORKDIR /shared
+WORKDIR /backend/shared
 
 COPY shared/go.mod .
 RUN go mod download
 
 COPY shared .
 
-WORKDIR /api
+WORKDIR /backend/services/api
 
 COPY services/api/go.mod services/api/go.sum ./
 RUN go mod download

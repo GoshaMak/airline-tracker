@@ -5,12 +5,12 @@ import (
 	"api/internal/utils"
 )
 
-func FlightDomainToModel(f domain.Flight) (Flight, error) {
+func FlightDomainToModel(f domain.Flight) (FlightModel, error) {
 	var plan *string
 	if f.Plan != nil {
 		plan = utils.Ptr(f.Plan.String())
 	}
-	return Flight{
+	return FlightModel{
 		Id:                 f.Id,
 		AircraftId:         f.AircraftId,
 		ScheduledDeparture: f.ScheduledDeparture,
@@ -26,7 +26,7 @@ func FlightDomainToModel(f domain.Flight) (Flight, error) {
 	}, nil
 }
 
-func FlightModelToDomain(fm Flight) (domain.Flight, error) {
+func FlightModelToDomain(fm FlightModel) (domain.Flight, error) {
 	st, err := domain.NewFlightStatus(fm.Status)
 	if err != nil {
 		return domain.Flight{}, err

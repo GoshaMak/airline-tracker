@@ -17,7 +17,7 @@ type GateUsecase struct {
 
 func NewGateUsecase(i do.Injector) (*GateUsecase, error) {
 	return &GateUsecase{
-		repo: do.MustInvokeAs[repository.GateRepository](i),
+		repo: do.MustInvoke[repository.GateRepository](i),
 	}, nil
 }
 

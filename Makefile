@@ -24,5 +24,5 @@ all-up: fill-db
 all-up: frontend-up
 
 .PHONY: all-down
-all-down: backend-down
 all-down: frontend-down
+all-down: backend-down

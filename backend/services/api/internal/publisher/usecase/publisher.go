@@ -22,7 +22,7 @@ type PublisherUsecase struct {
 func NewPublisherUsecase(i do.Injector) (*PublisherUsecase, error) {
 	return &PublisherUsecase{
 		ns:   do.MustInvoke[*kafka.NotifySender](i),
-		repo: do.MustInvokeAs[repository.OutboxRepository](i),
+		repo: do.MustInvoke[repository.OutboxRepository](i),
 	}, nil
 }
 

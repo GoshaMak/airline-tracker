@@ -3,7 +3,6 @@ package postgres
 import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
-	"api/internal/flight/domain/repository"
 	"api/internal/flight/infra/postgres/model"
 	userDomain "api/internal/user/domain"
 	userModel "api/internal/user/infra/postgres/model"
@@ -21,23 +20,23 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type flightRepository struct {
+type PostgresDB struct {
 	conn *pgxpool.Pool
 }
 
-func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
-	return &flightRepository{
+func NewPostgresDB(i do.Injector) (*PostgresDB, error) {
+	return &PostgresDB{
 		conn: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
 }
 
-func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
-	const op = "FlightRepository.SaveFlight"
+func (p *PostgresDB) Save(ctx context.Context, f domain.Flight) error {
+	const op = "PostgresDB.SaveFlight"
 	var plan *string
 	if f.Plan != nil {
 		plan = utils.Ptr(f.Plan.String())
 	}
-	_, err := r.conn.Exec(ctx,
+	_, err := p.conn.Exec(ctx,
 		"select add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
 		f.Id,
 		f.ScheduledDeparture,
@@ -56,17 +55,17 @@ func (r *flightRepository) Save(ctx context.Context, f domain.Flight) error {
 	return nil
 }
 
-func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
-	const op = "FlightRepository.Exist"
+func (p *PostgresDB) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
+	const op = "PostgresDB.Exist"
 	query := `
 	select *
 	from scan_flight_info($1)
 	`
-	row, _ := r.conn.Query(ctx, query, fid)
+	row, _ := p.conn.Query(ctx, query, fid)
 	fm, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.Flight{}, repository.ErrFlightNotFound
+			return domain.Flight{}, ErrFlightNotFound
 		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -78,11 +77,11 @@ func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Fli
 	return fd, nil
 }
 
-func (r *flightRepository) Update(
+func (p *PostgresDB) Update(
 	ctx context.Context,
 	ufi domain.UpdateFlightInfo,
 ) error {
-	const op = "FlightRepository.Update"
+	const op = "PostgresDB.Update"
 	query := `
 	update flights
 	set`
@@ -123,7 +122,7 @@ func (r *flightRepository) Update(
 	args = append(args, ufi.FlightId)
 	slog.Debug(op, "query", query, "args", args)
 
-	_, err := r.conn.Exec(ctx, query, args...)
+	_, err := p.conn.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -131,13 +130,13 @@ func (r *flightRepository) Update(
 	return nil
 }
 
-func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, error) {
-	const op = "FlightRepository.ListAllFlights"
+func (p *PostgresDB) ListFlights(ctx context.Context) ([]domain.Flight, error) {
+	const op = "PostgresDB.ListAllFlights"
 	query := `
 	select *
 	from scan_flights_info()
 	`
-	rows, _ := r.conn.Query(ctx, query)
+	rows, _ := p.conn.Query(ctx, query)
 	flightsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -147,7 +146,7 @@ func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, er
 	for i, m := range flightsModels {
 		f, err := model.FlightModelToDomain(m)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		flights[i] = f
 	}
@@ -155,21 +154,21 @@ func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, er
 	return flights, nil
 }
 
-func (r *flightRepository) GetFlightRoute(
+func (p *PostgresDB) GetFlightRoute(
 	ctx context.Context,
 	fid uuid.UUID,
 ) (domain.FlightRoute, error) {
-	const op = "FlightRepository.GetFlightRouteId"
+	const op = "PostgresDB.GetFlightRouteId"
 	query := `
 	select *
 	from flight_routes
 	where flight_id = $1
 	`
-	rows, _ := r.conn.Query(ctx, query, fid)
+	rows, _ := p.conn.Query(ctx, query, fid)
 	rm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightRouteModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.FlightRoute{}, repository.ErrFlightRouteNotFound
+			return domain.FlightRoute{}, ErrFlightRouteNotFound
 		}
 		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -182,11 +181,11 @@ func (r *flightRepository) GetFlightRoute(
 	return rd, nil
 }
 
-func (r *flightRepository) ListSubscribers(
+func (p *PostgresDB) ListSubscribers(
 	ctx context.Context,
 	fid uuid.UUID,
 ) ([]userDomain.User, error) {
-	const op = "FlightRepository.ListSubscribers"
+	const op = "PostgresDB.ListSubscribers"
 	query := `
 	select u.id as id, u.email as email, u.password_hash as password_hash, u.role as role
 	from subscriptions s
@@ -194,7 +193,7 @@ func (r *flightRepository) ListSubscribers(
 	where s.flight_id = $1::uuid;
 	`
 
-	rows, _ := r.conn.Query(ctx, query, fid)
+	rows, _ := p.conn.Query(ctx, query, fid)
 	userMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[userModel.UserModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -210,11 +209,11 @@ func (r *flightRepository) ListSubscribers(
 	return users, nil
 }
 
-func (r *flightRepository) GetFlightAirports(
+func (p *PostgresDB) GetFlightAirports(
 	ctx context.Context,
 	fid uuid.UUID,
 ) (dep airportDomain.Airport, arr airportDomain.Airport, err error) {
-	const op = "FlightRepository.GetFlightAirports"
+	const op = "PostgresDB.GetFlightAirports"
 	query := `
 	with arps as (select ag.airport_id as dep, dg.airport_id as arr
 				  from flight_routes fr
@@ -237,7 +236,7 @@ func (r *flightRepository) GetFlightAirports(
 			 join airports da on arps.dep = da.id
 			 join airports aa on arps.arr = aa.id;
 	`
-	rows, _ := r.conn.Query(ctx, query, fid)
+	rows, _ := p.conn.Query(ctx, query, fid)
 	fam, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightAirportsModel])
 	slog.Debug(op, "fam", fam)
 	if err != nil {
