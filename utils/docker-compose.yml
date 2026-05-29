@@ -4,15 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: airline_tracker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: ${DB_PORT}
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./gen_data.py
-          target: /utils
-        - action: rebuild
-          path:  ./requirements.txt
+      POSTGRES_PORT: 5432
+    networks:
+      - shared
+
+networks:
+  shared:
+    external: true
+    name: shared_postgres

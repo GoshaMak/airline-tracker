@@ -101,32 +101,9 @@ h2 {
   font-size: 1rem;
 }
 
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  padding: 0 12px;
-  white-space: nowrap;
-}
-
-.status-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--teal);
-}
-
-.status-dot.muted {
-  background: var(--muted);
-}
-
-.status-dot.error {
-  background: var(--red);
+h3 {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .layout {
@@ -147,7 +124,8 @@ h2 {
 }
 
 .panel,
-.table-section {
+.table-section,
+.admin-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -227,29 +205,104 @@ button:focus-visible {
   outline-offset: 1px;
 }
 
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 32px;
+  height: 28px;
+  min-height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.password-toggle:hover,
+.password-toggle[aria-pressed="true"] {
+  color: var(--teal);
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.password-toggle[aria-pressed="true"] svg {
+  stroke-width: 2.3;
+}
+
 .split-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 96px;
   gap: 10px;
 }
 
-.message {
-  min-height: 20px;
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.message.error {
-  color: var(--red);
-}
-
-.message.success {
-  color: var(--teal);
-}
-
 .search-input {
   margin-top: 14px;
+}
+
+.message-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: start center;
+  background: rgba(27, 32, 40, 0.18);
+  padding: 28px 16px;
+}
+
+.message-overlay[hidden] {
+  display: none;
+}
+
+.message-dialog {
+  width: min(calc(100vw - 32px), 460px);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--blue);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  padding: 14px 16px;
+}
+
+.message-dialog p {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.message-dialog.error {
+  border-left-color: var(--red);
+}
+
+.message-dialog.success {
+  border-left-color: var(--teal);
 }
 
 .airport-list {
@@ -306,6 +359,47 @@ button:focus-visible {
   margin-top: 8px;
   font-size: 2rem;
   line-height: 1;
+}
+
+.admin-panel {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.admin-panel[hidden] {
+  display: none;
+}
+
+.admin-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-form {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
 }
 
 .table-section {
@@ -445,6 +539,10 @@ td {
   .metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -463,9 +561,14 @@ td {
   }
 
   .metrics,
+  .admin-form-grid,
   .filters,
   .split-row {
     grid-template-columns: 1fr;
+  }
+
+  .wide-field {
+    grid-column: auto;
   }
 
   .view-tabs {

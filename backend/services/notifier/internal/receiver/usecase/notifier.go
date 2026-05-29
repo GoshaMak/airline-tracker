@@ -1,0 +1,73 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"notifier/internal/mailer"
+	"notifier/internal/receiver/command"
+	"notifier/internal/receiver/domain"
+	"notifier/internal/receiver/domain/repository"
+	"time"
+
+	"github.com/samber/do/v2"
+)
+
+type NotifierUsecase struct {
+	m    *mailer.Mailer
+	repo repository.NotificationRepository
+}
+
+func NewNotifierUsecase(i do.Injector) (*NotifierUsecase, error) {
+	return &NotifierUsecase{
+		m:    do.MustInvoke[*mailer.Mailer](i),
+		repo: do.MustInvoke[repository.NotificationRepository](i),
+	}, nil
+}
+
+func (uc *NotifierUsecase) SaveNotification(
+	ctx context.Context,
+	cmd command.SubscriptionCreatedCommand,
+) error {
+	const op = "NotifierUsecase.SaveNotification"
+	sendAt := cmd.ScheduledDeparture
+	if cmd.ActualDeparture != nil {
+		sendAt = *cmd.ActualDeparture
+	}
+	if sendAt.Before(time.Now().UTC()) {
+		slog.Info(op+": notification already expired", "sendAt", sendAt)
+		return nil
+	}
+	n, err := command.SubscriptionCreatedCommandToDomain(&cmd, sendAt, domain.NotificationCreated)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := uc.repo.Save(ctx, n); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (uc *NotifierUsecase) UpdateFlight(
+	ctx context.Context,
+	cmd command.FlightUpdatedCommand,
+) error {
+	const op = "NotifierUsecase.UpdateFlight"
+	if len(cmd.Users) == 0 || (cmd.ScheduledDeparture == nil &&
+		cmd.ActualDeparture == nil && cmd.ScheduledArrival == nil &&
+		cmd.ActualArrival == nil && cmd.Status == nil && cmd.Plan == nil) {
+		return ErrNothingToUpdate
+	}
+
+	sendAt := time.Now().UTC()
+	n, err := command.FlightUpdatedCommandToDomain(cmd, sendAt, domain.NotificationUrgent)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := uc.repo.Save(ctx, n); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
