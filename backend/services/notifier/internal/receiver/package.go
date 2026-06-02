@@ -1,14 +1,13 @@
 package receiver
 
 import (
-	"notifier/internal/receiver/infra/mongo"
+	"notifier/internal/receiver/infra/mysql"
 	"notifier/internal/receiver/usecase"
 
 	"github.com/samber/do/v2"
 )
 
 var Package = do.Package(
-	do.Lazy(mongo.NewNotificationRepository),
-	// do.Lazy(postgres.NewNotificationRepository),
+	do.Lazy(mysql.NewNotificationRepository),
 	do.Lazy(usecase.NewNotifierUsecase),
 )

@@ -71,25 +71,6 @@ conn = psycopg2.connect(
 cur = conn.cursor()
 
 
-def ResetDatabase():
-    cur.execute(
-        """
-        truncate table
-            notifications,
-            outbox,
-            subscriptions,
-            flight_routes,
-            flights,
-            aircraft,
-            gates,
-            aircraft_models,
-            airports,
-            users
-        restart identity cascade
-        """
-    )
-
-
 def genRandomInt(min: int, max: int) -> int:
     return random.randint(min, max)
 
@@ -416,8 +397,6 @@ def GenSubscriptions():
 
 
 if __name__ == "__main__":
-    ResetDatabase()
-    print("Database reset successfully")
     GenUsers()
     print("Users filled successfully")
     GenAirports()

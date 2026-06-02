@@ -11,4 +11,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-ENTRYPOINT ["python"]
+CMD ["python", "gen_data.py"]
