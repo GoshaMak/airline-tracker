@@ -51,7 +51,6 @@ func main() {
 		flight.Package,
 		user.Package,
 		infra.Package,
-		//notification.Package,
 		publisher.Package,
 	)
 

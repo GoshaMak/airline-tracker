@@ -75,7 +75,7 @@ create table if not exists flights
 create table if not exists flight_routes
 (
     id                uuid primary key default gen_random_uuid(),
-    flight_id         uuid references flights (id) not null,
+    flight_id         uuid references flights (id) not null, -- TODO: перенести в flights
     departure_gate_id uuid references gates (id)   not null,
     arrival_gate_id   uuid references gates (id)   not null
 );
@@ -93,7 +93,7 @@ create table if not exists subscriptions
 create table if not exists outbox
 (
     id         uuid primary key   default gen_random_uuid(),
-    topic      text      not null,
+    topic      text      not null, -- TODO: поменять на type
     payload    jsonb     not null,
     created_at timestamp not null default now(),
     sent_at    timestamp

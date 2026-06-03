@@ -1,11 +1,11 @@
 package infra
 
 import (
-	"notifier/internal/infra/mysql"
+	"notifier/internal/infra/postgres"
 
 	"github.com/samber/do/v2"
 )
 
 var Package = do.Package(
-	do.Lazy(mysql.NewMySQLDB),
+	do.Lazy(postgres.NewPostgresPool),
 )

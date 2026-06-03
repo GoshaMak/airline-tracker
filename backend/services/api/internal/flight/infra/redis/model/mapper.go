@@ -3,6 +3,9 @@ package model
 import (
 	"api/internal/flight/domain"
 	"api/internal/utils"
+	"fmt"
+
+	"github.com/google/uuid"
 )
 
 func FlightDomainToModel(f domain.Flight) (FlightModel, error) {
@@ -12,17 +15,17 @@ func FlightDomainToModel(f domain.Flight) (FlightModel, error) {
 	}
 	return FlightModel{
 		Id:                 f.Id,
-		AircraftId:         f.AircraftId,
+		AircraftId:         f.AircraftId.String(),
 		ScheduledDeparture: f.ScheduledDeparture,
 		ScheduledArrival:   f.ScheduledArrival,
 		ActualDeparture:    f.ActualDeparture,
 		ActualArrival:      f.ActualArrival,
 		Status:             f.Status.String(),
 		Plan:               plan,
-		DepartureAirportId: f.DepartureAirportId,
-		ArrivalAirportId:   f.ArrivalAirportId,
-		DepartureGateId:    f.DepartureGateId,
-		ArrivalGateId:      f.ArrivalGateId,
+		DepartureAirportId: f.DepartureAirportId.String(),
+		ArrivalAirportId:   f.ArrivalAirportId.String(),
+		DepartureGateId:    f.DepartureGateId.String(),
+		ArrivalGateId:      f.ArrivalGateId.String(),
 	}, nil
 }
 
@@ -39,18 +42,38 @@ func FlightModelToDomain(fm FlightModel) (domain.Flight, error) {
 		}
 		p = &pv
 	}
+	aid, err := uuid.Parse(fm.AircraftId)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%w: aircraft id", err)
+	}
+	depAId, err := uuid.Parse(fm.DepartureAirportId)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%w: departure airport id", err)
+	}
+	arrAId, err := uuid.Parse(fm.ArrivalAirportId)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%w: arrival airport id", err)
+	}
+	depGId, err := uuid.Parse(fm.DepartureGateId)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%w: departure gate id", err)
+	}
+	arrGId, err := uuid.Parse(fm.ArrivalGateId)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%w: arrival gate id", err)
+	}
 	return domain.Flight{
 		Id:                 fm.Id,
-		AircraftId:         fm.AircraftId,
+		AircraftId:         aid,
 		ScheduledDeparture: fm.ScheduledDeparture,
 		ScheduledArrival:   fm.ScheduledArrival,
 		ActualDeparture:    fm.ActualDeparture,
 		ActualArrival:      fm.ActualArrival,
 		Status:             st,
 		Plan:               p,
-		DepartureAirportId: fm.DepartureAirportId,
-		ArrivalAirportId:   fm.ArrivalAirportId,
-		DepartureGateId:    fm.DepartureGateId,
-		ArrivalGateId:      fm.ArrivalGateId,
+		DepartureAirportId: depAId,
+		ArrivalAirportId:   arrAId,
+		DepartureGateId:    depGId,
+		ArrivalGateId:      arrGId,
 	}, nil
 }

@@ -4,7 +4,7 @@ import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
 	"api/internal/flight/domain/repository"
-	"api/internal/flight/infra/mysql"
+	"api/internal/flight/infra/postgres"
 	"api/internal/flight/infra/redis"
 	userDomain "api/internal/user/domain"
 	"context"
@@ -17,13 +17,13 @@ import (
 )
 
 type flightRepository struct {
-	db *mysql.MySQLDB
+	db *postgres.PostgresDB
 	rd *redis.RedisDB
 }
 
 func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 	return &flightRepository{
-		db: do.MustInvoke[*mysql.MySQLDB](i),
+		db: do.MustInvoke[*postgres.PostgresDB](i),
 		rd: do.MustInvoke[*redis.RedisDB](i),
 	}, nil
 }
@@ -58,7 +58,7 @@ func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Fli
 
 	f, err = r.db.Exist(ctx, fid)
 	if err != nil {
-		if errors.Is(err, mysql.ErrFlightNotFound) {
+		if errors.Is(err, postgres.ErrFlightNotFound) {
 			return domain.Flight{}, repository.ErrFlightNotFound
 		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
@@ -119,7 +119,7 @@ func (r *flightRepository) GetFlightRoute(ctx context.Context, fid uuid.UUID) (d
 	const op = "FlightRepository.GetFlightRoute"
 	fr, err := r.db.GetFlightRoute(ctx, fid)
 	if err != nil {
-		if errors.Is(err, mysql.ErrFlightRouteNotFound) {
+		if errors.Is(err, postgres.ErrFlightRouteNotFound) {
 			return domain.FlightRoute{}, repository.ErrFlightRouteNotFound
 		}
 		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)

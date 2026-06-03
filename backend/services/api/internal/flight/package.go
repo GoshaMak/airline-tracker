@@ -2,7 +2,7 @@ package flight
 
 import (
 	"api/internal/flight/handler"
-	"api/internal/flight/infra/mysql"
+	"api/internal/flight/infra/postgres"
 	"api/internal/flight/infra/redis"
 	"api/internal/flight/usecase"
 	"api/internal/flight/usecase/repository"
@@ -15,6 +15,6 @@ var Package = do.Package(
 	do.Lazy(usecase.NewFlightUsecase),
 
 	do.Lazy(repository.NewFlightRepository),
-	do.Lazy(mysql.NewMySQLDB),
+	do.Lazy(postgres.NewPostgresDB),
 	do.Lazy(redis.NewRedisDB),
 )

@@ -5,6 +5,8 @@ import (
 	"api/internal/flight/infra/redis/model"
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	"github.com/google/uuid"
 	rds "github.com/redis/go-redis/v9"
@@ -84,6 +86,7 @@ func (r *RedisDB) GetFlightById(
 		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
 	}
+	fm.Id = fid
 	f, err := model.FlightModelToDomain(fm)
 	if err != nil {
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
@@ -135,7 +138,7 @@ func (r *RedisDB) GetFlights(ctx context.Context) ([]domain.Flight, error) {
 		pipe.HGetAll(ctx, fKey)
 	}
 	if err := iter.Err(); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w: iter err", op, err)
 	}
 
 	cmds, err := pipe.Exec(ctx)
@@ -159,12 +162,19 @@ func (r *RedisDB) GetFlights(ctx context.Context) ([]domain.Flight, error) {
 
 		var fm model.FlightModel
 		if err := cmd.Scan(&fm); err != nil {
+			slog.Error(op + ":scan")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
+		key := strings.TrimPrefix(fmt.Sprint(cmd.Args()[1]), "flight:")
+		fid, err := uuid.Parse(key)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w: can't parse key %s", op, err, key)
+		}
+		fm.Id = fid
 		f, err := model.FlightModelToDomain(fm)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w: convert to domain", op, err)
 		}
 		fs = append(fs, f)
 	}
@@ -221,7 +231,7 @@ func (r *RedisDB) FlushFlights(ctx context.Context) error {
 		}
 	}
 	if err := iter.Err(); err != nil {
-		return fmt.Errorf("%s: iterator error %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := exec(); err != nil {
 		return err

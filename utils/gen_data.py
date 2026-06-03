@@ -89,13 +89,6 @@ def GenUsers():
         user = (
             str(uuid.uuid4()),
             fake.unique.email(),
-            # fake.password(
-            #     length=genRandomInt(8, 100),
-            #     special_chars=True,
-            #     digits=True,
-            #     upper_case=True,
-            #     lower_case=True,
-            # ),
             fake.sha256()[:60],
             "user",
         )

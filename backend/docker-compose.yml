@@ -11,10 +11,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       kafka:
         condition: service_healthy
 
@@ -25,7 +25,7 @@ services:
       context: .
       dockerfile: ./services/notifier/Dockerfile
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy

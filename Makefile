@@ -16,7 +16,7 @@ frontend-down:
 
 .PHONY: fill-db
 fill-db:
-	docker compose -p api --env-file utils/.env -f utils/docker-compose.yml up --abort-on-container-exit --exit-code-from migrate_pg_to_mysql migrate_pg_to_mysql
+	docker compose -p api --env-file utils/.env -f utils/docker-compose.yml up --build -d
 
 .PHONY: all-up
 all-up: backend-up
@@ -26,3 +26,5 @@ all-up: frontend-up
 .PHONY: all-down
 all-down: frontend-down
 all-down: backend-down
+all-down:
+	docker compose -p api -f utils/docker-compose.yml down -v
