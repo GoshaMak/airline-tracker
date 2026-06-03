@@ -51,12 +51,18 @@ func (r *gateRepository) GetAirportByGateId(
 	gid uuid.UUID,
 ) (domain.Airport, error) {
 	const op = "GateRepository.GetAirportByGateId"
-	query := `
-	select *
-	from airports a
-	where a.id = (select airport_id
-					from gates g
-					where g.id = $1)
+	const query = `
+	select
+		a.id as id,
+		a.iata_code as iata_code,
+		a.title as title,
+		c.name as city,
+		cntr.code as country
+	from gates g
+		join airports a on a.id = g.airport_id
+		join cities c on c.id = a.city_id
+		join countries cntr on cntr.id = c.country_id
+	where g.id = $1
 	`
 	rows, _ := r.conn.Query(ctx, query, gid)
 	am, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AirportModel])

@@ -215,26 +215,35 @@ func (p *PostgresDB) GetFlightAirports(
 ) (dep airportDomain.Airport, arr airportDomain.Airport, err error) {
 	const op = "PostgresDB.GetFlightAirports"
 	query := `
-	with arps as (select ag.airport_id as dep, dg.airport_id as arr
-				  from flight_routes fr
-						   join gates ag on fr.departure_gate_id = ag.id
-						   join gates dg on fr.arrival_gate_id = dg.id
-					  and fr.flight_id = $1::uuid)
+	with arps as (
+		select
+			ag.airport_id as dep,
+			dg.airport_id as arr
+		from flight_routes fr
+			join gates ag on ag.id = fr.departure_gate_id
+			join gates dg on dg.id = fr.arrival_gate_id
+		where fr.flight_id = $1::uuid
+	)
 	select
 		da.id        as departure_airport_id,
 		da.iata_code as departure_airport_iata_code,
 		da.title     as departure_airport_title,
-		da.city      as departure_airport_city,
-		da.country   as departure_airport_country,
+		dc.name      as departure_airport_city,
+		dcntr.code   as departure_airport_country,
 
 		aa.id        as arrival_airport_id,
 		aa.iata_code as arrival_airport_iata_code,
 		aa.title     as arrival_airport_title,
-		aa.city      as arrival_airport_city,
-		aa.country   as arrival_airport_country
+		ac.name      as arrival_airport_city,
+		acntr.code   as arrival_airport_country
 	from arps
-			 join airports da on arps.dep = da.id
-			 join airports aa on arps.arr = aa.id;
+		join airports da on da.id = arps.dep
+		join cities dc on dc.id = da.city_id
+		join countries dcntr on dcntr.id = dc.country_id
+
+		join airports aa on aa.id = arps.arr
+		join cities ac on ac.id = aa.city_id
+		join countries acntr on acntr.id = ac.country_id
 	`
 	rows, _ := p.conn.Query(ctx, query, fid)
 	fam, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightAirportsModel])

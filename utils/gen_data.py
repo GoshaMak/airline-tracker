@@ -51,6 +51,8 @@ FLIGHT_STATUSES = [
 ]
 
 users = []
+countries = []
+cities = []
 airports = []
 gates = []
 gateToAirport = {}
@@ -83,6 +85,35 @@ def genRandomRepresentation() -> str:
 def genGateNumber() -> str:
     return fake.bothify(text="?%#!", letters=UPPER_CASE_LETTERS)
 
+def readCountriesFromFile(path: str = "./countries.txt"):
+    result = []
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+
+            if not line or line.startswith("#"):
+                continue
+
+            parts = line.split(maxsplit=1)
+
+            code = parts[0].strip().upper()
+
+            if len(parts) > 1:
+                name = parts[1].strip()
+            else:
+                name = code
+
+            if len(code) != 2:
+                raise ValueError(f"invalid country code in countries.txt: {code}")
+
+            result.append((code, name))
+
+    if not result:
+        raise ValueError("countries.txt is empty")
+
+    return result
+
 
 def GenUsers():
     for _ in range(USERS_AMT):
@@ -101,24 +132,72 @@ def GenUsers():
         users,
     )
 
+def GenCountries():
+    used_codes = set()
+    for code, name in readCountriesFromFile("./countries.txt"):
+        if code in used_codes:
+            continue
+        used_codes.add(code)
+        countries.append(
+            (
+                str(uuid.uuid4()),
+                code,
+                name,
+            )
+        )
+    cur.executemany(
+        """
+        insert into countries
+            (id, code, name)
+        values
+            (%s, %s, %s)
+        """,
+        countries,
+    )
 
 def GenAirports():
+    city_pairs = set()
     for _ in range(AIRPORTS_AMT):
-        fake.lexify()
+        country = random.choice(countries)
+        country_id = country[0]
+        city_name = fake.city()
+        while (city_name, country_id) in city_pairs:
+            city_name = fake.city()
+        city_pairs.add((city_name, country_id))
+        city_id = str(uuid.uuid4())
+        cities.append(
+            (
+                city_id,
+                city_name,
+                country_id,
+            )
+        )
         airport = (
             str(uuid.uuid4()),
-            fake.unique.lexify(text="???", letters=UPPER_CASE_LETTERS).upper(),  # IATA
+            fake.unique.lexify(text="???", letters=UPPER_CASE_LETTERS).upper(),
             fake.unique.company() + " Airport",
-            fake.city(),
-            fake.country_code(representation=genRandomRepresentation()),
+            city_id,
         )
         airports.append(airport)
 
     cur.executemany(
-        "insert into airports (id, iata_code, title, city, country) values (%s, %s, %s, %s, %s)",
+        """
+        insert into cities
+            (id, name, country_id)
+        values
+            (%s, %s, %s)
+        """,
+        cities,
+    )
+    cur.executemany(
+        """
+        insert into airports
+            (id, iata_code, title, city_id)
+        values
+            (%s, %s, %s, %s)
+        """,
         airports,
     )
-
 
 def GenGates():
     for airport in airports:
@@ -392,18 +471,28 @@ def GenSubscriptions():
 if __name__ == "__main__":
     GenUsers()
     print("Users filled successfully")
+
+    GenCountries()
+    print("Countries filled successfully")
+
     GenAirports()
     print("Airports filled successfully")
+
     GenGates()
     print("Gates filled successfully")
+
     GenAircraftModels()
     print("AircraftModels filled successfully")
+
     GenAircrafts()
     print("Aircrafts filled successfully")
+
     GenFlights()
     print("Flights filled successfully")
+
     GenFlightRoutes()
     print("FlightRoutes filled successfully")
+
     GenSubscriptions()
     print("Subscriptions filled successfully")
 

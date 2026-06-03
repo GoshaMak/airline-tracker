@@ -8,13 +8,28 @@ create table if not exists users
     constraint user_role_check check (role in ('user', 'admin'))
 );
 
+create table if not exists countries
+(
+    id   uuid primary key default gen_random_uuid(),
+    code varchar(5) unique not null,
+    name varchar(100)      not null
+);
+
+create table if not exists cities
+(
+    id         uuid primary key default gen_random_uuid(),
+    name       varchar(200) not null,
+    country_id uuid         not null references countries (id),
+
+    unique (name, country_id)
+);
+
 create table if not exists airports
 (
     id        uuid primary key default gen_random_uuid(),
-    iata_code varchar(10) unique  not null,
-    title     varchar(200) unique not null,
-    city      varchar(200)        not null,
-    country   varchar(10)         not null
+    iata_code varchar(10) unique not null,
+    title     varchar(200)       not null,
+    city_id   uuid               not null references cities (id)
 );
 
 create table if not exists gates
