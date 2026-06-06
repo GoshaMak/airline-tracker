@@ -33,7 +33,7 @@ func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 	}
 }
 
-// @Summary add aircraft
+// @Summary add aircraft (only admin)
 // @Description create new aircraft
 // @Tags Aircraft
 // @Security BearerAuth

@@ -4,7 +4,6 @@ create table if not exists users
     email         varchar(256) unique not null,
     password_hash varchar(128)        not null,
     role          varchar(20)         not null,
-
     constraint user_role_check check (role in ('user', 'admin'))
 );
 
@@ -18,8 +17,8 @@ create table if not exists countries
 create table if not exists cities
 (
     id         uuid primary key default gen_random_uuid(),
-    name       varchar(200) not null,
     country_id uuid         not null references countries (id),
+    name       varchar(200) not null,
 
     unique (name, country_id)
 );

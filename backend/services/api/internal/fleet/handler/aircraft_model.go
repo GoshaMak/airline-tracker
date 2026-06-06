@@ -34,7 +34,7 @@ func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
 	}
 }
 
-// @Summary add aircraft model
+// @Summary add aircraft model (only admin)
 // @Description create new aircraft model
 // @Tags Aircraft
 // @Security BearerAuth

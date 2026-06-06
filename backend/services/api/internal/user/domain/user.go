@@ -13,7 +13,7 @@ type User struct {
 	Role         Role
 }
 
-func NewUser(email, password, role string) (User, error) {
+func NewUser(email, password string, role Role) (User, error) {
 	e, err := common.NewEmail(email)
 	if err != nil {
 		return User{}, err
@@ -22,14 +22,10 @@ func NewUser(email, password, role string) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
-	r, err := NewRole(role)
-	if err != nil {
-		return User{}, err
-	}
 	return User{
 		Id:           uuid.New(),
 		Email:        e,
 		PasswordHash: p,
-		Role:         r,
+		Role:         role,
 	}, nil
 }

@@ -48,7 +48,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	u, err := userDomain.NewUser(req.Email, req.Password, req.Role)
+	u, err := userDomain.NewUser(req.Email, req.Password, userDomain.UserRole)
 	if err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{

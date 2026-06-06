@@ -33,9 +33,9 @@ func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 		admin.POST("/create", h.CreateAirport)
 	}
 
-	user := r.Group("/airport")
+	all := r.Group("/airport")
 	{
-		user.GET("/list", h.ListAirports)
+		all.GET("/list", h.ListAirports)
 	}
 }
 

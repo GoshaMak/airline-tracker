@@ -7,9 +7,9 @@ from datetime import datetime
 import psycopg2
 from faker import Faker
 
-USERS_AMT = 100
+USERS_AMT = 1_000
 USER_ROLES = ["admin", "user"]
-AIRPORTS_AMT = 100
+AIRPORTS_AMT = 1_000
 UPPER_CASE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 AIRCRAFT_MODELS = [
     "Airbus",
@@ -30,13 +30,14 @@ AIRCRAFT_MODELS = [
     "Sukhoi",
     "Tupo",
 ]
+AIRCRAFTS_AMT = 1_000
+FLIGHTS_AMT = 1_000
 MASS_MIN = 1
 MASS_MAX = 1_000_000
 ALTIDUDE_MIN = 1
 ALTIDUDE_MAX = 20_000
 SPEED_MIN = 1
 SPEED_MAX = 10_000
-AIRCRAFTS_AMT = 10_000
 MILEAGE_MIN = 0
 MILEAGE_MAX = 50_000
 FLIGHT_STATUSES = [
@@ -85,6 +86,7 @@ def genRandomRepresentation() -> str:
 def genGateNumber() -> str:
     return fake.bothify(text="?%#!", letters=UPPER_CASE_LETTERS)
 
+
 def readCountriesFromFile(path: str = "./countries.txt"):
     result = []
 
@@ -132,6 +134,7 @@ def GenUsers():
         users,
     )
 
+
 def GenCountries():
     used_codes = set()
     for code, name in readCountriesFromFile("./countries.txt"):
@@ -154,6 +157,7 @@ def GenCountries():
         """,
         countries,
     )
+
 
 def GenAirports():
     city_pairs = set()
@@ -198,6 +202,7 @@ def GenAirports():
         """,
         airports,
     )
+
 
 def GenGates():
     for airport in airports:
@@ -248,8 +253,8 @@ def GenAircraftModels():
 
 
 def GenAircrafts():
-    for i in range(len(aircraftModels)):
-        aircraftModel = aircraftModels[i]
+    for _ in range(AIRCRAFTS_AMT):
+        aircraftModel = random.choice(aircraftModels)
         aircraftModelId = aircraftModel[0]
         for _ in range(random.randint(5, 10)):
             aircraftId = str(uuid.uuid4())
@@ -289,11 +294,10 @@ def _GenFlightPlan():
 
 
 def GenFlights():
-    amt = int(len(aircrafts) * (random.randint(7, 9) / 10.0))
     now = datetime.now(timezone.utc)
 
-    for i in range(amt):
-        aircraft = aircrafts[i]
+    for _ in range(FLIGHTS_AMT):
+        aircraft = random.choice(aircrafts)
         flightId = str(uuid.uuid4())
         aircraftId = aircraft[0]
 
@@ -470,31 +474,31 @@ def GenSubscriptions():
 
 if __name__ == "__main__":
     GenUsers()
-    print("Users filled successfully")
+    print("Users filled successfully: ", len(users))
 
     GenCountries()
-    print("Countries filled successfully")
+    print("Countries filled successfully: ", len(countries))
 
     GenAirports()
-    print("Airports filled successfully")
+    print("Airports filled successfully: ", len(airports))
 
     GenGates()
-    print("Gates filled successfully")
+    print("Gates filled successfully: ", len(gates))
 
     GenAircraftModels()
-    print("AircraftModels filled successfully")
+    print("AircraftModels filled successfully: ", len(aircraftModels))
 
     GenAircrafts()
-    print("Aircrafts filled successfully")
+    print("Aircrafts filled successfully: ", len(aircrafts))
 
     GenFlights()
-    print("Flights filled successfully")
+    print("Flights filled successfully: ", len(flights))
 
     GenFlightRoutes()
-    print("FlightRoutes filled successfully")
+    print("FlightRoutes filled successfully: ", len(flightRoutes))
 
     GenSubscriptions()
-    print("Subscriptions filled successfully")
+    print("Subscriptions filled successfully: ", len(subscriptions))
 
     conn.commit()
 

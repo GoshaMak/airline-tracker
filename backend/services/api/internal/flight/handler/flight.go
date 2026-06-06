@@ -74,14 +74,14 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 // @Summary flight info
 // @Description get flight info by its id
 // @Tags Flight
-// @Security BearerAuth
 // @Accept json
+// @Param id path string true "flight id"
 // @Produce json
 // @Success 200 {object} dto.ListFlightByIdResponse
 // @Failure 400
 // @Failure 404
 // @Failure 500
-// @Router /flight/:id [get]
+// @Router /flight/{id} [get]
 func (h *FlightHandler) FlightById(ctx *gin.Context) {
 	const op = "FlightHandler.FlightById"
 	fidStr := ctx.Param("id")
@@ -150,7 +150,7 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "flight id"
+// @Param id path string true "flight id"
 // @Param flight body dto.UpdateFlightRequest true "flight info"
 // @Success 200
 // @Failure 400

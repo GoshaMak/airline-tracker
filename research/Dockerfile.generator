@@ -2,15 +2,13 @@ FROM python:3.13
 
 WORKDIR /utils
 
-COPY ./countries.txt .
-
-COPY requirements.txt .
+COPY ../utils/requirements.txt .
 
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN pip install -r requirements.txt
 
-COPY . .
+COPY ../utils/* .
 
 CMD ["python", "gen_data.py"]

@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	receiverDomain "notifier/internal/receiver/domain"
 	receiverRepository "notifier/internal/receiver/domain/repository"
 	"notifier/utils"
@@ -39,7 +38,7 @@ func (uc *SenderUsecase) Send(ctx context.Context) error {
 			if n.Status != receiverDomain.NotificationUrgent {
 				from := now.Add(-15 * time.Minute)
 				if !utils.InTimeSpan(from, now, n.SendAt) {
-					slog.Debug(op+": send time not reached yet", "id", n.Id)
+					//slog.Debug(op+": send time not reached yet", "id", n.Id)
 					return nil
 				}
 			}
