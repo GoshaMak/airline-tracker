@@ -70,6 +70,9 @@ func (r *flightRepository) Update(ctx context.Context, ufi domain.UpdateFlightIn
 	const op = "FlightRepository.Update"
 	if err := r.db.Update(ctx, ufi); err != nil {
 		slog.Warn(op, "err", err)
+		if errors.Is(err, postgres.ErrFlightNotFound) {
+			return repository.ErrFlightNotFound
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

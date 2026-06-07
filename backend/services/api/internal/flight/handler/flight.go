@@ -184,6 +184,10 @@ func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 	}
 	if err := h.uc.UpdateFlight(cmd); err != nil {
 		slog.Warn(op, "err", err)
+		if errors.Is(err, usecase.ErrFlightNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"err": "flight not found"})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
 		return
 	}

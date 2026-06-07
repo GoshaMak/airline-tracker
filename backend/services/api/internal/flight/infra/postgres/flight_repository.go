@@ -85,6 +85,11 @@ func (p *PostgresDB) Update(
 	query := `
 	update flights
 	set`
+
+	if _, err := p.Exist(ctx, ufi.FlightId); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	args := []any{}
 	if ufi.ScheduledDeparture != nil {
 		query += " scheduled_departure = $" + strconv.FormatInt(int64(len(args)+1), 10) + ",\n"

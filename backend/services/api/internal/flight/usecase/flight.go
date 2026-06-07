@@ -70,6 +70,9 @@ func (uc *FlightUsecase) UpdateFlight(cmd command.UpdateFlightCommand) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := uc.repo.Update(context.Background(), ufi); err != nil {
+		if errors.Is(err, repository.ErrFlightNotFound) {
+			return ErrFlightNotFound
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	slog.Debug(op + ": flight updated")
