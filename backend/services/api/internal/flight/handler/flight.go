@@ -29,14 +29,14 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 	c := do.MustInvoke[*FlightHandler](i)
 
 	{
-		r.GET("/flights/list", c.ListFlights)
+		r.GET("/flight/list", c.ListFlights)
 		r.GET("/flight/:id", c.FlightById)
 	}
 
-	admin := r.Group("", middleware.AuthMiddleware(userDomain.AdminRole))
+	admin := r.Group("/flight", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/add_flight", c.CreateFlight)
-		admin.PATCH("/flight/:id", c.UpdateFlight)
+		admin.POST("/create", c.CreateFlight)
+		admin.PATCH("/:id", c.UpdateFlight)
 	}
 }
 
@@ -46,28 +46,18 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Accept json
 // @Produce json
 // @Success 200 {array} dto.ListFlightsResponse
-// @Failure 400
 // @Failure 500
-// @Router /flights/list [get]
+// @Router /flight/list [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	const op = "FlightHandler.ListFlights"
 	flights, err := h.uc.ListFlights()
 	if err != nil {
-		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"msg": "internal error",
-		})
+		slog.Error(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
-	response, err := dto.ToResponseListFlights(flights)
-	if err != nil {
-		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"msg": "internal error",
-		})
-		return
-	}
+	response := dto.ToResponseListFlights(flights)
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -94,19 +84,17 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 
 	fd, err := h.uc.FlightById(fid)
 	if err != nil {
-		slog.Warn(op, "err", err)
 		if errors.Is(err, usecase.ErrFlightNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"mgs": "not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{"mgs": "flight not found"})
 			return
 		}
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
 	fi := dto.ToFlightInfoDomain(&fd)
-	resp := dto.ListFlightByIdResponse{
-		Flight: fi,
-	}
+	resp := dto.ListFlightByIdResponse{Flight: fi}
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -117,28 +105,28 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param flight body dto.CreateFlightRequest true "flight info"
-// @Success 201
+// @Success 201 "flight created"
 // @Failure 400
 // @Failure 401
 // @Failure 500
-// @Router /create_flight [post]
+// @Router /flight/create [post]
 func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.CreateFlight"
 	req := &dto.CreateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 	cmd, err := command.NewCreateFlightCommand(req)
 	if err != nil {
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.CreateFlight(cmd); err != nil {
+	if err := h.uc.CreateFlight(cmd); err != nil { // FIX: returns 500 if flight exists
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "flight created"})
@@ -183,15 +171,14 @@ func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 		return
 	}
 	if err := h.uc.UpdateFlight(cmd); err != nil {
-		slog.Warn(op, "err", err)
 		if errors.Is(err, usecase.ErrFlightNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"err": "flight not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{"msg": "flight not found"})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"err": err})
+		slog.Error(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
-	slog.Debug(op+": flight updated", "id", id)
 	ctx.JSON(http.StatusOK, gin.H{"msg": "flight updated"})
 }

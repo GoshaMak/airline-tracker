@@ -76,17 +76,17 @@ func (uc *UserUsecase) Exist(email, password string) bool {
 func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 	const op = "UserUsecase.Subscribe"
 	if err := uc.userRepo.Subscribe(context.Background(), uid, fid); err != nil {
-		switch err {
-		case userRepository.ErrUserNotFound:
+		if errors.Is(err, userRepository.ErrUserNotFound) {
 			return ErrUserNotFound
-		case userRepository.ErrFlightNotFound:
+		}
+		if errors.Is(err, userRepository.ErrFlightNotFound) {
 			return ErrFlightNotFound
-		case userRepository.ErrUserAlreadySubscribed:
+		}
+		if errors.Is(err, userRepository.ErrUserAlreadySubscribed) {
 			return nil
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	slog.Debug(op + ": user subscribed")
 
 	topic := os.Getenv("SUBSCRIPTION_CREATED_TOPIC") // TODO: get it from config?
 	payload, err := uc.formPayload(uid, fid)

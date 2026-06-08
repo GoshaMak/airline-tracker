@@ -6,7 +6,7 @@
     },
     "host": "localhost:8080",
     "paths": {
-        "/admin/add_aircraft": {
+        "/aircraft/create": {
             "post": {
                 "security": [
                     {
@@ -44,11 +44,51 @@
                     },
                     "401": {
                         "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
-        "/admin/add_aircraft_model": {
+        "/aircraft/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "list aircrafts",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Aircraft"
+                ],
+                "summary": "list aircrafts (only admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ListAircraftsResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/aircraft/model/create": {
             "post": {
                 "security": [
                     {
@@ -86,40 +126,6 @@
                     },
                     "401": {
                         "description": "Unauthorized"
-                    }
-                }
-            }
-        },
-        "/admin/aircraft/list": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "list aircrafts",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Aircraft"
-                ],
-                "summary": "list aircrafts (only admin)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ListAircraftsResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
                     },
                     "500": {
                         "description": "Internal Server Error"
@@ -127,7 +133,7 @@
                 }
             }
         },
-        "/aircraft_model/{id}": {
+        "/aircraft/model/{id}": {
             "get": {
                 "security": [
                     {
@@ -151,9 +157,6 @@
                         "schema": {
                             "$ref": "#/definitions/dto.AircraftModelInfoResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request"
                     },
                     "401": {
                         "description": "Unauthorized"
@@ -205,9 +208,6 @@
                     "401": {
                         "description": "Unauthorized"
                     },
-                    "409": {
-                        "description": "Conflict"
-                    },
                     "500": {
                         "description": "Internal Server Error"
                     }
@@ -239,7 +239,27 @@
                 }
             }
         },
-        "/create_flight": {
+        "/create_uuid": {
+            "get": {
+                "description": "creates new uuid",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Utils"
+                ],
+                "summary": "create uuid",
+                "responses": {
+                    "200": {
+                        "description": "uuid"
+                    }
+                }
+            }
+        },
+        "/flight/create": {
             "post": {
                 "security": [
                     {
@@ -270,7 +290,7 @@
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created"
+                        "description": "flight created"
                     },
                     "400": {
                         "description": "Bad Request"
@@ -284,9 +304,9 @@
                 }
             }
         },
-        "/create_uuid": {
+        "/flight/list": {
             "get": {
-                "description": "creates new uuid",
+                "description": "list all flights",
                 "consumes": [
                     "application/json"
                 ],
@@ -294,12 +314,21 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Utils"
+                    "Flight"
                 ],
-                "summary": "create uuid",
+                "summary": "list all flights",
                 "responses": {
                     "200": {
-                        "description": "uuid"
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }
@@ -398,38 +427,6 @@
                 }
             }
         },
-        "/flights/list": {
-            "get": {
-                "description": "list all flights",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Flight"
-                ],
-                "summary": "list all flights",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
         "/gate/create": {
             "post": {
                 "security": [
@@ -468,9 +465,6 @@
                     "401": {
                         "description": "Unauthorized"
                     },
-                    "409": {
-                        "description": "Conflict"
-                    },
                     "500": {
                         "description": "Internal Server Error"
                     }
@@ -500,9 +494,6 @@
                         "schema": {
                             "$ref": "#/definitions/dto.ListGatesResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request"
                     },
                     "401": {
                         "description": "Unauthorized"
@@ -544,8 +535,8 @@
                             "$ref": "#/definitions/dto.LoginResponseDTO"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "404": {
                         "description": "Not Found"
@@ -587,6 +578,9 @@
                     "400": {
                         "description": "Bad Request"
                     },
+                    "409": {
+                        "description": "user exists"
+                    },
                     "500": {
                         "description": "Internal Server Error"
                     }
@@ -613,7 +607,7 @@
                 }
             }
         },
-        "/user/flights": {
+        "/user/flight/list": {
             "get": {
                 "security": [
                     {
@@ -633,13 +627,16 @@
                 "summary": "list flights (only user)",
                 "responses": {
                     "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
+                        }
                     },
                     "401": {
                         "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }

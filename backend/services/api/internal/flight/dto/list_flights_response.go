@@ -32,14 +32,14 @@ type ListFlightsResponse struct {
 
 func ToResponseListFlights(
 	flights []domain.Flight,
-) (ListFlightsResponse, error) {
+) ListFlightsResponse {
 	resp := ListFlightsResponse{
 		Flights: make([]FlightInfo, len(flights), cap(flights)),
 	}
 	for i := range flights {
 		resp.Flights[i] = ToFlightInfoDomain(&flights[i])
 	}
-	return resp, nil
+	return resp
 }
 
 func ToFlightInfoDomain(f *domain.Flight) FlightInfo {

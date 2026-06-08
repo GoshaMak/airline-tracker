@@ -5,6 +5,7 @@ import (
 	"api/internal/fleet/domain"
 	"api/internal/fleet/domain/repository"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/do/v2"
@@ -20,13 +21,17 @@ func NewAircraftUsecase(i do.Injector) (*AircraftUsecase, error) {
 	}, nil
 }
 
-func (uc *AircraftUsecase) AddAircraft(cmd command.CreateAircraftCommand) error {
+func (uc *AircraftUsecase) CreateAircraft(cmd command.CreateAircraftCommand) error {
+	const op = "AircraftUsecase.CreateAircraft"
 	a, err := command.ToDomainCreateAircraftCommand(cmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := uc.repo.SaveAircraft(context.Background(), a); err != nil {
-		return err
+		if errors.Is(err, repository.ErrAircraftAlreadyExists) {
+			return ErrAircraftAlreadyExists
+		}
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }

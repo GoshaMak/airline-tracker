@@ -10,12 +10,12 @@ type AircraftModelInfoResponse struct {
 	MaxSpeed     int    `json:"max_speed"`
 }
 
-func ToResponseAircraftModelInfo(am domain.AircraftModel) (AircraftModelInfoResponse, error) {
+func ToResponseAircraftModelInfo(am domain.AircraftModel) AircraftModelInfoResponse {
 	return AircraftModelInfoResponse{
 		Manufacturer: am.Manufacturer.String(),
 		Model:        am.Model.String(),
 		Mass:         am.Mass.Value(),
 		MaxAltitude:  am.MaxAltitude.Value(),
 		MaxSpeed:     am.MaxSpeed.Value(),
-	}, nil
+	}
 }

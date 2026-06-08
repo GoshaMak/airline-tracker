@@ -48,7 +48,6 @@ func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 // @Success 201 "airport created"
 // @Failure 400
 // @Failure 401
-// @Failure 409
 // @Failure 500
 // @Router /airport/create [post]
 func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
@@ -68,11 +67,11 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 	}
 
 	if err := h.uc.CreateAirport(cmd); err != nil {
-		slog.Warn(op, "err", err)
 		if errors.Is(err, usecase.ErrAirportAlreadyExists) {
-			ctx.JSON(http.StatusConflict, gin.H{"msg": "airport already exists"})
+			ctx.JSON(http.StatusOK, gin.H{"msg": "airport created"})
 			return
 		}
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
@@ -90,11 +89,10 @@ func (h *AirportHandler) ListAirports(ctx *gin.Context) {
 	const op = "AirportHandler.ListAirports"
 	airports, err := h.uc.ListAirports()
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-
 	resp := query.QueryToListAirportsResponse(airports)
 	ctx.JSON(http.StatusOK, resp)
 }

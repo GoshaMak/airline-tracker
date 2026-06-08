@@ -6,6 +6,7 @@ import (
 	"api/internal/fleet/usecase"
 	"api/internal/middleware"
 	userDomain "api/internal/user/domain"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -26,10 +27,10 @@ func NewAircraftHandler(i do.Injector) (*AircraftHandler, error) {
 func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*AircraftHandler](i)
 
-	admin := r.Group("/admin", middleware.AuthMiddleware(userDomain.AdminRole))
+	admin := r.Group("/aircraft", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/add_aircraft", h.AddAircraft)
-		admin.GET("/aircraft/list", h.ListAircrafts)
+		admin.POST("/create", h.CreateAircraft)
+		admin.GET("/list", h.ListAircrafts)
 	}
 }
 
@@ -43,8 +44,9 @@ func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 // @Success 201 "created"
 // @Failure 400
 // @Failure 401
-// @Router /admin/add_aircraft [post]
-func (h *AircraftHandler) AddAircraft(ctx *gin.Context) {
+// @Failure 500
+// @Router /aircraft/create [post]
+func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 	const op = "AircraftHandler.AddAircraft"
 	req := &dto.CreateAircraftRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
@@ -58,12 +60,16 @@ func (h *AircraftHandler) AddAircraft(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.AddAircraft(cmd); err != nil {
-		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+	if err := h.uc.CreateAircraft(cmd); err != nil {
+		if errors.Is(err, usecase.ErrAircraftAlreadyExists) {
+			ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft created"})
+			return
+		}
+		slog.Error(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-	ctx.JSON(http.StatusCreated, "created")
+	ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft created"})
 }
 
 // @Summary list aircrafts (only admin)
@@ -75,21 +81,15 @@ func (h *AircraftHandler) AddAircraft(ctx *gin.Context) {
 // @Success 200 {array} dto.ListAircraftsResponse
 // @Failure 401
 // @Failure 500
-// @Router /admin/aircraft/list [get]
+// @Router /aircraft/list [get]
 func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
 	const op = "AircraftHandler.ListAircrafts"
 	as, err := h.uc.ListAircrafts()
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.Error(op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-
-	resp, err := dto.ToResponseListAircrafts(as)
-	if err != nil {
-		slog.Warn(op, "err", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
-		return
-	}
+	resp := dto.ToResponseListAircrafts(as)
 	ctx.JSON(http.StatusOK, resp)
 }

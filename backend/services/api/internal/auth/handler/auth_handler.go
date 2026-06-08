@@ -25,8 +25,8 @@ func NewAuthHandler(i do.Injector) (*AuthHandler, error) {
 func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*AuthHandler](i)
 
-	r.POST("register", h.Register)
-	r.POST("login", h.Login)
+	r.POST("/register", h.Register)
+	r.POST("/login", h.Login)
 }
 
 // @Summary register
@@ -37,6 +37,7 @@ func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
 // @Param user body dto.CreateUserDTO true "user info"
 // @Success 201 "user created"
 // @Failure 400
+// @Failure 409 "user exists"
 // @Failure 500
 // @Router /register [post]
 func (h *AuthHandler) Register(ctx *gin.Context) {
@@ -51,23 +52,16 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 	u, err := userDomain.NewUser(req.Email, req.Password, userDomain.UserRole)
 	if err != nil {
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"msg": "bad request",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 	if err := h.uc.CreateUser(u); err != nil {
 		if errors.Is(err, usecase.ErrUserAlreadyExists) {
-			slog.Warn(op, "err", err)
-			ctx.JSON(http.StatusConflict, gin.H{
-				"msg": "email is used",
-			})
+			ctx.JSON(http.StatusConflict, gin.H{"msg": "email is used"})
 			return
 		}
-		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"msg": "internal error",
-		})
+		slog.Error(op, "err", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
@@ -81,7 +75,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 // @Produce json
 // @Param user body dto.LoginRequestDTO true "user info"
 // @Success 200 {object} dto.LoginResponseDTO "auth token"
-// @Failure 401
+// @Failure 400
 // @Failure 404
 // @Failure 500
 // @Router /login [post]
@@ -98,24 +92,21 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 	user, err := h.uc.GetUser(req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
-			slog.Warn(op, "err", err)
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 			return
 		}
-		if errors.Is(err, usecase.ErrWrongPassword) {
-			slog.Warn(op, "err", err)
-			ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "wrong password"})
+		if errors.Is(err, usecase.ErrInvalidPassword) {
+			ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 			return
 		}
-		slog.Warn(op, "err", err)
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-	slog.Info(op, "user", user)
 
 	token, err := usecase.GenerateJWT(user)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err})
 		return
 	}

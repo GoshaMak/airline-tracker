@@ -6,6 +6,7 @@ import (
 	"api/internal/fleet/usecase"
 	"api/internal/middleware"
 	userDomain "api/internal/user/domain"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -27,10 +28,10 @@ func NewAircraftModelHandler(i do.Injector) (*AircraftModelHandler, error) {
 func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
 	h := do.MustInvoke[*AircraftModelHandler](i)
 
-	admin := r.Group("/admin", middleware.AuthMiddleware(userDomain.AdminRole))
+	admin := r.Group("/aircraft/model", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/add_aircraft_model", h.AddAircraftModel)
-		admin.GET("/aircraft_model/:id", h.AircraftModelInfo)
+		admin.POST("/create", h.CreateAircraftModel)
+		admin.GET("/:id", h.AircraftModelById)
 	}
 }
 
@@ -44,8 +45,9 @@ func RegisterAircraftModelRoutes(i do.Injector, r *gin.Engine) {
 // @Success 201 "created"
 // @Failure 400
 // @Failure 401
-// @Router /admin/add_aircraft_model [post]
-func (h *AircraftModelHandler) AddAircraftModel(ctx *gin.Context) {
+// @Failure 500
+// @Router /aircraft/model/create [post]
+func (h *AircraftModelHandler) CreateAircraftModel(ctx *gin.Context) {
 	const op = "AircraftModelHandler.AddAircraftModel"
 	req := &dto.CreateAircraftModelRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
@@ -59,12 +61,16 @@ func (h *AircraftModelHandler) AddAircraftModel(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.AddAircraftModel(cmd); err != nil {
-		slog.Warn(op, "err", err)
+	if err := h.uc.CreateAircraftModel(cmd); err != nil {
+		if errors.Is(err, usecase.ErrAircraftModelAlreadyExists) {
+			ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft model created"})
+			return
+		}
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"msg": "created"})
+	ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft model created"})
 }
 
 // @Summary get info (only admin)
@@ -74,13 +80,12 @@ func (h *AircraftModelHandler) AddAircraftModel(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} dto.AircraftModelInfoResponse
-// @Failure 400
 // @Failure 401
 // @Failure 404
 // @Failure 500
-// @Router /aircraft_model/{id} [get]
-func (h *AircraftModelHandler) AircraftModelInfo(ctx *gin.Context) {
-	const op = "AircraftModelHandler.AircraftModelInfo"
+// @Router /aircraft/model/{id} [get]
+func (h *AircraftModelHandler) AircraftModelById(ctx *gin.Context) {
+	const op = "AircraftModelHandler.AircraftModelById"
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -89,19 +94,16 @@ func (h *AircraftModelHandler) AircraftModelInfo(ctx *gin.Context) {
 		return
 	}
 
-	am, err := h.uc.GetById(id)
+	am, err := h.uc.AircraftById(id)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		if errors.Is(err, usecase.ErrAircraftModelNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
+		}
+		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
-	resp, err := dto.ToResponseAircraftModelInfo(am)
-	if err != nil {
-		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
-		return
-	}
-
+	resp := dto.ToResponseAircraftModelInfo(am)
 	ctx.JSON(http.StatusOK, resp)
 }

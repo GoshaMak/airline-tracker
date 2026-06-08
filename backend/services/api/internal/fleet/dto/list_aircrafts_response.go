@@ -18,7 +18,7 @@ type ListAircraftsResponse struct {
 	Aircrafts []aircraft `json:"aircrafts"`
 }
 
-func ToResponseListAircrafts(aircrafts []domain.Aircraft) (ListAircraftsResponse, error) {
+func ToResponseListAircrafts(aircrafts []domain.Aircraft) ListAircraftsResponse {
 	resp := ListAircraftsResponse{
 		Aircrafts: make([]aircraft, len(aircrafts)),
 	}
@@ -32,5 +32,5 @@ func ToResponseListAircrafts(aircrafts []domain.Aircraft) (ListAircraftsResponse
 		}
 		resp.Aircrafts[i] = r
 	}
-	return resp, nil
+	return resp
 }
