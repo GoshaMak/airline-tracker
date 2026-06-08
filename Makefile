@@ -1,10 +1,8 @@
-.PHONY: backend-up
-backend-up:
-	$(MAKE) -C backend up
+BACKEND_DIR := backend
 
-.PHONY: backend-down
-backend-down:
-	$(MAKE) -C backend down
+.PHONY: backend-%
+backend-%:
+	$(MAKE) -C $(BACKEND_DIR) $*
 
 .PHONY: frontend-up
 frontend-up:
@@ -18,13 +16,17 @@ frontend-down:
 fill-db:
 	docker compose -p api --env-file utils/.env -f utils/docker-compose.yml up --build -d
 
-.PHONY: all-up
-all-up: backend-up
-all-up: fill-db
-all-up: frontend-up
+.PHONY: debug
+debug: backend-debug
+debug: fill-db
+debug: frontend-up
 
-.PHONY: all-down
-all-down: frontend-down
-all-down: backend-down
-all-down:
+.PHONY: release
+release: backend-release
+release: frontend-up
+
+.PHONY: down
+down: frontend-down
+down: backend-down
+down:
 	docker compose -p api -f utils/docker-compose.yml down -v

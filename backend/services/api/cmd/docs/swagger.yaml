@@ -1,0 +1,707 @@
+definitions:
+  api_internal_flight_dto.FlightDTO:
+    properties:
+      actual_arrival:
+        example: ""
+        type: string
+      actual_departure:
+        example: ""
+        type: string
+      plan:
+        example: ABCDE A99 ABCDE ABC A66
+        type: string
+      scheduled_arrival:
+        example: 2026-05-26T14:30:00
+        type: string
+      scheduled_departure:
+        example: 2026-03-26T14:30:00
+        type: string
+      status:
+        example: waiting
+        type: string
+    type: object
+  api_internal_flight_dto.ListFlightsResponse:
+    properties:
+      flights:
+        items:
+          $ref: '#/definitions/dto.FlightInfo'
+        type: array
+    type: object
+  dto.AircraftDTO:
+    properties:
+      aircraft_model_id:
+        example: fill manually
+        type: string
+      mileage:
+        example: 123
+        type: integer
+      registration_number:
+        example: "999"
+        type: string
+      serial_number:
+        example: "123"
+        type: string
+    type: object
+  dto.AircraftModelDTO:
+    properties:
+      manufacturer:
+        example: A
+        type: string
+      mass:
+        example: 999
+        type: integer
+      max_altitude:
+        example: 3
+        type: integer
+      max_speed:
+        example: 1
+        type: integer
+      model:
+        example: B
+        type: string
+    type: object
+  dto.AircraftModelInfoResponse:
+    properties:
+      manufacturer:
+        type: string
+      mass:
+        type: integer
+      max_altitude:
+        type: integer
+      max_speed:
+        type: integer
+      model:
+        type: string
+    type: object
+  dto.AirportDTO:
+    properties:
+      city:
+        example: "123"
+        type: string
+      country:
+        example: "123"
+        type: string
+      iata_code:
+        example: SVO
+        type: string
+      title:
+        example: "123"
+        type: string
+    type: object
+  dto.AirportResponse:
+    properties:
+      city:
+        example: "123"
+        type: string
+      country:
+        example: "123"
+        type: string
+      iata_code:
+        example: SVO
+        type: string
+      id:
+        type: string
+      title:
+        example: "123"
+        type: string
+    type: object
+  dto.CreateAircraftModelRequest:
+    properties:
+      aircraft_model:
+        $ref: '#/definitions/dto.AircraftModelDTO'
+    type: object
+  dto.CreateAircraftRequest:
+    properties:
+      aircraft:
+        $ref: '#/definitions/dto.AircraftDTO'
+    type: object
+  dto.CreateAirportRequest:
+    properties:
+      airport:
+        $ref: '#/definitions/dto.AirportDTO'
+    type: object
+  dto.CreateFlightRequest:
+    properties:
+      aircraft_id:
+        example: MANUALLY
+        type: string
+      arrival_airport_id:
+        example: MANUALLY
+        type: string
+      arrival_gate_id:
+        example: MANUALLY
+        type: string
+      departure_airport_id:
+        example: MANUALLY
+        type: string
+      departure_gate_id:
+        example: MANUALLY
+        type: string
+      flight:
+        $ref: '#/definitions/api_internal_flight_dto.FlightDTO'
+    type: object
+  dto.CreateGateRequest:
+    properties:
+      gate:
+        $ref: '#/definitions/dto.GateDTO'
+    type: object
+  dto.CreateUserDTO:
+    properties:
+      email:
+        example: user@user.user
+        type: string
+      password:
+        example: myStrong123!
+        type: string
+    type: object
+  dto.FlightInfo:
+    properties:
+      actual_arrival:
+        type: string
+      actual_departure:
+        type: string
+      aircraft_id:
+        type: string
+      arrival_airport_id:
+        type: string
+      arrival_gate_id:
+        type: string
+      departure_airport_id:
+        type: string
+      departure_gate_id:
+        type: string
+      id:
+        type: string
+      plan:
+        type: string
+      scheduled_arrival:
+        type: string
+      scheduled_departure:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.GateDTO:
+    properties:
+      airport_id:
+        example: add manually
+        type: string
+      id:
+        type: string
+      number:
+        example: A1
+        type: string
+    type: object
+  dto.ListAircraftsResponse:
+    properties:
+      aircrafts:
+        items:
+          $ref: '#/definitions/dto.aircraft'
+        type: array
+    type: object
+  dto.ListAirportsResponse:
+    properties:
+      airports:
+        items:
+          $ref: '#/definitions/dto.AirportResponse'
+        type: array
+    type: object
+  dto.ListFlightByIdResponse:
+    properties:
+      flight:
+        $ref: '#/definitions/dto.FlightInfo'
+    type: object
+  dto.ListGatesResponse:
+    properties:
+      gates:
+        items:
+          $ref: '#/definitions/dto.GateDTO'
+        type: array
+    type: object
+  dto.LoginRequestDTO:
+    properties:
+      email:
+        example: a@b.c/user=ab@cd.ef
+        type: string
+      password:
+        example: myStrong123
+        type: string
+    type: object
+  dto.LoginResponseDTO:
+    properties:
+      token:
+        type: string
+    type: object
+  dto.UpdateFlightRequest:
+    properties:
+      flight:
+        $ref: '#/definitions/dto.flightUpdateInfo'
+    type: object
+  dto.aircraft:
+    properties:
+      aircraft_model_id:
+        type: string
+      id:
+        type: string
+      mileage:
+        type: integer
+      registration_number:
+        type: string
+      serial_number:
+        type: string
+    type: object
+  dto.flightUpdateInfo:
+    properties:
+      actual_arrival:
+        type: string
+      actual_departure:
+        type: string
+      id:
+        type: string
+      plan:
+        type: string
+      scheduled_arrival:
+        type: string
+      scheduled_departure:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  title: Airline Tracker
+paths:
+  /admin/add_aircraft:
+    post:
+      consumes:
+      - application/json
+      description: create new aircraft
+      parameters:
+      - description: aircraft info
+        in: body
+        name: aircraft
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAircraftRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - BearerAuth: []
+      summary: add aircraft (only admin)
+      tags:
+      - Aircraft
+  /admin/add_aircraft_model:
+    post:
+      consumes:
+      - application/json
+      description: create new aircraft model
+      parameters:
+      - description: aircraft model info
+        in: body
+        name: aircraft_model
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAircraftModelRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - BearerAuth: []
+      summary: add aircraft model (only admin)
+      tags:
+      - Aircraft
+  /admin/aircraft/list:
+    get:
+      consumes:
+      - application/json
+      description: list aircrafts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ListAircraftsResponse'
+            type: array
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: list aircrafts (only admin)
+      tags:
+      - Aircraft
+  /aircraft_model/{id}:
+    get:
+      consumes:
+      - application/json
+      description: aircraft model info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AircraftModelInfoResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: get info (only admin)
+      tags:
+      - Aircraft
+  /airport/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: airport info
+        in: body
+        name: airport
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAirportRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: airport created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: create airport (only admin)
+      tags:
+      - Airport
+  /airport/list:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ListAirportsResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: list airports
+      tags:
+      - Airport
+  /create_flight:
+    post:
+      consumes:
+      - application/json
+      description: create a flight
+      parameters:
+      - description: flight info
+        in: body
+        name: flight
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateFlightRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: create flight (only admin)
+      tags:
+      - Flight
+  /create_uuid:
+    get:
+      consumes:
+      - application/json
+      description: creates new uuid
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: uuid
+      summary: create uuid
+      tags:
+      - Utils
+  /flight/{id}:
+    get:
+      consumes:
+      - application/json
+      description: get flight info by its id
+      parameters:
+      - description: flight id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListFlightByIdResponse'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: flight info
+      tags:
+      - Flight
+    patch:
+      consumes:
+      - application/json
+      description: 'updates flight. able to update: all deps, status, plan'
+      parameters:
+      - description: flight id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: flight info
+        in: body
+        name: flight
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateFlightRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: update flight (only admin)
+      tags:
+      - Flight
+  /flights/list:
+    get:
+      consumes:
+      - application/json
+      description: list all flights
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
+            type: array
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: list all flights
+      tags:
+      - Flight
+  /gate/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: gate info
+        in: body
+        name: gate
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateGateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: gate created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: create gate (only admin)
+      tags:
+      - Gate
+  /gate/list:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListGatesResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: list gates (only admin)
+      tags:
+      - Gate
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: user authentication
+      parameters:
+      - description: user info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: auth token
+          schema:
+            $ref: '#/definitions/dto.LoginResponseDTO'
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: login
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: creates a user
+      parameters:
+      - description: user info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: user created
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: register
+      tags:
+      - Auth
+  /status:
+    get:
+      consumes:
+      - application/json
+      description: check status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: status example
+      tags:
+      - Utils
+  /user/flights:
+    get:
+      consumes:
+      - application/json
+      description: get all flights in which user is subscribed
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - BearerAuth: []
+      summary: list flights (only user)
+      tags:
+      - User
+  /user/subscribe:
+    post:
+      parameters:
+      - description: flight id
+        in: query
+        name: flight_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user subscribed
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: subscribe user (only user)
+      tags:
+      - User
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

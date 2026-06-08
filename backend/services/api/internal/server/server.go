@@ -25,7 +25,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @title my api
+// @title Airline Tracker
 
 // @host localhost:8080
 

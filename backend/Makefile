@@ -10,22 +10,25 @@ swagger :
 		--dir $(API_PREFIX)/internal/server/,$(HANDLERS),$(DTOS)
 
 .PHONY : up
-up: format
-up: swagger
-up:
+up :
 	docker compose up --build -d
 
-.PHONY : down
-down:
-	docker compose down -v
-
 .PHONY : test
-test:
+test :
 	GO111MODULE=on go test -cover -count=1 ./$(API_PREFIX)/... 2>&1 | grep -v '\[no test files\]'
 
 .PHONY : format
-format:
+format :
 	goimports -w $(API_PREFIX)/
 	goimports -w $(NOTIFIER_PREFIX)/
 	cd $(API_PREFIX) && go mod tidy
 	cd $(NOTIFIER_PREFIX) && go mod tidy
+
+.PHONY : debug
+debug : format swagger up
+
+release : up
+
+.PHONY : down
+down :
+	docker compose down -v
