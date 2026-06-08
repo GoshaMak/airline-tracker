@@ -1,5 +1,0 @@
---create index flights_id_hash_idx on flights using hash (id);
---create index flights_id_btree_idx on flights using btree (id);
---
--- drop index flights_id_hash_idx;
--- drop index flights_id_btree_idx;

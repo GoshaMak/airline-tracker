@@ -17,14 +17,11 @@ import (
 	"shared/logger"
 	"syscall"
 
-	"github.com/joho/godotenv"
 	"github.com/samber/do/v2"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	godotenv.Load() // TODO: mb too much. as long as docker loads all the variables
-
 	var w io.Writer
 	switch os.Getenv("MODE") {
 	case "DEBUG":
