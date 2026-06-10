@@ -1,5 +1,5 @@
-API_PREFIX := services/api
-NOTIFIER_PREFIX := services/notifier
+API_PREFIX := ./api
+NOTIFIER_PREFIX := ./notifier
 
 HANDLERS := $(shell find $(API_PREFIX)/internal -type d -name handler | paste -sd ",")
 DTOS := $(shell find $(API_PREFIX)/internal -type d -name dto | paste -sd ",")
@@ -16,6 +16,7 @@ up :
 .PHONY : test
 test :
 	GO111MODULE=on go test -cover -count=1 ./$(API_PREFIX)/... 2>&1 | grep -v '\[no test files\]'
+	GO111MODULE=on go test -cover -count=1 ./$(NOTIFIER_PREFIX)/... 2>&1 | grep -v '\[no test files\]'
 
 .PHONY : format
 format :
