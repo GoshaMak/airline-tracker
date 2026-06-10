@@ -6,7 +6,11 @@ import (
 )
 
 func CommandToGateDomain(cmd *CreateGateCommand) (domain.Gate, error) {
-	g, err := domain.NewGate(cmd.AirportID, cmd.GateNumber)
+	gn, err := domain.NewGateNumber(cmd.GateNumber)
+	if err != nil {
+		return domain.Gate{}, err
+	}
+	g, err := domain.NewGate(cmd.AirportID, gn)
 	return g, err
 }
 

@@ -1,25 +1,23 @@
 package command
 
 import (
-	"api/internal/airport/domain"
 	"api/internal/airport/dto"
+	"errors"
 
 	"github.com/google/uuid"
 )
 
 type CreateGateCommand struct {
 	AirportID  uuid.UUID
-	GateNumber domain.GateNumber
+	GateNumber string
 }
 
 func NewCreateGateCommand(req *dto.CreateGateRequest) (*CreateGateCommand, error) {
-	gn, err := domain.NewGateNumber(req.Gate.Number)
-	if err != nil {
-		return nil, err
+	if len(req.Gate.Number) == 0 {
+		return nil, errors.New("empty gate number")
 	}
-
 	return &CreateGateCommand{
 		AirportID:  req.Gate.AirportId,
-		GateNumber: gn,
+		GateNumber: req.Gate.Number,
 	}, nil
 }
