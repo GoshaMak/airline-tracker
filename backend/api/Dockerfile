@@ -2,15 +2,22 @@ FROM golang:1.25.6
 
 WORKDIR /backend
 
+COPY go.work go.work.sum ./
+COPY shared/go.mod ./shared/
+COPY notifier/go.mod notifier/go.sum ./notifier/
+COPY api/go.mod api/go.sum ./api/
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go work sync
+
 COPY . .
 
 WORKDIR /backend/api
 
-RUN go mod download
-
-RUN CGO_ENABLED=0 GOOS=linux \
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux \
     go build -o /bin/api ./cmd/api
 
 EXPOSE 8080
-
 ENTRYPOINT ["/bin/api"]
