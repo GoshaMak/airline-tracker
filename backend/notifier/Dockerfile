@@ -1,4 +1,4 @@
-FROM golang:1.25.6
+FROM golang:1.25.6 as builder
 
 WORKDIR /backend
 
@@ -18,5 +18,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux \
     go build -o /bin/notifier ./cmd/notifier
+
+
+FROM alpine:latest
+
+COPY --from=builder /bin/notifier /bin/notifier
 
 ENTRYPOINT ["/bin/notifier"]

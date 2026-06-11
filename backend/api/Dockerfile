@@ -1,4 +1,4 @@
-FROM golang:1.25.6
+FROM golang:1.25.6 as builder
 
 WORKDIR /backend
 
@@ -19,5 +19,11 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux \
     go build -o /bin/api ./cmd/api
 
+
+FROM alpine:latest
+
+COPY --from=builder /bin/api /bin/api
+
 EXPOSE 8080
+
 ENTRYPOINT ["/bin/api"]
