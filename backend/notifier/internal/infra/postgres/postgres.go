@@ -16,15 +16,7 @@ func NewPostgresPool(i do.Injector) (*pgxpool.Pool, error) {
 }
 
 func newPool(ctx context.Context) (*pgxpool.Pool, error) {
-	connStr := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_NAME"),
-	)
-
+	connStr := os.Getenv("POSTGRES_URI")
 	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postgres config: %w", err)

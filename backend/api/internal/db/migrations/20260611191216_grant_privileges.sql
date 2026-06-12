@@ -1,12 +1,4 @@
 -- +goose Up
-create role admin; -- superuser
-create role dispatcher; -- controls flights
-create role builder; -- controls airports, ...
-create role designer; -- aircraft, ...
-create role manager; -- controls users and subs
-create role spectator; -- only selects data
-create role app_user with login password 'app_pswd'; -- backend role
-
 grant all privileges on schema public to admin;
 grant all privileges on all tables in schema public to admin;
 
@@ -44,11 +36,3 @@ revoke all privileges on table airports, gates from builder;
 revoke all privileges on table flights, flight_routes from dispatcher;
 
 revoke all privileges on all tables in schema public from admin;
-
-drop role if exists app_user;
-drop role if exists spectator;
-drop role if exists manager;
-drop role if exists designer;
-drop role if exists builder;
-drop role if exists dispatcher;
-drop role if exists admin;

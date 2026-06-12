@@ -27,12 +27,5 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM alpine:latest
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk --update add supervisor
-
-COPY notifier/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
 COPY --from=builder /bin/notifier /bin/notifier
 COPY --from=builder /bin/migrate /bin/migrate
-
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -8,6 +8,7 @@ services:
     build:
       context: .
       dockerfile: ./api/Dockerfile
+    command: ["/bin/api"]
     ports:
       - "8080:8080"
     depends_on:
@@ -17,6 +18,19 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+
+  api-migrate:
+    env_file:
+      - ./api/migrate.env
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    command: ["/bin/migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   notifier:
     env_file:
@@ -24,11 +38,27 @@ services:
     build:
       context: .
       dockerfile: ./notifier/Dockerfile
+    command: ["/bin/notifier"]
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      notifier-migrate:
+        condition: service_completed_successfully
+
+  notifier-migrate:
+    env_file:
+      - ./notifier/migrate.env
+    build:
+      context: .
+      dockerfile: ./notifier/Dockerfile
+    command: ["/bin/migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

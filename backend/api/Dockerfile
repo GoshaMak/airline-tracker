@@ -27,14 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM alpine:latest
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk --update add supervisor
-
-COPY api/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
 COPY --from=builder /bin/api /bin/api
 COPY --from=builder /bin/migrate /bin/migrate
 
 EXPOSE 8080
-
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
