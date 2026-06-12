@@ -33,7 +33,7 @@ export async function loadAircrafts({ api, state }) {
     return;
   }
 
-  const response = await api.request("/admin/aircraft/list");
+  const response = await api.request("aircraft/list");
   const aircrafts = response.aircrafts || [];
   state.aircrafts = aircrafts;
 

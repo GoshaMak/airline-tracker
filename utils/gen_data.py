@@ -71,6 +71,7 @@ conn = psycopg2.connect(
     password=os.getenv("POSTGRES_PASSWORD"),
     host=os.getenv("POSTGRES_HOST"),
     port=os.getenv("POSTGRES_PORT"),
+    options="-c search_path=api_schema",
 )
 cur = conn.cursor()
 
@@ -474,7 +475,7 @@ def GenSubscriptions():
 
 
 if __name__ == "__main__":
-    time.sleep(2) # INFO: wait for migrations to complete
+    time.sleep(2)  # INFO: wait for migrations to complete
 
     GenUsers()
     print("Users filled successfully: ", len(users))

@@ -4,7 +4,7 @@ grant all privileges on all tables in schema public to admin;
 
 grant all privileges on table flights, flight_routes to dispatcher;
 
-grant all privileges on table airports, gates to builder;
+grant all privileges on table airports, gates, countries, cities to builder;
 
 grant all privileges on table aircraft_models, aircraft to designer;
 
@@ -31,7 +31,7 @@ revoke all privileges on table users, subscriptions, outbox from manager;
 
 revoke all privileges on table aircraft_models, aircraft from designer;
 
-revoke all privileges on table airports, gates from builder;
+revoke all privileges on table airports, gates, countries, cities from builder;
 
 revoke all privileges on table flights, flight_routes from dispatcher;
 

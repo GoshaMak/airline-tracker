@@ -29,7 +29,7 @@ func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
 }
 
 func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
-	const op = "UserRepository.Save"
+	const op = "UserRepository.SaveUser"
 	query := `
 	insert into users(id, email, password_hash, role)
 		values ($1, $2, $3, $4)
@@ -72,7 +72,7 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 }
 
 func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User, error) {
-	const op = "UserRepository.Exists"
+	const op = "UserRepository.Exist"
 	query := `
 	select * from users where id = $1
 	`
