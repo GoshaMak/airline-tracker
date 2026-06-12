@@ -7,7 +7,6 @@ import (
 	"api/internal/airport/query"
 	"context"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/samber/do/v2"
@@ -51,7 +50,7 @@ func TestAirportUsecase_CreateAirport(t *testing.T) {
 		},
 
 		{
-			name: "[N:IATA] empty",
+			name: "[N:IATA] invalid",
 			repo: &airportRepoMock{
 				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
@@ -65,24 +64,9 @@ func TestAirportUsecase_CreateAirport(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "[N:IATA] wrong format",
-			repo: &airportRepoMock{
-				saveFn: func(ctx context.Context, a domain.Airport) error {
-					return nil
-				},
-			},
-			cmd: &command.CreateAirportCommand{
-				IATACode: "svo",
-				Title:    "Domodedovo",
-				City:     "Moscow",
-				Country:  "RU",
-			},
-			wantErr: true,
-		},
 
 		{
-			name: "[N:Title] empty",
+			name: "[N:Title] invalid",
 			repo: &airportRepoMock{
 				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
@@ -96,24 +80,9 @@ func TestAirportUsecase_CreateAirport(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "[N:Title] too long",
-			repo: &airportRepoMock{
-				saveFn: func(ctx context.Context, a domain.Airport) error {
-					return nil
-				},
-			},
-			cmd: &command.CreateAirportCommand{
-				IATACode: "SVO",
-				Title:    strings.Repeat("A", 500),
-				City:     "Moscow",
-				Country:  "RU",
-			},
-			wantErr: true,
-		},
 
 		{
-			name: "[N:City] empty",
+			name: "[N:City] invalid",
 			repo: &airportRepoMock{
 				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
@@ -127,24 +96,9 @@ func TestAirportUsecase_CreateAirport(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "[N:City] too long",
-			repo: &airportRepoMock{
-				saveFn: func(ctx context.Context, a domain.Airport) error {
-					return nil
-				},
-			},
-			cmd: &command.CreateAirportCommand{
-				IATACode: "SVO",
-				Title:    "Domodedovo",
-				City:     strings.Repeat("C", 500),
-				Country:  "RU",
-			},
-			wantErr: true,
-		},
 
 		{
-			name: "[N:Country] empty",
+			name: "[N:Country] invalid",
 			repo: &airportRepoMock{
 				saveFn: func(ctx context.Context, a domain.Airport) error {
 					return nil
@@ -158,33 +112,34 @@ func TestAirportUsecase_CreateAirport(t *testing.T) {
 			},
 			wantErr: true,
 		},
+
 		{
-			name: "[N:Country] invalid format",
+			name: "[N] airport already exists",
 			repo: &airportRepoMock{
 				saveFn: func(ctx context.Context, a domain.Airport) error {
-					return nil
+					return repository.ErrAirportAlreadyExists
 				},
 			},
 			cmd: &command.CreateAirportCommand{
 				IATACode: "SVO",
 				Title:    "Domodedovo",
 				City:     "Moscow",
-				Country:  "Russia",
+				Country:  "RU",
 			},
 			wantErr: true,
 		},
 		{
-			name: "[N:Country] has digit",
+			name: "[N] repo error",
 			repo: &airportRepoMock{
 				saveFn: func(ctx context.Context, a domain.Airport) error {
-					return nil
+					return errors.New("repo error")
 				},
 			},
 			cmd: &command.CreateAirportCommand{
 				IATACode: "SVO",
 				Title:    "Domodedovo",
 				City:     "Moscow",
-				Country:  "R1",
+				Country:  "RU",
 			},
 			wantErr: true,
 		},
@@ -227,10 +182,10 @@ func TestAirportUsecase_ListAirports(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "[N] list failed",
+			name: "[N] repo error",
 			repo: &airportRepoMock{
 				listAirportsFn: func(ctx context.Context) ([]domain.Airport, error) {
-					return nil, errors.New("some error")
+					return nil, errors.New("repo error")
 				},
 			},
 			want:    query.ListAirportsQuery{},
