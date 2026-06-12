@@ -1,6 +1,7 @@
 import os
 import random
 import uuid
+import time
 from datetime import timedelta, timezone
 from datetime import datetime
 
@@ -473,6 +474,8 @@ def GenSubscriptions():
 
 
 if __name__ == "__main__":
+    time.sleep(2) # INFO: wait for migrations to complete
+
     GenUsers()
     print("Users filled successfully: ", len(users))
 

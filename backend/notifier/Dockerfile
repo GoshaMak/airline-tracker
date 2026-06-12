@@ -1,4 +1,4 @@
-FROM golang:1.26 as builder
+FROM golang:1.26 AS builder
 
 WORKDIR /backend
 
@@ -17,11 +17,22 @@ WORKDIR /backend/notifier
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux \
+    go build -o /bin/migrate ./cmd/migrate
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux \
     go build -o /bin/notifier ./cmd/notifier
 
 
 FROM alpine:latest
 
-COPY --from=builder /bin/notifier /bin/notifier
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk --update add supervisor
 
-ENTRYPOINT ["/bin/notifier"]
+COPY notifier/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+COPY --from=builder /bin/notifier /bin/notifier
+COPY --from=builder /bin/migrate /bin/migrate
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
