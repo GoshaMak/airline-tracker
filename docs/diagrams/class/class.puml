@@ -1,0 +1,112 @@
+@startuml
+interface do.Injector {
+}
+
+struct domain.Flight {
+  +ID : uint
+  +AircraftID : uint
+  +ScheduledDeparture : time.Time
+  +ScheduledArrival : time.Time
+  +ActualDeparture : time.Time
+  +ActualArrival : time.Time
+  +Status : string
+  +FlightPlan : string
+}
+
+struct domain.Aircraft {
+  +ID : uint
+  +RegistrationNumber : string
+  +AircraftModelID : uint
+  +SerialNumber : string
+  +Mileage : uint
+}
+
+struct domain.Airport {
+  +ID : uint32
+  +IATACode : string
+  +Title : string
+  +City : string
+  +Country : string
+}
+
+struct domain.Gate {
+  +ID : uint
+  +AirportID : uint
+  +Number : string
+}
+
+struct dto.Flight {
+  +ScheduledDeparture : time.Time
+  +ScheduledArrival : time.Time
+  +ActualDeparture : time.Time
+  +ActualArrival : time.Time
+  +Status : string
+  +FlightPlan : string
+  +FlightFromDTO() *Flight
+  +FlightToDTO(*Flight) *FlightDTO
+}
+dto.Flight --> domain.Flight
+
+struct dto.Aircraft {
+  +RegistrationNumber : string
+  +SerialNumber : string
+  +Mileage : uint
+  +AircraftFromDTO() *Aircraft
+}
+dto.Aircraft --> domain.Aircraft
+
+struct dto.Airport {
+  +IATACode : string
+  +Title : string
+  +City : string
+  +Country : string
+  +AirportFromDTO() *Airport
+}
+dto.Airport --> domain.Airport
+
+struct dto.Gate {
+  +Number : string
+  +GateFromDTO() *Gate
+}
+dto.Gate --> domain.Gate
+
+interface FlightRepository {
+  +Save(*Flight, *Aircraft, *Airport, *Airport, *Gate, *Gate) : error
+  +Exists(uint32) : Flight, error
+  +UpdateByID(uint32) : error
+  +ListAllFlights() : []Flight, error
+}
+FlightRepository --> domain
+
+struct postgres.flightRepository {
+  -conn: *pgx.Conn
+  +NewFlightRepository(do.Injector) : FlightRepository, error
+}
+flightRepository ..|> FlightRepository
+flightRepository --> do.Injector
+
+struct AdminService {
+  -repository: FlightRepository
+  +NewAdminService(do.Injector) : *AdminService, error
+  +AddFlight(*Flight, *Aircraft, *Airport, *Airport, *Gate, *Gate) : error
+}
+AdminService --* FlightRepository
+AdminService --> do.Injector
+AdminService --> domain
+
+struct AdminController {
+  -service: *AdminService
+  +NewAdminController(do.Injector) : *AdminController, error
+  +{static} RegisterAdminRoutes(do.Injector, *gin.Engine)
+  +AddFlight(*gin.Context)
+  +UpdateFlight(*gin.Context)
+  +DeleteFlight(*gin.Context)
+  +AddAircraft(*gin.Context
+  +AddAirport(*gin.Context)
+  +AddGate(*gin.Context)
+}
+AdminController --* AdminService
+AdminController --> do.Injector
+AdminController --> domain
+
+@enduml
