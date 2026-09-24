@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net" version="28.2.5">
+  <diagram id="flight-management" name="Управление рейсом">
+    <mxGraphModel dx="1600" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Управление рейсом" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="10" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-admin" value="Администратор" style="swimlane;html=1;horizontal=0;startSize=28;collapsible=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="40" y="50" width="1480" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-api" value="Web API" style="swimlane;html=1;horizontal=0;startSize=28;collapsible=0;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="40" y="220" width="1480" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-data" value="PostgreSQL / Outbox" style="swimlane;html=1;horizontal=0;startSize=28;collapsible=0;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="40" y="430" width="1480" height="195" as="geometry" />
+        </mxCell>
+
+        <mxCell id="start" value="" style="shape=mxgraph.bpmn.event;html=1;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=standard;symbol=general;" parent="1" vertex="1">
+          <mxGeometry x="85" y="115" width="42" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="choose" value="Выбрать действие" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="160" y="96" width="125" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="action" value="Создание или изменение?" style="shape=mxgraph.bpmn.gateway2;html=1;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;whiteSpace=wrap;verticalLabelPosition=top;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="325" y="111" width="52" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="create-form" value="Заполнить данные нового рейса" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="425" y="65" width="145" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="update-form" value="Выбрать рейс и внести изменения" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="425" y="145" width="145" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="merge" value="" style="shape=mxgraph.bpmn.gateway2;html=1;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;" parent="1" vertex="1">
+          <mxGeometry x="610" y="111" width="52" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="authorize" value="Проверить JWT и роль администратора" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="700" y="255" width="145" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="authorized" value="Доступ разрешён?" style="shape=mxgraph.bpmn.gateway2;html=1;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;whiteSpace=wrap;verticalLabelPosition=top;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="875" y="264" width="55" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="unauthorized" value="Вернуть 401" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="840" y="345" width="125" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="validate" value="Проверить данные, маршрут и время" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="970" y="255" width="145" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="valid" value="Данные корректны?" style="shape=mxgraph.bpmn.gateway2;html=1;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;whiteSpace=wrap;verticalLabelPosition=top;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1145" y="264" width="55" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="validation-error" value="Вернуть ошибку валидации" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="1110" y="345" width="135" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="operation" value="Изменение?" style="shape=mxgraph.bpmn.gateway2;html=1;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;whiteSpace=wrap;verticalLabelPosition=top;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1240" y="264" width="55" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="save" value="Обновить рейс" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="1240" y="470" width="135" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="save-create" value="Сохранить рейс и маршрут" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="1240" y="550" width="135" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="outbox" value="Сохранить событие изменения в outbox" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="1390" y="470" width="110" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="success" value="Вернуть успешный результат" style="shape=mxgraph.bpmn.task2;whiteSpace=wrap;html=1;rectStyle=rounded;size=10;taskMarker=abstract;" parent="1" vertex="1">
+          <mxGeometry x="1325" y="335" width="125" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="end-success" value="" style="shape=mxgraph.bpmn.event;html=1;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=end;symbol=terminate2;" parent="1" vertex="1">
+          <mxGeometry x="1460" y="344" width="42" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="end-error" value="" style="shape=mxgraph.bpmn.event;html=1;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=end;symbol=terminate2;" parent="1" vertex="1">
+          <mxGeometry x="1010" y="351" width="42" height="42" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="start" target="choose" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="choose" target="action" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="Создать" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="action" target="create-form" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="Изменить" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="action" target="update-form" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="create-form" target="merge" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="update-form" target="merge" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="merge" target="authorize" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="authorize" target="authorized" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="Нет" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="authorized" target="unauthorized" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="unauthorized" target="end-error" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" value="Да" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="authorized" target="validate" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="validate" target="valid" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" value="Нет" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="valid" target="validation-error" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="validation-error" target="end-error" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" value="Да" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="valid" target="operation" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" value="Нет" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="operation" target="save-create" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e17" value="Да" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="operation" target="save" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e18" value="Изменение" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="save" target="outbox" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="outbox" target="success" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="save-create" target="success" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" parent="1" source="success" target="end-success" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
