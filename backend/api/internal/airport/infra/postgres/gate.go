@@ -16,7 +16,12 @@ import (
 )
 
 type gateRepository struct {
-	conn *pgxpool.Pool
+	conn gateDB
+}
+
+type gateDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewGateRepository(i do.Injector) (repository.GateRepository, error) {
@@ -64,7 +69,10 @@ func (r *gateRepository) GetAirportByGateId(
 		join countries cntr on cntr.id = c.country_id
 	where g.id = $1
 	`
-	rows, _ := r.conn.Query(ctx, query, gid)
+	rows, err := r.conn.Query(ctx, query, gid)
+	if err != nil {
+		return domain.Airport{}, fmt.Errorf("%s: %w", op, err)
+	}
 	am, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AirportModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -87,7 +95,10 @@ func (r *gateRepository) List(ctx context.Context) ([]domain.Gate, error) {
 	select *
 	from gates
 	`
-	rows, _ := r.conn.Query(ctx, query)
+	rows, err := r.conn.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	gms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.GateModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

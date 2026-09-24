@@ -6,6 +6,8 @@ import (
 	"api/internal/publisher/domain/repository"
 	"api/internal/utils"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -15,9 +17,11 @@ import (
 )
 
 type PublisherUsecase struct {
-	ns   *kafka.NotifySender
+	ns   messageSender
 	repo repository.OutboxRepository
 }
+
+type messageSender interface{ SendMessage(string, []byte) error }
 
 func NewPublisherUsecase(i do.Injector) (*PublisherUsecase, error) {
 	return &PublisherUsecase{
@@ -31,10 +35,16 @@ type SendPayload struct {
 }
 
 func (p *SendPayload) MarshalJSON() ([]byte, error) {
+	if !json.Valid(p.data) {
+		return nil, errors.New("invalid JSON payload")
+	}
 	return p.data, nil
 }
 
 func (p *SendPayload) UnmarshalJSON(data []byte) error {
+	if !json.Valid(data) {
+		return errors.New("invalid JSON payload")
+	}
 	p.data = slices.Clone(data)
 	return nil
 }

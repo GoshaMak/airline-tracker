@@ -14,7 +14,16 @@ import (
 )
 
 type RedisDB struct {
-	cln *rds.Client
+	cln redisClient
+}
+
+type redisClient interface {
+	TxPipeline() rds.Pipeliner
+	Pipeline() rds.Pipeliner
+	HGetAll(context.Context, string) *rds.MapStringStringCmd
+	HSet(context.Context, string, ...interface{}) *rds.IntCmd
+	SScan(context.Context, string, uint64, string, int64) *rds.ScanCmd
+	Scan(context.Context, uint64, string, int64) *rds.ScanCmd
 }
 
 func NewRedisDB(i do.Injector) (*RedisDB, error) {
@@ -80,10 +89,17 @@ func (r *RedisDB) GetFlightById(
 	const op = "RedisDB.GetFlightById"
 	var fm model.FlightModel
 	fKey := formFlightKey(fid.String())
-	if err := r.cln.HGetAll(ctx, fKey).Scan(&fm); err != nil {
+	cmd := r.cln.HGetAll(ctx, fKey)
+	if err := cmd.Err(); err != nil {
 		if err == rds.Nil {
 			return domain.Flight{}, ErrFlightNotFound
 		}
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+	}
+	if len(cmd.Val()) == 0 {
+		return domain.Flight{}, ErrFlightNotFound
+	}
+	if err := cmd.Scan(&fm); err != nil {
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
 	}
 	fm.Id = fid

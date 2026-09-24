@@ -16,7 +16,13 @@ import (
 )
 
 type airportRepository struct {
-	conn *pgxpool.Pool
+	conn airportDB
+}
+
+type airportDB interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewAirportRepository(i do.Injector) (repository.AirportRepository, error) {
@@ -76,7 +82,10 @@ func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport,
 		join cities c on c.id = a.city_id
 		join countries cntr on cntr.id = c.country_id
 	`
-	rows, _ := r.conn.Query(ctx, query)
+	rows, err := r.conn.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	airportsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AirportModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

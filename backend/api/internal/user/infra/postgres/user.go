@@ -19,7 +19,12 @@ import (
 )
 
 type userRepository struct {
-	conn *pgxpool.Pool
+	conn userDB
+}
+
+type userDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
@@ -55,7 +60,10 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 	query := `
 	select * from users where email = $1
 	`
-	row, _ := r.conn.Query(ctx, query, email)
+	row, err := r.conn.Query(ctx, query, email)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+	}
 	um, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.UserModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -76,7 +84,10 @@ func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User,
 	query := `
 	select * from users where id = $1
 	`
-	row, _ := r.conn.Query(ctx, query, uid)
+	row, err := r.conn.Query(ctx, query, uid)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+	}
 	um, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.UserModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -129,7 +140,10 @@ func (r *userRepository) ListFlights(
 	query := `
 	select * from scan_user_flights_info($1)
 	`
-	rows, _ := r.conn.Query(ctx, query, uid)
+	rows, err := r.conn.Query(ctx, query, uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	fsMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[flightModel.FlightModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

@@ -15,7 +15,12 @@ import (
 )
 
 type aircraftRepository struct {
-	conn *pgxpool.Pool
+	conn aircraftDB
+}
+
+type aircraftDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewAircraftRepository(i do.Injector) (repository.AircraftRepository, error) {
@@ -54,7 +59,10 @@ func (r *aircraftRepository) List(ctx context.Context) ([]domain.Aircraft, error
 	select *
 	from aircraft
 	`
-	rows, _ := r.conn.Query(ctx, query)
+	rows, err := r.conn.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	ams, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AircraftModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

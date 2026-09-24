@@ -122,6 +122,35 @@ func validUser(t *testing.T) userDomain.User {
 	return u
 }
 
+func TestUserUsecase_Exist(t *testing.T) {
+	// Arrange: the existing repository mock provides the user used by both cases.
+	u := validUser(t)
+	repo := &userRepoMock{getUserFn: func(_ context.Context, email string) (userDomain.User, error) {
+		if email == u.Email.String() {
+			return u, nil
+		}
+		return userDomain.User{}, userRepository.ErrUserNotFound
+	}}
+	uc := &UserUsecase{userRepo: repo}
+
+	t.Run("positive: correct password", func(t *testing.T) {
+		// Act
+		got := uc.Exist(u.Email.String(), "Aa1!aaaa")
+		// Assert
+		if !got {
+			t.Fatal("existing user was rejected")
+		}
+	})
+	t.Run("negative: wrong password", func(t *testing.T) {
+		// Act
+		got := uc.Exist(u.Email.String(), "wrong-password")
+		// Assert
+		if got {
+			t.Fatal("invalid credentials were accepted")
+		}
+	})
+}
+
 func validAirport(t *testing.T, iata, title, city, country string) airportDomain.Airport {
 	t.Helper()
 	c, err := common.NewCity(city)

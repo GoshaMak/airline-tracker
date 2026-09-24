@@ -15,12 +15,19 @@ import (
 )
 
 type EmailSenderUsecase struct {
-	m *mailer.Mailer
+	m        mailPort
+	appEmail common.Email
+}
+
+type mailPort interface {
+	SendEmail([]common.Email, []byte) error
 }
 
 func NewEmailSenderUsecase(i do.Injector) (*EmailSenderUsecase, error) {
+	m := do.MustInvoke[*mailer.Mailer](i)
 	return &EmailSenderUsecase{
-		m: do.MustInvoke[*mailer.Mailer](i),
+		m:        m,
+		appEmail: m.AppEmail,
 	}, nil
 }
 
@@ -59,7 +66,7 @@ func (uc *EmailSenderUsecase) sendSubscribed(ctx context.Context, cmd command.Se
 	body = formDepartureBody(cmd)
 
 	msg := []byte(
-		"From: " + uc.m.AppEmail.String() + sep +
+		"From: " + uc.appEmail.String() + sep +
 			"To: " + cmd.ToEmail.String() + sep +
 			"Subject: " + subj + sep +
 			sep +
@@ -104,7 +111,7 @@ func (uc *EmailSenderUsecase) sendFlightUpdated(
 	for i := range cmd.Users {
 		g.Go(func() error {
 			msg := []byte(
-				"From: " + uc.m.AppEmail.String() + sep +
+				"From: " + uc.appEmail.String() + sep +
 					"To: " + cmd.Users[i].String() + sep +
 					"Subject: " + subj + sep +
 					sep +

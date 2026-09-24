@@ -16,7 +16,12 @@ import (
 )
 
 type aircraftModelRepository struct {
-	conn *pgxpool.Pool
+	conn aircraftModelDB
+}
+
+type aircraftModelDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewAircraftModelRepository(i do.Injector) (repository.AircraftModelRepository, error) {
@@ -59,7 +64,10 @@ func (r *aircraftModelRepository) GetAircraftModelById(
 	from aircraft_models
 	where id = $1
 	`
-	rows, _ := r.conn.Query(ctx, query, id)
+	rows, err := r.conn.Query(ctx, query, id)
+	if err != nil {
+		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
+	}
 	amm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AircraftModelModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

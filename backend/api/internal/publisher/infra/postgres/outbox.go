@@ -10,12 +10,18 @@ import (
 	"reflect"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type outboxRepository struct {
-	conn *pgxpool.Pool
+	conn outboxDB
+}
+
+type outboxDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewOutboxRepository(i do.Injector) (repository.OutboxRepository, error) {
@@ -76,7 +82,10 @@ func (r *outboxRepository) ListNotSent(
 	where sent_at is null
 	`
 
-	rows, _ := r.conn.Query(ctx, query)
+	rows, err := r.conn.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	obms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.OutboxModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

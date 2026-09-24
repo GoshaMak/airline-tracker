@@ -17,11 +17,13 @@ import (
 )
 
 type NotificationUsecase struct {
-	ns         *kafka.NotifySender
+	ns         messageSender
 	userRepo   userRepository.UserRepository
 	flightRepo flightRepository.FlightRepository
 	gateRepo   gateRepository.GateRepository
 }
+
+type messageSender interface{ SendMessage(string, []byte) error }
 
 func NewNotificationUsecase(i do.Injector) (*NotificationUsecase, error) {
 	n := do.MustInvoke[*kafka.NotifySender](i)

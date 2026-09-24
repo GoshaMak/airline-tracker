@@ -8,12 +8,19 @@ import (
 	"notifier/internal/receiver/infra/postgres/model"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type notificationRepository struct {
-	conn *pgxpool.Pool
+	conn notificationDB
+}
+
+// notificationDB is the small database boundary used by the repository.
+type notificationDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewNotificationRepository(i do.Injector) (repository.NotificationRepository, error) {
@@ -55,7 +62,10 @@ func (r *notificationRepository) ListNotSent(
 	from notifications
 	where status <> $1
 	`
-	rows, _ := r.conn.Query(ctx, query, domain.NotificationSent.String())
+	rows, err := r.conn.Query(ctx, query, domain.NotificationSent.String())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	nms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.NotificationModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

@@ -17,8 +17,17 @@ import (
 )
 
 type flightRepository struct {
-	db *postgres.PostgresDB
-	rd *redis.RedisDB
+	db repository.FlightRepository
+	rd cachePort
+}
+
+type cachePort interface {
+	SaveFlight(context.Context, domain.Flight) error
+	SaveFlights(context.Context, []domain.Flight) error
+	GetFlightById(context.Context, uuid.UUID) (domain.Flight, error)
+	UpdateFlight(context.Context, domain.UpdateFlightInfo) error
+	GetFlights(context.Context) ([]domain.Flight, error)
+	FlushFlights(context.Context) error
 }
 
 func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {

@@ -18,6 +18,11 @@ test :
 	GO111MODULE=on go test -cover -count=1 ./$(API_PREFIX)/... 2>&1 | grep -v '\[no test files\]'
 	GO111MODULE=on go test -cover -count=1 ./$(NOTIFIER_PREFIX)/... 2>&1 | grep -v '\[no test files\]'
 
+.PHONY : test-offline
+test-offline :
+	cd $(API_PREFIX) && GOCACHE=/tmp/airline-tracker-go-build GOPROXY=off GOSUMDB=off GOTOOLCHAIN=local go test -count=1 ./...
+	cd $(NOTIFIER_PREFIX) && GOCACHE=/tmp/airline-tracker-go-build GOPROXY=off GOSUMDB=off GOTOOLCHAIN=local go test -count=1 ./...
+
 .PHONY : format
 format :
 	goimports -w $(API_PREFIX)/

@@ -16,12 +16,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
 type PostgresDB struct {
-	conn *pgxpool.Pool
+	conn flightDB
+}
+
+type flightDB interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 func NewPostgresDB(i do.Injector) (*PostgresDB, error) {
@@ -61,7 +67,10 @@ func (p *PostgresDB) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, e
 	select *
 	from scan_flight_info($1)
 	`
-	row, _ := p.conn.Query(ctx, query, fid)
+	row, err := p.conn.Query(ctx, query, fid)
+	if err != nil {
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+	}
 	fm, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -141,7 +150,10 @@ func (p *PostgresDB) ListFlights(ctx context.Context) ([]domain.Flight, error) {
 	select *
 	from scan_flights_info()
 	`
-	rows, _ := p.conn.Query(ctx, query)
+	rows, err := p.conn.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	flightsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -169,7 +181,10 @@ func (p *PostgresDB) GetFlightRoute(
 	from flight_routes
 	where flight_id = $1
 	`
-	rows, _ := p.conn.Query(ctx, query, fid)
+	rows, err := p.conn.Query(ctx, query, fid)
+	if err != nil {
+		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
+	}
 	rm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightRouteModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -198,7 +213,10 @@ func (p *PostgresDB) ListSubscribers(
 	where s.flight_id = $1::uuid;
 	`
 
-	rows, _ := p.conn.Query(ctx, query, fid)
+	rows, err := p.conn.Query(ctx, query, fid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	userMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[userModel.UserModel])
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -250,7 +268,10 @@ func (p *PostgresDB) GetFlightAirports(
 		join cities ac on ac.id = aa.city_id
 		join countries acntr on acntr.id = ac.country_id
 	`
-	rows, _ := p.conn.Query(ctx, query, fid)
+	rows, err := p.conn.Query(ctx, query, fid)
+	if err != nil {
+		return dep, arr, fmt.Errorf("%s: %w", op, err)
+	}
 	fam, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightAirportsModel])
 	slog.Debug(op, "fam", fam)
 	if err != nil {
