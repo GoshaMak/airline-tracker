@@ -1,0 +1,1027 @@
+openapi: 3.0.3
+info:
+  title: Airline Tracker API
+  version: 1.0.0
+  description: |
+    HTTP interface of the Airline Tracker `api` service.
+
+    Public operations provide flight and airport data. Operations marked as
+    protected require a JWT issued by the token endpoint. Administrative
+    operations additionally require the `admin` role; subscription operations
+    require the `user` role.
+servers:
+  - url: http://localhost:8080
+    description: Local API service
+tags:
+  - name: Service
+  - name: Authentication
+  - name: Airports
+  - name: Gates
+  - name: Aircraft
+  - name: Aircraft models
+  - name: Flights
+  - name: Subscriptions
+paths:
+  /api/v1/status:
+    get:
+      tags: [Service]
+      operationId: getStatus
+      summary: Check service status
+      responses:
+        '200':
+          description: The service is running.
+          content:
+            application/json:
+              schema:
+                type: string
+              example: OK
+
+  /api/v1/uuids:
+    post:
+      tags: [Service]
+      operationId: createUuid
+      summary: Generate a UUID
+      responses:
+        '200':
+          description: A newly generated UUID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Uuid'
+              example: 550e8400-e29b-41d4-a716-446655440000
+
+  /api/v1/users:
+    post:
+      tags: [Authentication]
+      operationId: registerUser
+      summary: Register a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                msg: user created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: The email is already registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                msg: email is used
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/tokens:
+    post:
+      tags: [Authentication]
+      operationId: createAuthToken
+      summary: Authenticate and create a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/airports:
+    get:
+      tags: [Airports]
+      operationId: listAirports
+      summary: List airports
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Paginated airport collection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirportList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Airports]
+      operationId: createAirport
+      summary: Create an airport
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAirportRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/gates:
+    get:
+      tags: [Gates]
+      operationId: listGates
+      summary: List gates
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Paginated gate collection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Gates]
+      operationId: createGate
+      summary: Create a gate
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/aircraft:
+    get:
+      tags: [Aircraft]
+      operationId: listAircraft
+      summary: List aircraft
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Paginated aircraft collection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Aircraft]
+      operationId: createAircraft
+      summary: Create an aircraft
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAircraftRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/aircraft-models:
+    post:
+      tags: [Aircraft models]
+      operationId: createAircraftModel
+      summary: Create an aircraft model
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAircraftModelRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/aircraft-models/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Aircraft models]
+      operationId: getAircraftModel
+      summary: Get an aircraft model
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Aircraft model details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftModel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/flights:
+    get:
+      tags: [Flights]
+      operationId: listFlights
+      summary: List flights
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Paginated flight collection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Flights]
+      operationId: createFlight
+      summary: Create a flight
+      description: Requires the `admin` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFlightRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/flights/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Flights]
+      operationId: getFlight
+      summary: Get a flight
+      responses:
+        '200':
+          description: Flight details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags: [Flights]
+      operationId: updateFlight
+      summary: Partially update a flight
+      description: Requires the `admin` role. Omitted fields remain unchanged.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFlightRequest'
+      responses:
+        '200':
+          description: Flight updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                msg: flight updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/subscriptions:
+    get:
+      tags: [Subscriptions]
+      operationId: listSubscribedFlights
+      summary: List the current user's subscribed flights
+      description: Requires the `user` role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Paginated subscribed flight collection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Subscriptions]
+      operationId: createSubscription
+      summary: Subscribe to a flight
+      description: |
+        Requires the `user` role. The user specifies how many minutes before
+        the scheduled departure the notification should be delivered.
+        Repeated requests are idempotent.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription with the requested notification time exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                msg: user subscribed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/subscriptions/{flight_id}:
+    delete:
+      tags: [Subscriptions]
+      operationId: deleteSubscription
+      summary: Unsubscribe from a flight
+      description: |
+        Deletes the current user's subscription to the specified flight.
+        Requires the `user` role. Repeated requests are idempotent.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flight_id
+          in: path
+          required: true
+          description: Flight to unsubscribe from.
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '204':
+          description: Subscription deleted or did not exist.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/subscriptions/{flight_id}/timers:
+    post:
+      tags: [Subscriptions]
+      operationId: addSubscriptionTimers
+      summary: Add notification timers to a subscription
+      description: |
+        Adds one or more notification timers to the current user's existing
+        flight subscription. Existing timers are preserved. Repeated timer
+        values are ignored, making the operation idempotent for each value.
+        Requires the `user` role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flight_id
+          in: path
+          required: true
+          description: Flight whose subscription receives the timers.
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSubscriptionTimersRequest'
+      responses:
+        '200':
+          description: Notification timers added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                msg: notification timers added
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of items to return.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor returned as `next_cursor` by the previous page.
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    Created:
+      description: Resource created.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    BadRequest:
+      description: Invalid JSON or domain data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            msg: bad request
+    Unauthorized:
+      description: Missing or invalid JWT, or insufficient role.
+      content:
+        application/json:
+          schema:
+            type: string
+          example: unauthorized
+    NotFound:
+      description: Requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            msg: not found
+    UserNotFound:
+      description: Email or password is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            msg: user not found
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            msg: internal error
+
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+
+    Message:
+      type: object
+      required: [msg]
+      properties:
+        msg:
+          type: string
+
+    CursorPage:
+      type: object
+      required: [next_cursor, has_more]
+      properties:
+        next_cursor:
+          type: string
+          nullable: true
+          description: Cursor for the next page; null when no more items exist.
+          example: eyJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCJ9
+        has_more:
+          type: boolean
+          description: Whether another page is available.
+          example: true
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+          pattern: '^[A-Za-z0-9@$!%*?&]+$'
+          example: MyStrong123!
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: MyStrong123!
+
+    TokenResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Signed JWT for use in the `Authorization` header.
+
+    CreateSubscriptionRequest:
+      type: object
+      required: [flight_id, notify_before_minutes]
+      properties:
+        flight_id:
+          $ref: '#/components/schemas/Uuid'
+        notify_before_minutes:
+          type: integer
+          minimum: 0
+          description: |
+            Number of minutes before the scheduled departure when the user
+            should receive the notification. Zero means at departure time.
+          example: 120
+
+    AddSubscriptionTimersRequest:
+      type: object
+      required: [notify_before_minutes]
+      properties:
+        notify_before_minutes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: |
+            Notification times in minutes before the scheduled departure.
+            Zero means at departure time.
+          items:
+            type: integer
+            minimum: 0
+          example: [1440, 120, 30]
+
+    Airport:
+      type: object
+      required: [iata_code, title, city, country]
+      properties:
+        iata_code:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: SVO
+        title:
+          type: string
+          minLength: 3
+          maxLength: 200
+          example: Sheremetyevo
+        city:
+          type: string
+          example: Moscow
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code.
+          pattern: '^[A-Z]{2}$'
+          example: RU
+
+    AirportResource:
+      allOf:
+        - type: object
+          required: [id]
+          properties:
+            id:
+              $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/schemas/Airport'
+
+    CreateAirportRequest:
+      type: object
+      required: [airport]
+      properties:
+        airport:
+          $ref: '#/components/schemas/Airport'
+
+    AirportList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPage'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/AirportResource'
+
+    Gate:
+      type: object
+      required: [id, airport_id, number]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        airport_id:
+          $ref: '#/components/schemas/Uuid'
+        number:
+          type: string
+          pattern: '^[A-Z][0-9]{1,3}$'
+          example: A1
+
+    CreateGateRequest:
+      type: object
+      required: [gate]
+      properties:
+        gate:
+          type: object
+          required: [airport_id, number]
+          properties:
+            airport_id:
+              $ref: '#/components/schemas/Uuid'
+            number:
+              type: string
+              pattern: '^[A-Z][0-9]{1,3}$'
+              example: A1
+
+    GateList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPage'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Gate'
+
+    Aircraft:
+      type: object
+      required: [id, aircraft_model_id, registration_number, serial_number, mileage]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        aircraft_model_id:
+          $ref: '#/components/schemas/Uuid'
+        registration_number:
+          type: string
+          pattern: '^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$'
+          example: RA-12345
+        serial_number:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9/-]{1,49}$'
+          example: SN-1234
+        mileage:
+          type: integer
+          minimum: 0
+          maximum: 50000
+          example: 12000
+
+    CreateAircraftRequest:
+      type: object
+      required: [aircraft]
+      properties:
+        aircraft:
+          type: object
+          required: [aircraft_model_id, registration_number, serial_number, mileage]
+          properties:
+            aircraft_model_id:
+              $ref: '#/components/schemas/Uuid'
+            registration_number:
+              type: string
+              pattern: '^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$'
+              example: RA-12345
+            serial_number:
+              type: string
+              pattern: '^[A-Z0-9][A-Z0-9/-]{1,49}$'
+              example: SN-1234
+            mileage:
+              type: integer
+              minimum: 0
+              maximum: 50000
+              example: 12000
+
+    AircraftList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPage'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Aircraft'
+
+    AircraftModel:
+      type: object
+      required: [manufacturer, model, mass, max_altitude, max_speed]
+      properties:
+        manufacturer:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Boeing
+        model:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9 -]{1,50}$'
+          example: 737 MAX
+        mass:
+          type: integer
+          minimum: 1
+          maximum: 1000000
+          description: Mass in kilograms.
+          example: 79015
+        max_altitude:
+          type: integer
+          minimum: 1
+          maximum: 20000
+          description: Maximum altitude in metres.
+          example: 12500
+        max_speed:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          description: Maximum speed in kilometres per hour.
+          example: 876
+
+    CreateAircraftModelRequest:
+      type: object
+      required: [aircraft_model]
+      properties:
+        aircraft_model:
+          $ref: '#/components/schemas/AircraftModel'
+
+    FlightStatus:
+      type: string
+      enum:
+        - scheduled
+        - boarding
+        - departed
+        - landed
+        - arrived
+        - delayed
+        - cancelled
+        - rescheduled
+
+    FlightInput:
+      type: object
+      required: [scheduled_departure, scheduled_arrival, status]
+      properties:
+        scheduled_departure:
+          type: string
+          format: date-time
+          example: '2026-09-24T14:30:00Z'
+        scheduled_arrival:
+          type: string
+          format: date-time
+          example: '2026-09-24T16:00:00Z'
+        actual_departure:
+          type: string
+          format: date-time
+          nullable: true
+        actual_arrival:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/FlightStatus'
+        plan:
+          type: string
+          nullable: true
+          maxLength: 200
+          pattern: '^[A-Z0-9 -]{2,200}$'
+          example: ABCDE A99 ABCDE ABC A66
+
+    CreateFlightRequest:
+      type: object
+      required:
+        - flight
+        - aircraft_id
+        - departure_airport_id
+        - arrival_airport_id
+        - departure_gate_id
+        - arrival_gate_id
+      properties:
+        flight:
+          $ref: '#/components/schemas/FlightInput'
+        aircraft_id:
+          $ref: '#/components/schemas/Uuid'
+        departure_airport_id:
+          $ref: '#/components/schemas/Uuid'
+        arrival_airport_id:
+          $ref: '#/components/schemas/Uuid'
+        departure_gate_id:
+          $ref: '#/components/schemas/Uuid'
+        arrival_gate_id:
+          $ref: '#/components/schemas/Uuid'
+
+    Flight:
+      type: object
+      required:
+        - id
+        - aircraft_id
+        - departure_airport_id
+        - departure_gate_id
+        - scheduled_departure
+        - arrival_airport_id
+        - arrival_gate_id
+        - scheduled_arrival
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        aircraft_id:
+          $ref: '#/components/schemas/Uuid'
+        departure_airport_id:
+          $ref: '#/components/schemas/Uuid'
+        departure_gate_id:
+          $ref: '#/components/schemas/Uuid'
+        scheduled_departure:
+          type: string
+          format: date-time
+        actual_departure:
+          type: string
+          format: date-time
+          nullable: true
+        arrival_airport_id:
+          $ref: '#/components/schemas/Uuid'
+        arrival_gate_id:
+          $ref: '#/components/schemas/Uuid'
+        scheduled_arrival:
+          type: string
+          format: date-time
+        actual_arrival:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/FlightStatus'
+        plan:
+          type: string
+          nullable: true
+
+    FlightList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPage'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Flight'
+
+    FlightResponse:
+      type: object
+      required: [flight]
+      properties:
+        flight:
+          $ref: '#/components/schemas/Flight'
+
+    UpdateFlightRequest:
+      type: object
+      required: [flight]
+      properties:
+        flight:
+          type: object
+          description: At least one property should be supplied.
+          minProperties: 1
+          properties:
+            scheduled_departure:
+              type: string
+              format: date-time
+            actual_departure:
+              type: string
+              format: date-time
+              nullable: true
+            scheduled_arrival:
+              type: string
+              format: date-time
+            actual_arrival:
+              type: string
+              format: date-time
+              nullable: true
+            status:
+              $ref: '#/components/schemas/FlightStatus'
+            plan:
+              type: string
+              nullable: true
+              maxLength: 200
+              pattern: '^[A-Z0-9 -]{2,200}$'

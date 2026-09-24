@@ -25,17 +25,17 @@ func NewFlightHandler(i do.Injector) (*FlightHandler, error) {
 	}, nil
 }
 
-func RegisterRoutes(i do.Injector, r *gin.Engine) {
+func RegisterRoutes(i do.Injector, r *gin.RouterGroup) {
 	c := do.MustInvoke[*FlightHandler](i)
 
 	{
-		r.GET("/flight/list", c.ListFlights)
-		r.GET("/flight/:id", c.FlightById)
+		r.GET("/flights", c.ListFlights)
+		r.GET("/flights/:id", c.FlightById)
 	}
 
-	admin := r.Group("/flight", middleware.AuthMiddleware(userDomain.AdminRole))
+	admin := r.Group("/flights", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/create", c.CreateFlight)
+		admin.POST("", c.CreateFlight)
 		admin.PATCH("/:id", c.UpdateFlight)
 	}
 }
@@ -45,9 +45,9 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Tags Flight
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.ListFlightsResponse
+// @Success 200 {object} dto.ListFlightsResponse
 // @Failure 500
-// @Router /flight/list [get]
+// @Router /api/v1/flights [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	const op = "FlightHandler.ListFlights"
 	flights, err := h.uc.ListFlights()
@@ -71,7 +71,7 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 // @Failure 400
 // @Failure 404
 // @Failure 500
-// @Router /flight/{id} [get]
+// @Router /api/v1/flights/{id} [get]
 func (h *FlightHandler) FlightById(ctx *gin.Context) {
 	const op = "FlightHandler.FlightById"
 	fidStr := ctx.Param("id")
@@ -85,7 +85,7 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 	fd, err := h.uc.FlightById(fid)
 	if err != nil {
 		if errors.Is(err, usecase.ErrFlightNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"mgs": "flight not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{"msg": "flight not found"})
 			return
 		}
 		slog.Error(op, "err", err)
@@ -109,7 +109,7 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 // @Failure 400
 // @Failure 401
 // @Failure 500
-// @Router /flight/create [post]
+// @Router /api/v1/flights [post]
 func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.CreateFlight"
 	req := &dto.CreateFlightRequest{}
@@ -145,7 +145,7 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 // @Failure 401
 // @Failure 404
 // @Failure 500
-// @Router /flight/{id} [patch]
+// @Router /api/v1/flights/{id} [patch]
 func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.UpdateFlight"
 	req := &dto.UpdateFlightRequest{}

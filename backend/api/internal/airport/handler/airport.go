@@ -25,17 +25,17 @@ func NewAirportHandler(i do.Injector) (*AirportHandler, error) {
 	}, nil
 }
 
-func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
+func RegisterAirportRoutes(i do.Injector, r *gin.RouterGroup) {
 	h := do.MustInvoke[*AirportHandler](i)
 
-	admin := r.Group("/airport", middleware.AuthMiddleware(userDomain.AdminRole))
+	admin := r.Group("/airports", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/create", h.CreateAirport)
+		admin.POST("", h.CreateAirport)
 	}
 
-	all := r.Group("/airport")
+	all := r.Group("/airports")
 	{
-		all.GET("/list", h.ListAirports)
+		all.GET("", h.ListAirports)
 	}
 }
 
@@ -49,7 +49,7 @@ func RegisterAirportRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 401
 // @Failure 500
-// @Router /airport/create [post]
+// @Router /api/v1/airports [post]
 func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 	const op = "AirportHandler.CreateAirport"
 	req := &dto.CreateAirportRequest{}
@@ -82,9 +82,9 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 // @Summary list airports
 // @Tags Airport
 // @Produce json
-// @Success 200 {array} dto.ListAirportsResponse
+// @Success 200 {object} dto.ListAirportsResponse
 // @Failure 500
-// @Router /airport/list [get]
+// @Router /api/v1/airports [get]
 func (h *AirportHandler) ListAirports(ctx *gin.Context) {
 	const op = "AirportHandler.ListAirports"
 	airports, err := h.uc.ListAirports()

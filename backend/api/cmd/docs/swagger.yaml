@@ -270,9 +270,31 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
+  description: HTTP API for browsing flights and managing airline tracker data.
   title: Airline Tracker
+  version: 1.0.0
 paths:
-  /aircraft/create:
+  /api/v1/aircraft:
+    get:
+      consumes:
+      - application/json
+      description: list aircrafts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListAircraftsResponse'
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: list aircrafts (only admin)
+      tags:
+      - Aircraft
     post:
       consumes:
       - application/json
@@ -300,53 +322,7 @@ paths:
       summary: add aircraft (only admin)
       tags:
       - Aircraft
-  /aircraft/list:
-    get:
-      consumes:
-      - application/json
-      description: list aircrafts
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/dto.ListAircraftsResponse'
-            type: array
-        "401":
-          description: Unauthorized
-        "500":
-          description: Internal Server Error
-      security:
-      - BearerAuth: []
-      summary: list aircrafts (only admin)
-      tags:
-      - Aircraft
-  /aircraft/model/{id}:
-    get:
-      consumes:
-      - application/json
-      description: aircraft model info
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.AircraftModelInfoResponse'
-        "401":
-          description: Unauthorized
-        "404":
-          description: Not Found
-        "500":
-          description: Internal Server Error
-      security:
-      - BearerAuth: []
-      summary: get info (only admin)
-      tags:
-      - Aircraft
-  /aircraft/model/create:
+  /api/v1/aircraft-models:
     post:
       consumes:
       - application/json
@@ -374,7 +350,49 @@ paths:
       summary: add aircraft model (only admin)
       tags:
       - Aircraft
-  /airport/create:
+  /api/v1/aircraft-models/{id}:
+    get:
+      consumes:
+      - application/json
+      description: aircraft model info
+      parameters:
+      - description: aircraft model id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AircraftModelInfoResponse'
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: get info (only admin)
+      tags:
+      - Aircraft
+  /api/v1/airports:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListAirportsResponse'
+        "500":
+          description: Internal Server Error
+      summary: list airports
+      tags:
+      - Airport
     post:
       consumes:
       - application/json
@@ -401,36 +419,79 @@ paths:
       summary: create airport (only admin)
       tags:
       - Airport
-  /airport/list:
+  /api/v1/auth/tokens:
+    post:
+      consumes:
+      - application/json
+      description: user authentication
+      parameters:
+      - description: user info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: auth token
+          schema:
+            $ref: '#/definitions/dto.LoginResponseDTO'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: login
+      tags:
+      - Auth
+  /api/v1/flights:
     get:
+      consumes:
+      - application/json
+      description: list all flights
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.ListAirportsResponse'
-            type: array
+            $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
         "500":
           description: Internal Server Error
-      summary: list airports
+      summary: list all flights
       tags:
-      - Airport
-  /create_uuid:
-    get:
+      - Flight
+    post:
       consumes:
       - application/json
-      description: creates new uuid
+      description: create a flight
+      parameters:
+      - description: flight info
+        in: body
+        name: flight
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateFlightRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: uuid
-      summary: create uuid
+        "201":
+          description: flight created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: create flight (only admin)
       tags:
-      - Utils
-  /flight/{id}:
+      - Flight
+  /api/v1/flights/{id}:
     get:
       consumes:
       - application/json
@@ -491,54 +552,26 @@ paths:
       summary: update flight (only admin)
       tags:
       - Flight
-  /flight/create:
-    post:
-      consumes:
-      - application/json
-      description: create a flight
-      parameters:
-      - description: flight info
-        in: body
-        name: flight
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateFlightRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: flight created
-        "400":
-          description: Bad Request
-        "401":
-          description: Unauthorized
-        "500":
-          description: Internal Server Error
-      security:
-      - BearerAuth: []
-      summary: create flight (only admin)
-      tags:
-      - Flight
-  /flight/list:
+  /api/v1/gates:
     get:
       consumes:
       - application/json
-      description: list all flights
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
-            type: array
+            $ref: '#/definitions/dto.ListGatesResponse'
+        "401":
+          description: Unauthorized
         "500":
           description: Internal Server Error
-      summary: list all flights
+      security:
+      - BearerAuth: []
+      summary: list gates (only admin)
       tags:
-      - Flight
-  /gate/create:
+      - Gate
     post:
       consumes:
       - application/json
@@ -565,55 +598,64 @@ paths:
       summary: create gate (only admin)
       tags:
       - Gate
-  /gate/list:
+  /api/v1/status:
     get:
       consumes:
       - application/json
+      description: check status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: status example
+      tags:
+      - Utils
+  /api/v1/subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: get all flights in which user is subscribed
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.ListGatesResponse'
+            $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
         "401":
           description: Unauthorized
         "500":
           description: Internal Server Error
       security:
       - BearerAuth: []
-      summary: list gates (only admin)
+      summary: list flights (only user)
       tags:
-      - Gate
-  /login:
+      - User
     post:
-      consumes:
-      - application/json
-      description: user authentication
       parameters:
-      - description: user info
-        in: body
-        name: user
+      - description: flight id
+        in: query
+        name: flight_id
         required: true
-        schema:
-          $ref: '#/definitions/dto.LoginRequestDTO'
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: auth token
-          schema:
-            $ref: '#/definitions/dto.LoginResponseDTO'
-        "400":
-          description: Bad Request
+          description: user subscribed
+        "401":
+          description: Unauthorized
         "404":
           description: Not Found
         "500":
           description: Internal Server Error
-      summary: login
+      security:
+      - BearerAuth: []
+      summary: subscribe user (only user)
       tags:
-      - Auth
-  /register:
+      - User
+  /api/v1/users:
     post:
       consumes:
       - application/json
@@ -639,64 +681,19 @@ paths:
       summary: register
       tags:
       - Auth
-  /status:
-    get:
+  /api/v1/uuids:
+    post:
       consumes:
       - application/json
-      description: check status
+      description: creates a new UUID
       produces:
       - application/json
       responses:
         "200":
-          description: OK
-      summary: status example
+          description: uuid
+      summary: create UUID
       tags:
       - Utils
-  /user/flight/list:
-    get:
-      consumes:
-      - application/json
-      description: get all flights in which user is subscribed
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
-        "401":
-          description: Unauthorized
-        "500":
-          description: Internal Server Error
-      security:
-      - BearerAuth: []
-      summary: list flights (only user)
-      tags:
-      - User
-  /user/subscribe:
-    post:
-      parameters:
-      - description: flight id
-        in: query
-        name: flight_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: user subscribed
-        "401":
-          description: Unauthorized
-        "404":
-          description: Not Found
-        "500":
-          description: Internal Server Error
-      security:
-      - BearerAuth: []
-      summary: subscribe user (only user)
-      tags:
-      - User
 securityDefinitions:
   BearerAuth:
     in: header

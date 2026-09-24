@@ -3,12 +3,12 @@ import { isAdminRole, isUserRole } from "../domain/auth.js";
 import { applyToken, clearToken } from "./state.js";
 
 export async function loadFlights({ api, state }) {
-  const response = await api.request("/flight/list");
+  const response = await api.request("/flights");
   state.flights = response.flights || [];
 }
 
 export async function loadAirports({ api, state }) {
-  const response = await api.request("/airport/list");
+  const response = await api.request("/airports");
   state.airports = response.airports || [];
 }
 
@@ -18,7 +18,7 @@ export async function loadSubscriptions({ api, state }) {
     return;
   }
 
-  const response = await api.request("/user/flight/list");
+  const response = await api.request("/subscriptions");
   state.subscriptions = response.flights || [];
 }
 
@@ -33,14 +33,14 @@ export async function loadAircrafts({ api, state }) {
     return;
   }
 
-  const response = await api.request("aircraft/list");
+  const response = await api.request("/aircraft");
   const aircrafts = response.aircrafts || [];
   state.aircrafts = aircrafts;
 
   const modelIds = [...new Set(aircrafts.map((aircraft) => aircraftModelId(aircraft)).filter(Boolean))];
   const modelEntries = await Promise.all(
     modelIds.map(async (id) => {
-      const model = await api.request(`/admin/aircraft_model/${encodeURIComponent(id)}`);
+      const model = await api.request(`/aircraft-models/${encodeURIComponent(id)}`);
       return [id, model];
     })
   );
@@ -53,7 +53,7 @@ export async function loadGates({ api, state }) {
     return;
   }
 
-  const response = await api.request("/gate/list");
+  const response = await api.request("/gates");
   state.gates = response.gates || [];
 }
 
@@ -74,7 +74,7 @@ export async function refreshData(context) {
 }
 
 export async function loginUser({ api, email, password, sessionStore, state }) {
-  const response = await api.request("/login", {
+  const response = await api.request("/auth/tokens", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
@@ -87,7 +87,7 @@ export async function loginUser({ api, email, password, sessionStore, state }) {
 }
 
 export async function registerUser({ api, email, password, role = REGISTER_ROLE }) {
-  await api.request("/register", {
+  await api.request("/users", {
     method: "POST",
     body: JSON.stringify({ email, password, role }),
   });
@@ -99,7 +99,7 @@ export function logoutUser({ sessionStore, state }) {
 }
 
 export async function subscribeToFlight({ api, flightId, state }) {
-  await api.request(`/user/subscribe?flight_id=${encodeURIComponent(flightId)}`, { method: "POST" });
+  await api.request(`/subscriptions?flight_id=${encodeURIComponent(flightId)}`, { method: "POST" });
 
   const flight = state.flights.find((item) => item.id === flightId);
   if (flight && !state.subscriptions.some((item) => item.id === flightId)) {
@@ -110,14 +110,14 @@ export async function subscribeToFlight({ api, flightId, state }) {
 }
 
 export async function createFlight({ api, payload }) {
-  await api.request("/flight/create", {
+  await api.request("/flights", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export async function updateFlight({ api, flightId, payload }) {
-  await api.request(`/flight/${encodeURIComponent(flightId)}`, {
+  await api.request(`/flights/${encodeURIComponent(flightId)}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });

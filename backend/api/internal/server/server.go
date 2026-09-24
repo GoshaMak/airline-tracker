@@ -26,6 +26,8 @@ import (
 )
 
 // @title Airline Tracker
+// @version 1.0.0
+// @description HTTP API for browsing flights and managing airline tracker data.
 
 // @host localhost:8080
 
@@ -69,48 +71,57 @@ func (s *Server) Run(ctx context.Context) error {
 // @Accept json
 // @Produce json
 // @Success 200 "OK"
-// @Router /status [get]
+// @Router /api/v1/status [get]
 func status(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "OK")
 }
 
-// @Summary create uuid
-// @Description creates new uuid
+// @Summary create UUID
+// @Description creates a new UUID
 // @Tags Utils
 // @Accept json
 // @Produce json
 // @Success 200 "uuid"
-// @Router /create_uuid [get]
+// @Router /api/v1/uuids [post]
 func createUUID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, uuid.NewString())
 }
 
 func registerRoutes(i *do.RootScope, r *gin.Engine) {
-	r.GET("/status", status)
-	r.GET("/create_uuid", createUUID)
+	api := r.Group("/api/v1")
+	api.GET("/status", status)
+	api.POST("/uuids", createUUID)
+	api.GET("/openapi.yaml", func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "application/yaml; charset=utf-8", docs.OpenAPI)
+	})
 
-	authHandler.RegisterAuthRoutes(i, r)
+	authHandler.RegisterAuthRoutes(i, api)
 	slog.Debug("Auth routes successfully registered")
 
 	{
-		airportHandler.RegisterAirportRoutes(i, r)
-		airportHandler.RegisterGateRoutes(i, r)
+		airportHandler.RegisterAirportRoutes(i, api)
+		airportHandler.RegisterGateRoutes(i, api)
 		slog.Debug("Airport routes successfully registered")
 	}
 
 	{
-		fleetHandler.RegisterAircraftRoutes(i, r)
-		fleetHandler.RegisterAircraftModelRoutes(i, r)
+		fleetHandler.RegisterAircraftRoutes(i, api)
+		fleetHandler.RegisterAircraftModelRoutes(i, api)
 		slog.Debug("Fleet routes successfully registered")
 	}
 
-	flightHandler.RegisterRoutes(i, r)
+	flightHandler.RegisterRoutes(i, api)
 	slog.Debug("Flight routes successfully registered")
 
-	userHandler.RegisterRoutes(i, r)
+	userHandler.RegisterRoutes(i, api)
 	slog.Debug("User routes successfully registered")
 
-	docs.SwaggerInfo.BasePath = "/"
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET(
+		"/swagger/*any",
+		ginSwagger.WrapHandler(
+			swaggerFiles.Handler,
+			ginSwagger.URL("/api/v1/openapi.yaml"),
+		),
+	)
 	slog.Debug("Swagger routes successfully registered")
 }

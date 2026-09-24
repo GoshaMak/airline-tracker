@@ -24,13 +24,13 @@ func NewUserHandler(i do.Injector) (*UserHandler, error) {
 	}, nil
 }
 
-func RegisterRoutes(i do.Injector, r *gin.Engine) {
+func RegisterRoutes(i do.Injector, r *gin.RouterGroup) {
 	h := do.MustInvoke[*UserHandler](i)
 
-	user := r.Group("/user", middleware.AuthMiddleware(domain.UserRole))
+	subscriptions := r.Group("/subscriptions", middleware.AuthMiddleware(domain.UserRole))
 	{
-		user.POST("/subscribe", h.Subscribe)
-		user.GET("/flight/list", h.ListFlights)
+		subscriptions.POST("", h.Subscribe)
+		subscriptions.GET("", h.ListFlights)
 	}
 }
 
@@ -43,7 +43,7 @@ func RegisterRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 401
 // @Failure 404
 // @Failure 500
-// @Router /user/subscribe [post]
+// @Router /api/v1/subscriptions [post]
 func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	const op = "UserHandler.Subscribe"
 	uidStr := ctx.GetString("user_id")
@@ -87,7 +87,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 // @Success 200 {object} dto.ListFlightsResponse
 // @Failure 401
 // @Failure 500
-// @Router /user/flight/list [get]
+// @Router /api/v1/subscriptions [get]
 func (h *UserHandler) ListFlights(ctx *gin.Context) {
 	const op = "UserHandler.ListFlights"
 	uidStr := ctx.GetString("user_id")

@@ -38,47 +38,46 @@
     rowspan: 4,
     fill: blue,
   ),
-  [/status], [+], [#align(center + horizon)[status]], [-], [{"msg": str}],
+  [/api/v1/status], [+], [#align(center + horizon)[status]], [-], [str],
 
-  [/user/flights], [+], [user's subscribed flights],
+  [/api/v1/subscriptions], [+], [user's subscribed flights],
   ["Authorization": "Bearer ..."], [{"flights": [...]}],
 
-  [/flights], [+], [get all flights], [-], [{"flights": [...]}],
-  [/flight/{id}], [+], [get flight by id], [-], [{"flight": Flight}],
+  [/api/v1/flights], [+], [get all flights], [-], [{"flights": [...]}],
+  [/api/v1/flights/{id}], [+], [get flight by id], [-], [{"flight": Flight}],
 
   table.cell(
     [POST],
     rowspan: 9,
     fill: green,
   ),
-  [/auth/signup], [+], [-],
-  [{"email": str, "phone": str, "password": str, "role": str}], [{"msg": str}],
+  [/api/v1/users], [+], [register user],
+  [{"email": str, "password": str}], [{"msg": str}],
 
-  [/auth/login], [+], [-],
-  [{"email": str, "phone": str, "password": str}], [{"token": str}],
+  [/api/v1/auth/tokens], [+], [authenticate user],
+  [{"email": str, "password": str}], [{"token": str}],
 
-  [/user/subscribe/flight/{id}], [-], [subscribe to flight's updates],
-  [{"token": "Bearer ...", "flight_id": int}], [{"msg": str}],
+  [/api/v1/subscriptions], [+], [subscribe to flight's updates],
+  [{"token": "Bearer ...", "flight_id": uuid}], [{"msg": str}],
 
-  [/user/unsubscribe/flight/{id}], [-], [unsubscribe from flight's updates],
-  [{"token": "Bearer ...", "flight_id": int}], [{"msg": str}],
+  [/api/v1/uuids], [+], [generate UUID], [-], [uuid],
 
-  [/admin/flight], [+], [add flight],
+  [/api/v1/flights], [+], [add flight],
   [{"token": "Bearer ...", "flight": Flight, "aircraft": Aircraft,
     "departure_airport": Airport, "arrival_airport": Airport,
     "departure_gate": Gate, "arrival_gate": Gate}],
   [{"msg": str}],
 
-  [/admin/aircraft], [+], [add aircraft],
+  [/api/v1/aircraft], [+], [add aircraft],
   [{"token": "Bearer ...", "aircraft": Aircraft}], [{"msg": str}],
 
-  [/admin/aircraft_model], [+], [add aircraft model],
+  [/api/v1/aircraft-models], [+], [add aircraft model],
   [{"token": "Bearer ...", "aircraft_model": AircraftModel}], [{"msg": str}],
 
-  [/admin/airport], [+], [add airport],
+  [/api/v1/airports], [+], [add airport],
   [{"token": "Bearer ...", "airport": Airport}], [{"msg": str}],
 
-  [/admin/gate], [+], [add gate],
+  [/api/v1/gates], [+], [add gate],
   [{"token": "Bearer ...", "gate": Gate}], [{"msg": str}],
 
   table.cell(
@@ -86,14 +85,6 @@
     rowspan: 1,
     fill: orange,
   ),
-  [/admin/flight/{id}], [+], [update flight by id],
+  [/api/v1/flights/{id}], [+], [update flight by id],
   [{"token": "Bearer ...", "flight_id": int, "flight": Flight}], [{"msg": str}],
-
-  table.cell(
-    [DELETE],
-    rowspan: 1,
-    fill: red,
-  ),
-  [/admin/flight/{id}], [+], [delete flight by id],
-  [{"token": "Bearer ...", "flight_id": int}], [{"msg": str}],
 )

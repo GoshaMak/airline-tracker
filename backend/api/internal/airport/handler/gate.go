@@ -24,13 +24,13 @@ func NewGateHandler(i do.Injector) (*GateHandler, error) {
 	}, nil
 }
 
-func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
+func RegisterGateRoutes(i do.Injector, r *gin.RouterGroup) {
 	h := do.MustInvoke[*GateHandler](i)
 
-	admin := r.Group("/gate", middleware.AuthMiddleware(userDomain.AdminRole))
+	admin := r.Group("/gates", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/create", h.CreateGate)
-		admin.GET("/list", h.ListGates)
+		admin.POST("", h.CreateGate)
+		admin.GET("", h.ListGates)
 	}
 }
 
@@ -44,7 +44,7 @@ func RegisterGateRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 401
 // @Failure 500
-// @Router /gate/create [post]
+// @Router /api/v1/gates [post]
 func (h *GateHandler) CreateGate(ctx *gin.Context) {
 	const op = "GateHandler.CreateGate"
 	req := &dto.CreateGateRequest{}
@@ -82,7 +82,7 @@ func (h *GateHandler) CreateGate(ctx *gin.Context) {
 // @Success 200 {object} dto.ListGatesResponse
 // @Failure 401
 // @Failure 500
-// @Router /gate/list [get]
+// @Router /api/v1/gates [get]
 func (h *GateHandler) ListGates(ctx *gin.Context) {
 	const op = "GateHandler.ListGates"
 	gs, err := h.uc.ListGates()

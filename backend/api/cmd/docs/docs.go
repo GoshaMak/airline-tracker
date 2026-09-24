@@ -15,7 +15,39 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/aircraft/create": {
+        "/api/v1/aircraft": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "list aircrafts",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Aircraft"
+                ],
+                "summary": "list aircrafts (only admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListAircraftsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -60,44 +92,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/aircraft/list": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "list aircrafts",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Aircraft"
-                ],
-                "summary": "list aircrafts (only admin)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ListAircraftsResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
-        "/aircraft/model/create": {
+        "/api/v1/aircraft-models": {
             "post": {
                 "security": [
                     {
@@ -142,7 +137,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/aircraft/model/{id}": {
+        "/api/v1/aircraft-models/{id}": {
             "get": {
                 "security": [
                     {
@@ -160,6 +155,15 @@ const docTemplate = `{
                     "Aircraft"
                 ],
                 "summary": "get info (only admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "aircraft model id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -179,7 +183,27 @@ const docTemplate = `{
                 }
             }
         },
-        "/airport/create": {
+        "/api/v1/airports": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Airport"
+                ],
+                "summary": "list airports",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListAirportsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -223,34 +247,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/airport/list": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Airport"
-                ],
-                "summary": "list airports",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ListAirportsResponse"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
-        "/create_uuid": {
-            "get": {
-                "description": "creates new uuid",
+        "/api/v1/auth/tokens": {
+            "post": {
+                "description": "user authentication",
                 "consumes": [
                     "application/json"
                 ],
@@ -258,17 +257,64 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Utils"
+                    "Auth"
                 ],
-                "summary": "create uuid",
+                "summary": "login",
+                "parameters": [
+                    {
+                        "description": "user info",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.LoginRequestDTO"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "uuid"
+                        "description": "auth token",
+                        "schema": {
+                            "$ref": "#/definitions/dto.LoginResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
-        "/flight/create": {
+        "/api/v1/flights": {
+            "get": {
+                "description": "list all flights",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Flight"
+                ],
+                "summary": "list all flights",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -313,36 +359,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/flight/list": {
-            "get": {
-                "description": "list all flights",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Flight"
-                ],
-                "summary": "list all flights",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
-        "/flight/{id}": {
+        "/api/v1/flights/{id}": {
             "get": {
                 "description": "get flight info by its id",
                 "consumes": [
@@ -436,7 +453,38 @@ const docTemplate = `{
                 }
             }
         },
-        "/gate/create": {
+        "/api/v1/gates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gate"
+                ],
+                "summary": "list gates (only admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListGatesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -480,13 +528,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/gate/list": {
+        "/api/v1/status": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
+                "description": "check status",
                 "consumes": [
                     "application/json"
                 ],
@@ -494,14 +538,39 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Gate"
+                    "Utils"
                 ],
-                "summary": "list gates (only admin)",
+                "summary": "status example",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/v1/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "get all flights in which user is subscribed",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "list flights (only user)",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ListGatesResponse"
+                            "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
                         }
                     },
                     "401": {
@@ -511,41 +580,35 @@ const docTemplate = `{
                         "description": "Internal Server Error"
                     }
                 }
-            }
-        },
-        "/login": {
+            },
             "post": {
-                "description": "user authentication",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "User"
                 ],
-                "summary": "login",
+                "summary": "subscribe user (only user)",
                 "parameters": [
                     {
-                        "description": "user info",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.LoginRequestDTO"
-                        }
+                        "type": "string",
+                        "description": "flight id",
+                        "name": "flight_id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "auth token",
-                        "schema": {
-                            "$ref": "#/definitions/dto.LoginResponseDTO"
-                        }
+                        "description": "user subscribed"
                     },
-                    "400": {
-                        "description": "Bad Request"
+                    "401": {
+                        "description": "Unauthorized"
                     },
                     "404": {
                         "description": "Not Found"
@@ -556,7 +619,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/register": {
+        "/api/v1/users": {
             "post": {
                 "description": "creates a user",
                 "consumes": [
@@ -596,9 +659,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/status": {
-            "get": {
-                "description": "check status",
+        "/api/v1/uuids": {
+            "post": {
+                "description": "creates a new UUID",
                 "consumes": [
                     "application/json"
                 ],
@@ -608,83 +671,10 @@ const docTemplate = `{
                 "tags": [
                     "Utils"
                 ],
-                "summary": "status example",
+                "summary": "create UUID",
                 "responses": {
                     "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/user/flight/list": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "get all flights in which user is subscribed",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "list flights (only user)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
-        "/user/subscribe": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "subscribe user (only user)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "flight id",
-                        "name": "flight_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "user subscribed"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
+                        "description": "uuid"
                     }
                 }
             }
@@ -1100,12 +1090,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
+	Version:          "1.0.0",
 	Host:             "localhost:8080",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Airline Tracker",
-	Description:      "",
+	Description:      "HTTP API for browsing flights and managing airline tracker data.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

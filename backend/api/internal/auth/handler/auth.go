@@ -22,11 +22,11 @@ func NewAuthHandler(i do.Injector) (*AuthHandler, error) {
 	}, nil
 }
 
-func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
+func RegisterAuthRoutes(i do.Injector, r *gin.RouterGroup) {
 	h := do.MustInvoke[*AuthHandler](i)
 
-	r.POST("/register", h.Register)
-	r.POST("/login", h.Login)
+	r.POST("/users", h.Register)
+	r.POST("/auth/tokens", h.Login)
 }
 
 // @Summary register
@@ -39,7 +39,7 @@ func RegisterAuthRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 409 "user exists"
 // @Failure 500
-// @Router /register [post]
+// @Router /api/v1/users [post]
 func (h *AuthHandler) Register(ctx *gin.Context) {
 	const op = "AuthHandler.Register"
 	var req dto.CreateUserDTO
@@ -78,7 +78,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 // @Failure 400
 // @Failure 404
 // @Failure 500
-// @Router /login [post]
+// @Router /api/v1/auth/tokens [post]
 func (h *AuthHandler) Login(ctx *gin.Context) {
 	const op = "AuthHandler.Login"
 	var req dto.LoginRequestDTO

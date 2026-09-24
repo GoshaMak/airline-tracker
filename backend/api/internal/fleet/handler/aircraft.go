@@ -24,13 +24,13 @@ func NewAircraftHandler(i do.Injector) (*AircraftHandler, error) {
 	}, nil
 }
 
-func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
+func RegisterAircraftRoutes(i do.Injector, r *gin.RouterGroup) {
 	h := do.MustInvoke[*AircraftHandler](i)
 
 	admin := r.Group("/aircraft", middleware.AuthMiddleware(userDomain.AdminRole))
 	{
-		admin.POST("/create", h.CreateAircraft)
-		admin.GET("/list", h.ListAircrafts)
+		admin.POST("", h.CreateAircraft)
+		admin.GET("", h.ListAircrafts)
 	}
 }
 
@@ -45,7 +45,7 @@ func RegisterAircraftRoutes(i do.Injector, r *gin.Engine) {
 // @Failure 400
 // @Failure 401
 // @Failure 500
-// @Router /aircraft/create [post]
+// @Router /api/v1/aircraft [post]
 func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 	const op = "AircraftHandler.AddAircraft"
 	req := &dto.CreateAircraftRequest{}
@@ -78,10 +78,10 @@ func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.ListAircraftsResponse
+// @Success 200 {object} dto.ListAircraftsResponse
 // @Failure 401
 // @Failure 500
-// @Router /aircraft/list [get]
+// @Router /api/v1/aircraft [get]
 func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
 	const op = "AircraftHandler.ListAircrafts"
 	as, err := h.uc.ListAircrafts()
