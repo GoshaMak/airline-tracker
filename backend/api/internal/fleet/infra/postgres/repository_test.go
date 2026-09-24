@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -32,7 +33,9 @@ func TestAircraftRepository_SaveAircraft(t *testing.T) {
 	}{
 		{"positive", nil, nil}, {"negative duplicate", &pgconn.PgError{Code: "23505"}, repository.ErrAircraftAlreadyExists},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			db := &pgxfake.DB{ExecErr: tt.dbErr}
 			repo := &aircraftRepository{conn: db}
@@ -51,7 +54,9 @@ func TestAircraftRepository_SaveAircraft(t *testing.T) {
 }
 
 func TestAircraftRepository_List(t *testing.T) {
-	t.Run("positive: maps aircraft", func(t *testing.T) {
+	allure.Test(t, "positive: maps aircraft", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		a := aircraftMother()
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{
@@ -66,7 +71,9 @@ func TestAircraftRepository_List(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &aircraftRepository{conn: &pgxfake.DB{QueryErr: failure}}
@@ -87,7 +94,9 @@ func TestAircraftModelRepository_SaveAircraftModel(t *testing.T) {
 	}{
 		{"positive", nil, nil}, {"negative duplicate", &pgconn.PgError{Code: "23505"}, repository.ErrAircraftModelAlreadyExists},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			db := &pgxfake.DB{ExecErr: tt.dbErr}
 			repo := &aircraftModelRepository{conn: db}
@@ -106,7 +115,9 @@ func TestAircraftModelRepository_SaveAircraftModel(t *testing.T) {
 }
 
 func TestAircraftModelRepository_GetAircraftModelById(t *testing.T) {
-	t.Run("positive: maps aircraft model", func(t *testing.T) {
+	allure.Test(t, "positive: maps aircraft model", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		m := aircraftModelMother()
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{
@@ -121,7 +132,9 @@ func TestAircraftModelRepository_GetAircraftModelById(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: not found", func(t *testing.T) {
+	allure.Test(t, "negative: not found", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &aircraftModelRepository{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act

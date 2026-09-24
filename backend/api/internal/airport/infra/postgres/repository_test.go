@@ -9,10 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
+
+	"shared/common"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"shared/common"
 )
 
 // airportMother is a complete fixture shared by the repository tests.
@@ -27,7 +30,9 @@ func airportRows(a domain.Airport) *pgxfake.Rows {
 }
 
 func TestAirportRepository_Save(t *testing.T) {
-	t.Run("positive: resolves city and inserts airport", func(t *testing.T) {
+	allure.Test(t, "positive: resolves city and inserts airport", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		a := airportMother()
 		cityID := uuid.New()
@@ -40,7 +45,9 @@ func TestAirportRepository_Save(t *testing.T) {
 			t.Fatalf("err=%v, calls=%+v", err, db.Calls)
 		}
 	})
-	t.Run("negative: unknown city", func(t *testing.T) {
+	allure.Test(t, "negative: unknown city", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		db := &pgxfake.DB{Row: pgxfake.Row{Err: pgx.ErrNoRows}}
 		repo := &airportRepository{conn: db}
@@ -51,7 +58,9 @@ func TestAirportRepository_Save(t *testing.T) {
 			t.Fatalf("err=%v, calls=%+v", err, db.Calls)
 		}
 	})
-	t.Run("negative: duplicate airport", func(t *testing.T) {
+	allure.Test(t, "negative: duplicate airport", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		db := &pgxfake.DB{Row: pgxfake.Row{Values: []any{uuid.New()}}, ExecErr: &pgconn.PgError{Code: "23505"}}
 		repo := &airportRepository{conn: db}
@@ -65,7 +74,9 @@ func TestAirportRepository_Save(t *testing.T) {
 }
 
 func TestAirportRepository_ListAirports(t *testing.T) {
-	t.Run("positive: maps row to domain", func(t *testing.T) {
+	allure.Test(t, "positive: maps row to domain", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		a := airportMother()
 		repo := &airportRepository{conn: &pgxfake.DB{Rows: airportRows(a)}}
@@ -76,7 +87,9 @@ func TestAirportRepository_ListAirports(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &airportRepository{conn: &pgxfake.DB{QueryErr: failure}}
@@ -97,7 +110,9 @@ func TestGateRepository_Save(t *testing.T) {
 	}{
 		{"positive", nil, nil}, {"negative duplicate", &pgconn.PgError{Code: "23505"}, repository.ErrGateAlreadyExists},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			db := &pgxfake.DB{ExecErr: tt.dbErr}
 			repo := &gateRepository{conn: db}
@@ -116,7 +131,9 @@ func TestGateRepository_Save(t *testing.T) {
 }
 
 func TestGateRepository_GetAirportByGateId(t *testing.T) {
-	t.Run("positive: maps related airport", func(t *testing.T) {
+	allure.Test(t, "positive: maps related airport", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		a := airportMother()
 		gateID := uuid.New()
@@ -129,7 +146,9 @@ func TestGateRepository_GetAirportByGateId(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, calls=%+v", got, err, db.Calls)
 		}
 	})
-	t.Run("negative: gate does not exist", func(t *testing.T) {
+	allure.Test(t, "negative: gate does not exist", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &gateRepository{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act
@@ -142,7 +161,9 @@ func TestGateRepository_GetAirportByGateId(t *testing.T) {
 }
 
 func TestGateRepository_List(t *testing.T) {
-	t.Run("positive: maps gate", func(t *testing.T) {
+	allure.Test(t, "positive: maps gate", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		id, airportID := uuid.New(), uuid.New()
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{
@@ -156,7 +177,9 @@ func TestGateRepository_List(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &gateRepository{conn: &pgxfake.DB{QueryErr: failure}}

@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
@@ -150,7 +151,9 @@ func TestFlightUsecase_ListFlights(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (repository.FlightRepository, error) {
 				return tt.repo, nil
@@ -225,7 +228,9 @@ func TestFlightUsecase_CreateFlight(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (repository.FlightRepository, error) {
 				return tt.repo, nil
@@ -302,7 +307,9 @@ func TestFlightUsecase_FlightById(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (repository.FlightRepository, error) {
 				return tt.repo, nil
@@ -367,7 +374,9 @@ func TestFlightUsecase_UpdateFlight(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (repository.FlightRepository, error) {
 				return tt.repo, nil

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 )
 
@@ -100,7 +101,9 @@ func (s *saveSpy) Save(ctx context.Context, n domain.Notification) error {
 }
 
 func TestNotifierUsecase_SaveNotification(t *testing.T) {
-	t.Run("positive classic: stores subscription", func(t *testing.T) {
+	allure.Test(t, "positive classic: stores subscription", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &memoryNotifications{}
 		uc := &NotifierUsecase{repo: repo}
@@ -119,7 +122,9 @@ func TestNotifierUsecase_SaveNotification(t *testing.T) {
 			t.Fatalf("payload: %+v, err: %v", payload, err)
 		}
 	})
-	t.Run("negative classic: expired notification is skipped", func(t *testing.T) {
+	allure.Test(t, "negative classic: expired notification is skipped", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &memoryNotifications{}
 		uc := &NotifierUsecase{repo: repo}
@@ -132,7 +137,9 @@ func TestNotifierUsecase_SaveNotification(t *testing.T) {
 			t.Fatalf("err=%v, items=%v", err, repo.items)
 		}
 	})
-	t.Run("positive London: calls repository once", func(t *testing.T) {
+	allure.Test(t, "positive London: calls repository once", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &saveSpy{}
 		uc := &NotifierUsecase{repo: repo}
@@ -144,7 +151,9 @@ func TestNotifierUsecase_SaveNotification(t *testing.T) {
 			t.Fatalf("err=%v, calls=%d, saved=%+v", err, repo.calls, repo.saved)
 		}
 	})
-	t.Run("negative London: propagates repository error", func(t *testing.T) {
+	allure.Test(t, "negative London: propagates repository error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &saveSpy{memoryNotifications: memoryNotifications{err: failure}}
@@ -159,7 +168,9 @@ func TestNotifierUsecase_SaveNotification(t *testing.T) {
 }
 
 func TestNotifierUsecase_UpdateFlight(t *testing.T) {
-	t.Run("positive classic: stores urgent update", func(t *testing.T) {
+	allure.Test(t, "positive classic: stores urgent update", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &memoryNotifications{}
 		uc := &NotifierUsecase{repo: repo}
@@ -178,7 +189,9 @@ func TestNotifierUsecase_UpdateFlight(t *testing.T) {
 			t.Fatalf("payload=%+v, err=%v", payload, err)
 		}
 	})
-	t.Run("negative classic: no recipients", func(t *testing.T) {
+	allure.Test(t, "negative classic: no recipients", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &memoryNotifications{}
 		uc := &NotifierUsecase{repo: repo}
@@ -190,7 +203,9 @@ func TestNotifierUsecase_UpdateFlight(t *testing.T) {
 			t.Fatalf("err=%v, items=%v", err, repo.items)
 		}
 	})
-	t.Run("positive London: saves once", func(t *testing.T) {
+	allure.Test(t, "positive London: saves once", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &saveSpy{}
 		uc := &NotifierUsecase{repo: repo}
@@ -201,7 +216,9 @@ func TestNotifierUsecase_UpdateFlight(t *testing.T) {
 			t.Fatalf("err=%v, calls=%d, saved=%+v", err, repo.calls, repo.saved)
 		}
 	})
-	t.Run("negative London: repository error", func(t *testing.T) {
+	allure.Test(t, "negative London: repository error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &saveSpy{memoryNotifications: memoryNotifications{err: failure}}

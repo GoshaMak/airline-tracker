@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -33,7 +34,9 @@ func flightRows(f domain.Flight) *pgxfake.Rows {
 }
 
 func TestPostgresDB_Save(t *testing.T) {
-	t.Run("positive: invokes add_flight", func(t *testing.T) {
+	allure.Test(t, "positive: invokes add_flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := newFlightBuilder().build()
 		db := &pgxfake.DB{}
@@ -45,7 +48,9 @@ func TestPostgresDB_Save(t *testing.T) {
 			t.Fatalf("err=%v, calls=%+v", err, db.Calls)
 		}
 	})
-	t.Run("negative: database error", func(t *testing.T) {
+	allure.Test(t, "negative: database error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("write failed")
 		repo := &PostgresDB{conn: &pgxfake.DB{ExecErr: failure}}
@@ -59,7 +64,9 @@ func TestPostgresDB_Save(t *testing.T) {
 }
 
 func TestPostgresDB_Exist(t *testing.T) {
-	t.Run("positive: maps flight", func(t *testing.T) {
+	allure.Test(t, "positive: maps flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := newFlightBuilder().build()
 		db := &pgxfake.DB{Rows: flightRows(f)}
@@ -71,7 +78,9 @@ func TestPostgresDB_Exist(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, calls=%+v", got, err, db.Calls)
 		}
 	})
-	t.Run("negative: flight absent", func(t *testing.T) {
+	allure.Test(t, "negative: flight absent", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &PostgresDB{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act
@@ -84,7 +93,9 @@ func TestPostgresDB_Exist(t *testing.T) {
 }
 
 func TestPostgresDB_Update(t *testing.T) {
-	t.Run("positive: updates selected field", func(t *testing.T) {
+	allure.Test(t, "positive: updates selected field", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := newFlightBuilder().build()
 		db := &pgxfake.DB{Rows: flightRows(f)}
@@ -97,7 +108,9 @@ func TestPostgresDB_Update(t *testing.T) {
 			t.Fatalf("err=%v, calls=%+v", err, db.Calls)
 		}
 	})
-	t.Run("negative: flight absent prevents update", func(t *testing.T) {
+	allure.Test(t, "negative: flight absent prevents update", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{}}
 		repo := &PostgresDB{conn: db}
@@ -111,7 +124,9 @@ func TestPostgresDB_Update(t *testing.T) {
 }
 
 func TestPostgresDB_ListFlights(t *testing.T) {
-	t.Run("positive: maps result", func(t *testing.T) {
+	allure.Test(t, "positive: maps result", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := newFlightBuilder().build()
 		repo := &PostgresDB{conn: &pgxfake.DB{Rows: flightRows(f)}}
@@ -122,7 +137,9 @@ func TestPostgresDB_ListFlights(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &PostgresDB{conn: &pgxfake.DB{QueryErr: failure}}
@@ -136,7 +153,9 @@ func TestPostgresDB_ListFlights(t *testing.T) {
 }
 
 func TestPostgresDB_GetFlightRoute(t *testing.T) {
-	t.Run("positive: maps route", func(t *testing.T) {
+	allure.Test(t, "positive: maps route", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		fid, rid, dep, arr := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{
@@ -151,7 +170,9 @@ func TestPostgresDB_GetFlightRoute(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: route absent", func(t *testing.T) {
+	allure.Test(t, "negative: route absent", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &PostgresDB{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act
@@ -164,7 +185,9 @@ func TestPostgresDB_GetFlightRoute(t *testing.T) {
 }
 
 func TestPostgresDB_ListSubscribers(t *testing.T) {
-	t.Run("positive: maps subscriber", func(t *testing.T) {
+	allure.Test(t, "positive: maps subscriber", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uid, fid := uuid.New(), uuid.New()
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{
@@ -179,7 +202,9 @@ func TestPostgresDB_ListSubscribers(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, calls=%+v", got, err, db.Calls)
 		}
 	})
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &PostgresDB{conn: &pgxfake.DB{QueryErr: failure}}
@@ -193,7 +218,9 @@ func TestPostgresDB_ListSubscribers(t *testing.T) {
 }
 
 func TestPostgresDB_GetFlightAirports(t *testing.T) {
-	t.Run("positive: maps both airports", func(t *testing.T) {
+	allure.Test(t, "positive: maps both airports", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		fid := uuid.New()
 		db := &pgxfake.DB{Rows: &pgxfake.Rows{
@@ -208,7 +235,9 @@ func TestPostgresDB_GetFlightAirports(t *testing.T) {
 			t.Fatalf("dep=%+v, arr=%+v, err=%v", dep, arr, err)
 		}
 	})
-	t.Run("negative: no airports", func(t *testing.T) {
+	allure.Test(t, "negative: no airports", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &PostgresDB{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act

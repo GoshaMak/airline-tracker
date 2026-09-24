@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 )
 
@@ -120,7 +121,9 @@ func senderFixtureWithMail(t *testing.T, repo *senderRepository, m *mailSpy) *Se
 }
 
 func TestSenderUsecase_Send(t *testing.T) {
-	t.Run("negative London: mail failure leaves notification pending", func(t *testing.T) {
+	allure.Test(t, "negative London: mail failure leaves notification pending", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("mail transport unavailable")
 		repo := &senderRepository{items: []domain.Notification{senderNotificationMother(t)}}
@@ -133,7 +136,9 @@ func TestSenderUsecase_Send(t *testing.T) {
 			t.Fatalf("err=%v, mail=%d, mark=%d", err, mail.calls, repo.markCalls)
 		}
 	})
-	t.Run("positive: urgent update sends immediately", func(t *testing.T) {
+	allure.Test(t, "positive: urgent update sends immediately", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		n := updatedNotificationMother(t)
 		n.SendAt = time.Now().UTC().Add(time.Hour)
@@ -146,7 +151,9 @@ func TestSenderUsecase_Send(t *testing.T) {
 			t.Fatalf("err=%v, status=%v, calls=%d", err, repo.items[0].Status, repo.markCalls)
 		}
 	})
-	t.Run("positive classic: sends due notification and marks it", func(t *testing.T) {
+	allure.Test(t, "positive classic: sends due notification and marks it", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &senderRepository{items: []domain.Notification{senderNotificationMother(t)}}
 		uc := senderFixture(t, repo)
@@ -157,7 +164,9 @@ func TestSenderUsecase_Send(t *testing.T) {
 			t.Fatalf("err=%v, status=%v, markCalls=%d", err, repo.items[0].Status, repo.markCalls)
 		}
 	})
-	t.Run("negative classic: future notification remains queued", func(t *testing.T) {
+	allure.Test(t, "negative classic: future notification remains queued", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		n := senderNotificationMother(t)
 		n.SendAt = time.Now().UTC().Add(time.Hour)
@@ -170,7 +179,9 @@ func TestSenderUsecase_Send(t *testing.T) {
 			t.Fatalf("err=%v, status=%v, markCalls=%d", err, repo.items[0].Status, repo.markCalls)
 		}
 	})
-	t.Run("negative London: list failure prevents marking", func(t *testing.T) {
+	allure.Test(t, "negative London: list failure prevents marking", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &senderRepository{listErr: failure}
@@ -182,7 +193,9 @@ func TestSenderUsecase_Send(t *testing.T) {
 			t.Fatalf("err=%v, markCalls=%d", err, repo.markCalls)
 		}
 	})
-	t.Run("negative London: mark failure propagates", func(t *testing.T) {
+	allure.Test(t, "negative London: mark failure propagates", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("update failed")
 		repo := &senderRepository{items: []domain.Notification{senderNotificationMother(t)}, markErr: failure}
@@ -197,7 +210,9 @@ func TestSenderUsecase_Send(t *testing.T) {
 }
 
 func TestEmailSenderUsecase_SendEmail(t *testing.T) {
-	t.Run("positive: valid subscription payload", func(t *testing.T) {
+	allure.Test(t, "positive: valid subscription payload", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		mail := &mailSpy{}
 		uc := senderFixtureWithMail(t, &senderRepository{}, mail).emailSenderUc
@@ -209,7 +224,9 @@ func TestEmailSenderUsecase_SendEmail(t *testing.T) {
 			t.Fatalf("err=%v, mail=%+v", err, mail)
 		}
 	})
-	t.Run("negative: malformed payload", func(t *testing.T) {
+	allure.Test(t, "negative: malformed payload", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uc := senderFixture(t, &senderRepository{}).emailSenderUc
 		n := domain.Notification{Id: uuid.New(), Type: domain.NotificationSubscribed, Payload: []byte("{")}
@@ -220,7 +237,9 @@ func TestEmailSenderUsecase_SendEmail(t *testing.T) {
 			t.Fatal("malformed payload accepted")
 		}
 	})
-	t.Run("positive: valid flight update payload", func(t *testing.T) {
+	allure.Test(t, "positive: valid flight update payload", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		mail := &mailSpy{}
 		uc := senderFixtureWithMail(t, &senderRepository{}, mail).emailSenderUc
@@ -232,7 +251,9 @@ func TestEmailSenderUsecase_SendEmail(t *testing.T) {
 			t.Fatalf("err=%v, mail=%+v", err, mail)
 		}
 	})
-	t.Run("negative: flight update with invalid recipient", func(t *testing.T) {
+	allure.Test(t, "negative: flight update with invalid recipient", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uc := senderFixture(t, &senderRepository{}).emailSenderUc
 		n := domain.Notification{Type: domain.NotificationFlightUpdated, Payload: []byte(`{"users":["invalid"]}`)}
@@ -243,7 +264,9 @@ func TestEmailSenderUsecase_SendEmail(t *testing.T) {
 			t.Fatal("invalid recipient accepted")
 		}
 	})
-	t.Run("negative London: mail transport failure", func(t *testing.T) {
+	allure.Test(t, "negative London: mail transport failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("mail transport unavailable")
 		mail := &mailSpy{err: failure}

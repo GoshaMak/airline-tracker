@@ -4,6 +4,7 @@ go 1.26.4
 
 require (
 	github.com/IBM/sarama v1.50.2
+	github.com/allure-framework/allure-go/commons v1.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/pressly/goose/v3 v3.27.1

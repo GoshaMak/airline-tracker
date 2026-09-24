@@ -11,6 +11,7 @@ import (
 	"errors"
 	"testing"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 )
 
@@ -75,7 +76,9 @@ func newFixture() (*flightRepository, *dbStub, *cacheStub) {
 }
 
 func TestFlightRepository_Save(t *testing.T) {
-	t.Run("positive: writes database and cache", func(t *testing.T) {
+	allure.Test(t, "positive: writes database and cache", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, cache := newFixture()
 		f := domain.Flight{Id: uuid.New()}
@@ -86,7 +89,9 @@ func TestFlightRepository_Save(t *testing.T) {
 			t.Fatalf("err=%v, db=%d, cache=%d", err, db.saveCalls, cache.saveCalls)
 		}
 	})
-	t.Run("negative: database failure prevents cache write", func(t *testing.T) {
+	allure.Test(t, "negative: database failure prevents cache write", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, cache := newFixture()
 		failure := errors.New("database unavailable")
@@ -101,7 +106,9 @@ func TestFlightRepository_Save(t *testing.T) {
 }
 
 func TestFlightRepository_Exist(t *testing.T) {
-	t.Run("positive: retrieves persisted flight", func(t *testing.T) {
+	allure.Test(t, "positive: retrieves persisted flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, cache := newFixture()
 		fid := uuid.New()
@@ -113,7 +120,9 @@ func TestFlightRepository_Exist(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, db=%d, cache=%d", got, err, db.existCalls, cache.getCalls)
 		}
 	})
-	t.Run("negative: missing flight is mapped", func(t *testing.T) {
+	allure.Test(t, "negative: missing flight is mapped", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		db.err = postgres.ErrFlightNotFound
@@ -127,7 +136,9 @@ func TestFlightRepository_Exist(t *testing.T) {
 }
 
 func TestFlightRepository_Update(t *testing.T) {
-	t.Run("positive: updates database and cache", func(t *testing.T) {
+	allure.Test(t, "positive: updates database and cache", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		// Act
@@ -137,7 +148,9 @@ func TestFlightRepository_Update(t *testing.T) {
 			t.Fatalf("err=%v, calls=%d", err, db.updateCalls)
 		}
 	})
-	t.Run("negative: missing flight", func(t *testing.T) {
+	allure.Test(t, "negative: missing flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		db.err = postgres.ErrFlightNotFound
@@ -151,7 +164,9 @@ func TestFlightRepository_Update(t *testing.T) {
 }
 
 func TestFlightRepository_ListFlights(t *testing.T) {
-	t.Run("positive classic: returns cached flights", func(t *testing.T) {
+	allure.Test(t, "positive classic: returns cached flights", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, cache := newFixture()
 		fid := uuid.New()
@@ -163,7 +178,9 @@ func TestFlightRepository_ListFlights(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, db=%d", got, err, db.listCalls)
 		}
 	})
-	t.Run("negative: database fallback fails", func(t *testing.T) {
+	allure.Test(t, "negative: database fallback fails", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, cache := newFixture()
 		cache.err = redis.ErrCacheEmpty
@@ -179,7 +196,9 @@ func TestFlightRepository_ListFlights(t *testing.T) {
 }
 
 func TestFlightRepository_GetFlightRoute(t *testing.T) {
-	t.Run("positive: returns route", func(t *testing.T) {
+	allure.Test(t, "positive: returns route", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		rid := uuid.New()
@@ -191,7 +210,9 @@ func TestFlightRepository_GetFlightRoute(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: missing route is mapped", func(t *testing.T) {
+	allure.Test(t, "negative: missing route is mapped", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		db.err = postgres.ErrFlightRouteNotFound
@@ -205,7 +226,9 @@ func TestFlightRepository_GetFlightRoute(t *testing.T) {
 }
 
 func TestFlightRepository_ListSubscribers(t *testing.T) {
-	t.Run("positive: returns subscribers", func(t *testing.T) {
+	allure.Test(t, "positive: returns subscribers", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		uid := uuid.New()
@@ -217,7 +240,9 @@ func TestFlightRepository_ListSubscribers(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: database error", func(t *testing.T) {
+	allure.Test(t, "negative: database error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		failure := errors.New("database unavailable")
@@ -232,7 +257,9 @@ func TestFlightRepository_ListSubscribers(t *testing.T) {
 }
 
 func TestFlightRepository_GetFlightAirports(t *testing.T) {
-	t.Run("positive: returns both airports", func(t *testing.T) {
+	allure.Test(t, "positive: returns both airports", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		db.dep = airportDomain.Airport{ID: uuid.New()}
@@ -244,7 +271,9 @@ func TestFlightRepository_GetFlightAirports(t *testing.T) {
 			t.Fatalf("dep=%+v, arr=%+v, err=%v", dep, arr, err)
 		}
 	})
-	t.Run("negative: database error", func(t *testing.T) {
+	allure.Test(t, "negative: database error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo, db, _ := newFixture()
 		failure := errors.New("database unavailable")

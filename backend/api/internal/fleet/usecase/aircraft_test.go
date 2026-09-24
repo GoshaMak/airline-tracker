@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
@@ -125,7 +126,9 @@ func TestAircraftUsecase_CreateAircraft(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (repository.AircraftRepository, error) {
 				return tt.repo, nil
@@ -184,7 +187,9 @@ func TestAircraftUsecase_ListAircrafts(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (repository.AircraftRepository, error) {
 				return tt.repo, nil

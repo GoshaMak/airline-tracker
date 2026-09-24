@@ -14,9 +14,12 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
+
+	"shared/common"
+
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
-	"shared/common"
 )
 
 type userRepoMock struct {
@@ -133,7 +136,9 @@ func TestUserUsecase_Exist(t *testing.T) {
 	}}
 	uc := &UserUsecase{userRepo: repo}
 
-	t.Run("positive: correct password", func(t *testing.T) {
+	allure.Test(t, "positive: correct password", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Act
 		got := uc.Exist(u.Email.String(), "Aa1!aaaa")
 		// Assert
@@ -141,7 +146,9 @@ func TestUserUsecase_Exist(t *testing.T) {
 			t.Fatal("existing user was rejected")
 		}
 	})
-	t.Run("negative: wrong password", func(t *testing.T) {
+	allure.Test(t, "negative: wrong password", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Act
 		got := uc.Exist(u.Email.String(), "wrong-password")
 		// Assert
@@ -263,7 +270,9 @@ func TestUserUsecase_GetUser(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (userRepository.UserRepository, error) {
 				return tt.repo, nil
@@ -330,7 +339,9 @@ func TestUserUsecase_GetUserById(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (userRepository.UserRepository, error) {
 				return tt.repo, nil
@@ -425,7 +436,9 @@ func TestUserUsecase_Subscribe(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			saved := false
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (userRepository.UserRepository, error) {
@@ -537,7 +550,9 @@ func TestUserUsecase_ListFlights(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			injector := do.New()
 			do.Override(injector, func(i do.Injector) (userRepository.UserRepository, error) {
 				return tt.repo, nil

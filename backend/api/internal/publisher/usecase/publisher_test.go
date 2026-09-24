@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 )
 
@@ -72,7 +73,9 @@ func (p *failingPayload) MarshalJSON() ([]byte, error) { return nil, p.err }
 func (p *failingPayload) UnmarshalJSON([]byte) error   { return nil }
 
 func TestPublisherUsecase_Publish(t *testing.T) {
-	t.Run("positive classic: publishes and marks stored item", func(t *testing.T) {
+	allure.Test(t, "positive classic: publishes and marks stored item", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		item := newOutboxBuilder().build()
 		repo := &memoryOutbox{items: []domain.Outbox{item}}
@@ -85,7 +88,9 @@ func TestPublisherUsecase_Publish(t *testing.T) {
 			t.Fatalf("err=%v, item=%+v, sender=%+v", err, repo.items[0], sender)
 		}
 	})
-	t.Run("negative classic: invalid payload is not sent", func(t *testing.T) {
+	allure.Test(t, "negative classic: invalid payload is not sent", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("encoding failed")
 		repo := &memoryOutbox{items: []domain.Outbox{newOutboxBuilder().withPayload(&failingPayload{err: failure}).build()}}
@@ -98,7 +103,9 @@ func TestPublisherUsecase_Publish(t *testing.T) {
 			t.Fatalf("err=%v, sender=%+v, marked=%d", err, sender, repo.marked)
 		}
 	})
-	t.Run("positive London: sends once then marks once", func(t *testing.T) {
+	allure.Test(t, "positive London: sends once then marks once", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &memoryOutbox{items: []domain.Outbox{newOutboxBuilder().build()}}
 		sender := &senderSpy{}
@@ -110,7 +117,9 @@ func TestPublisherUsecase_Publish(t *testing.T) {
 			t.Fatalf("err=%v, calls=%d, marked=%d", err, sender.calls, repo.marked)
 		}
 	})
-	t.Run("negative London: sender failure prevents mark", func(t *testing.T) {
+	allure.Test(t, "negative London: sender failure prevents mark", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("broker unavailable")
 		repo := &memoryOutbox{items: []domain.Outbox{newOutboxBuilder().build()}}
@@ -123,7 +132,9 @@ func TestPublisherUsecase_Publish(t *testing.T) {
 			t.Fatalf("err=%v, calls=%d, marked=%d", err, sender.calls, repo.marked)
 		}
 	})
-	t.Run("negative: repository list error", func(t *testing.T) {
+	allure.Test(t, "negative: repository list error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &memoryOutbox{listErr: failure}
@@ -139,47 +150,67 @@ func TestPublisherUsecase_Publish(t *testing.T) {
 }
 
 func TestSendPayload_MarshalJSON(t *testing.T) {
-	// Arrange
-	p := &SendPayload{data: []byte(`{"ok":true}`)}
-	// Act
-	got, err := p.MarshalJSON()
-	// Assert
-	if err != nil || string(got) != `{"ok":true}` {
-		t.Fatalf("got=%q, err=%v", got, err)
-	}
+	allure.Wrap(t, func(allureContext *allure.Context) {
+		t := allureContext.T()
+
+		// Arrange
+		p := &SendPayload{data: []byte(`{"ok":true}`)}
+		// Act
+		got, err := p.MarshalJSON()
+		// Assert
+		if err != nil || string(got) != `{"ok":true}` {
+			t.Fatalf("got=%q, err=%v", got, err)
+		}
+
+	})
 }
 
 func TestSendPayload_MarshalJSON_Invalid(t *testing.T) {
-	// Arrange
-	p := &SendPayload{data: []byte("broken")}
-	// Act
-	_, err := p.MarshalJSON()
-	// Assert
-	if err == nil {
-		t.Fatal("invalid JSON accepted")
-	}
+	allure.Wrap(t, func(allureContext *allure.Context) {
+		t := allureContext.T()
+
+		// Arrange
+		p := &SendPayload{data: []byte("broken")}
+		// Act
+		_, err := p.MarshalJSON()
+		// Assert
+		if err == nil {
+			t.Fatal("invalid JSON accepted")
+		}
+
+	})
 }
 
 func TestSendPayload_UnmarshalJSON(t *testing.T) {
-	// Arrange
-	input := []byte(`{"ok":true}`)
-	p := &SendPayload{}
-	// Act
-	err := p.UnmarshalJSON(input)
-	input[0] = 'x'
-	// Assert
-	if err != nil || string(p.data) != `{"ok":true}` {
-		t.Fatalf("data=%q, err=%v", p.data, err)
-	}
+	allure.Wrap(t, func(allureContext *allure.Context) {
+		t := allureContext.T()
+
+		// Arrange
+		input := []byte(`{"ok":true}`)
+		p := &SendPayload{}
+		// Act
+		err := p.UnmarshalJSON(input)
+		input[0] = 'x'
+		// Assert
+		if err != nil || string(p.data) != `{"ok":true}` {
+			t.Fatalf("data=%q, err=%v", p.data, err)
+		}
+
+	})
 }
 
 func TestSendPayload_UnmarshalJSON_Invalid(t *testing.T) {
-	// Arrange
-	p := &SendPayload{data: []byte(`{"previous":true}`)}
-	// Act
-	err := p.UnmarshalJSON([]byte("broken"))
-	// Assert
-	if err == nil || string(p.data) != `{"previous":true}` {
-		t.Fatalf("err=%v, data=%q", err, p.data)
-	}
+	allure.Wrap(t, func(allureContext *allure.Context) {
+		t := allureContext.T()
+
+		// Arrange
+		p := &SendPayload{data: []byte(`{"previous":true}`)}
+		// Act
+		err := p.UnmarshalJSON([]byte("broken"))
+		// Assert
+		if err == nil || string(p.data) != `{"previous":true}` {
+			t.Fatalf("err=%v, data=%q", err, p.data)
+		}
+
+	})
 }

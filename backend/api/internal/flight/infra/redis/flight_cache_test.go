@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	rds "github.com/redis/go-redis/v9"
 )
@@ -116,7 +117,9 @@ func TestRedisDB_SaveFlight(t *testing.T) {
 		name    string
 		failure error
 	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			f := flightMother()
 			fake := newFakeRedis()
@@ -139,7 +142,9 @@ func TestRedisDB_SaveFlights(t *testing.T) {
 		name    string
 		failure error
 	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			f := flightMother()
 			fake := newFakeRedis()
@@ -158,7 +163,9 @@ func TestRedisDB_SaveFlights(t *testing.T) {
 	}
 }
 func TestRedisDB_GetFlightById(t *testing.T) {
-	t.Run("positive: decodes cached flight", func(t *testing.T) {
+	allure.Test(t, "positive: decodes cached flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := flightMother()
 		fake := newFakeRedis()
@@ -171,7 +178,9 @@ func TestRedisDB_GetFlightById(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: missing hash", func(t *testing.T) {
+	allure.Test(t, "negative: missing hash", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &RedisDB{cln: newFakeRedis()}
 		// Act
@@ -187,7 +196,9 @@ func TestRedisDB_DeleteFlightById(t *testing.T) {
 		name    string
 		failure error
 	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			f := flightMother()
 			fake := newFakeRedis()
@@ -210,7 +221,9 @@ func TestRedisDB_UpdateFlights(t *testing.T) {
 		name    string
 		failure error
 	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			f := flightMother()
 			fake := newFakeRedis()
@@ -229,7 +242,9 @@ func TestRedisDB_UpdateFlights(t *testing.T) {
 	}
 }
 func TestRedisDB_GetFlights(t *testing.T) {
-	t.Run("positive: reads indexed flight", func(t *testing.T) {
+	allure.Test(t, "positive: reads indexed flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := flightMother()
 		fake := newFakeRedis()
@@ -244,7 +259,9 @@ func TestRedisDB_GetFlights(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	t.Run("negative: index scan fails", func(t *testing.T) {
+	allure.Test(t, "negative: index scan fails", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("redis unavailable")
 		fake := newFakeRedis()
@@ -263,7 +280,9 @@ func TestRedisDB_UpdateFlight(t *testing.T) {
 		name    string
 		failure error
 	}{{"positive", nil}, {"negative HSET error", errors.New("redis unavailable")}} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			f := flightMother()
 			fake := newFakeRedis()
@@ -283,7 +302,9 @@ func TestRedisDB_UpdateFlight(t *testing.T) {
 	}
 }
 func TestRedisDB_FlushFlights(t *testing.T) {
-	t.Run("positive: removes index and cached hashes", func(t *testing.T) {
+	allure.Test(t, "positive: removes index and cached hashes", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		f := flightMother()
 		fake := newFakeRedis()
@@ -296,7 +317,9 @@ func TestRedisDB_FlushFlights(t *testing.T) {
 			t.Fatalf("err=%v, calls=%v", err, fake.calls)
 		}
 	})
-	t.Run("negative: pipeline error", func(t *testing.T) {
+	allure.Test(t, "negative: pipeline error", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("redis unavailable")
 		fake := newFakeRedis()

@@ -9,9 +9,12 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
+
+	"shared/common"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"shared/common"
 )
 
 func userMother() domain.User {
@@ -31,7 +34,9 @@ func TestUserRepository_SaveUser(t *testing.T) {
 	}{
 		{"positive", nil, nil}, {"negative duplicate", &pgconn.PgError{Code: "23505"}, repository.ErrUserAlreadyExists},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			db := &pgxfake.DB{ExecErr: tt.dbErr}
 			repo := &userRepository{conn: db}
@@ -50,7 +55,9 @@ func TestUserRepository_SaveUser(t *testing.T) {
 }
 
 func TestUserRepository_GetUser(t *testing.T) {
-	t.Run("positive: maps user", func(t *testing.T) {
+	allure.Test(t, "positive: maps user", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		u := userMother()
 		db := &pgxfake.DB{Rows: userRows(u)}
@@ -62,7 +69,9 @@ func TestUserRepository_GetUser(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, calls=%+v", got, err, db.Calls)
 		}
 	})
-	t.Run("negative: not found", func(t *testing.T) {
+	allure.Test(t, "negative: not found", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &userRepository{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act
@@ -75,7 +84,9 @@ func TestUserRepository_GetUser(t *testing.T) {
 }
 
 func TestUserRepository_Exist(t *testing.T) {
-	t.Run("positive: maps user by id", func(t *testing.T) {
+	allure.Test(t, "positive: maps user by id", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		u := userMother()
 		db := &pgxfake.DB{Rows: userRows(u)}
@@ -87,7 +98,9 @@ func TestUserRepository_Exist(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, calls=%+v", got, err, db.Calls)
 		}
 	})
-	t.Run("negative: not found", func(t *testing.T) {
+	allure.Test(t, "negative: not found", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		repo := &userRepository{conn: &pgxfake.DB{Rows: &pgxfake.Rows{}}}
 		// Act
@@ -100,7 +113,9 @@ func TestUserRepository_Exist(t *testing.T) {
 }
 
 func TestUserRepository_Subscribe(t *testing.T) {
-	t.Run("positive: invokes database function", func(t *testing.T) {
+	allure.Test(t, "positive: invokes database function", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		db := &pgxfake.DB{}
 		repo := &userRepository{conn: db}
@@ -112,7 +127,9 @@ func TestUserRepository_Subscribe(t *testing.T) {
 			t.Fatalf("err=%v, calls=%+v", err, db.Calls)
 		}
 	})
-	t.Run("negative: duplicate subscription", func(t *testing.T) {
+	allure.Test(t, "negative: duplicate subscription", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		db := &pgxfake.DB{ExecErr: &pgconn.PgError{Code: "23505", ConstraintName: "unique_flight_subscription_per_user"}}
 		repo := &userRepository{conn: db}
@@ -126,7 +143,9 @@ func TestUserRepository_Subscribe(t *testing.T) {
 }
 
 func TestUserRepository_ListFlights(t *testing.T) {
-	t.Run("positive: maps subscribed flight", func(t *testing.T) {
+	allure.Test(t, "positive: maps subscribed flight", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		fid, uid := uuid.New(), uuid.New()
 		now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
@@ -142,7 +161,9 @@ func TestUserRepository_ListFlights(t *testing.T) {
 			t.Fatalf("got=%+v, err=%v, calls=%+v", got, err, db.Calls)
 		}
 	})
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &userRepository{conn: &pgxfake.DB{QueryErr: failure}}

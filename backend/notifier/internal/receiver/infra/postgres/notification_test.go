@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -92,7 +93,9 @@ func TestNotificationRepository_Save(t *testing.T) {
 	}{
 		{"positive", nil, false}, {"negative database error", errors.New("write failed"), true},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			db := &fakeNotificationDB{execErr: tt.dbErr}
 			repo := &notificationRepository{conn: db}
@@ -111,7 +114,9 @@ func TestNotificationRepository_Save(t *testing.T) {
 }
 
 func TestNotificationRepository_ListNotSent(t *testing.T) {
-	t.Run("negative: query failure", func(t *testing.T) {
+	allure.Test(t, "negative: query failure", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		failure := errors.New("database unavailable")
 		repo := &notificationRepository{conn: &fakeNotificationDB{queryErr: failure}}
@@ -122,7 +127,9 @@ func TestNotificationRepository_ListNotSent(t *testing.T) {
 			t.Fatalf("got=%v, err=%v", got, err)
 		}
 	})
-	t.Run("positive: converts database row", func(t *testing.T) {
+	allure.Test(t, "positive: converts database row", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		n := newNotificationBuilder().build()
 		db := &fakeNotificationDB{queryRows: &fakeRows{
@@ -140,7 +147,9 @@ func TestNotificationRepository_ListNotSent(t *testing.T) {
 			t.Fatalf("calls=%+v", db.calls)
 		}
 	})
-	t.Run("negative: invalid stored status", func(t *testing.T) {
+	allure.Test(t, "negative: invalid stored status", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		n := newNotificationBuilder().build()
 		db := &fakeNotificationDB{queryRows: &fakeRows{
@@ -165,7 +174,9 @@ func TestNotificationRepository_Mark(t *testing.T) {
 	}{
 		{"positive", nil, false}, {"negative database error", errors.New("write failed"), true},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			// Arrange
 			db := &fakeNotificationDB{execErr: tt.dbErr}
 			repo := &notificationRepository{conn: db}

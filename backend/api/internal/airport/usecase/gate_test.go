@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
@@ -98,7 +99,9 @@ func TestGateUsecase_CreateGate(t *testing.T) {
 	injector := do.New()
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			do.Override(injector, func(i do.Injector) (repository.GateRepository, error) {
 				return tt.repo, nil
 			})
@@ -158,7 +161,9 @@ func TestGateUsecase_ListGates(t *testing.T) {
 	injector := do.New()
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		allure.Test(t, tt.name, func(allureContext *allure.Context) {
+			t := allureContext.T()
+
 			do.Override(injector, func(i do.Injector) (repository.GateRepository, error) {
 				return tt.repo, nil
 			})

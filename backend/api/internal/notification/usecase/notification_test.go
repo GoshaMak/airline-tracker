@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
 )
 
@@ -89,7 +90,9 @@ func notificationFixture() (*NotificationUsecase, uuid.UUID, uuid.UUID, *senderM
 }
 
 func TestNotificationUsecase_SendMessage(t *testing.T) {
-	t.Run("positive: sends subscription notification", func(t *testing.T) {
+	allure.Test(t, "positive: sends subscription notification", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uc, uid, fid, sender := notificationFixture()
 		// Act
@@ -103,7 +106,9 @@ func TestNotificationUsecase_SendMessage(t *testing.T) {
 			t.Fatalf("payload=%+v, err=%v", payload, err)
 		}
 	})
-	t.Run("negative: unknown user stops workflow", func(t *testing.T) {
+	allure.Test(t, "negative: unknown user stops workflow", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uc, uid, fid, sender := notificationFixture()
 		uc.userRepo.(*userStub).err = userRepository.ErrUserNotFound
@@ -114,7 +119,9 @@ func TestNotificationUsecase_SendMessage(t *testing.T) {
 			t.Fatalf("err=%v, sender=%+v", err, sender)
 		}
 	})
-	t.Run("negative: unknown flight stops workflow", func(t *testing.T) {
+	allure.Test(t, "negative: unknown flight stops workflow", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uc, uid, fid, sender := notificationFixture()
 		uc.flightRepo.(*flightStub).err = flightRepository.ErrFlightNotFound
@@ -125,7 +132,9 @@ func TestNotificationUsecase_SendMessage(t *testing.T) {
 			t.Fatalf("err=%v, sender=%+v", err, sender)
 		}
 	})
-	t.Run("negative: broker error propagates", func(t *testing.T) {
+	allure.Test(t, "negative: broker error propagates", func(allureContext *allure.Context) {
+		t := allureContext.T()
+
 		// Arrange
 		uc, uid, fid, sender := notificationFixture()
 		failure := errors.New("broker unavailable")
