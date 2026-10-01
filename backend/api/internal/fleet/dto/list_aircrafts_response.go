@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type aircraft struct {
+type AircraftResponse struct {
 	Id                 uuid.UUID `json:"id"`
 	AircraftModelId    uuid.UUID `json:"aircraft_model_id"`
 	RegistrationNumber string    `json:"registration_number"`
@@ -15,9 +15,15 @@ type aircraft struct {
 	Mileage            int       `json:"mileage"`
 }
 
-func ToResponseListAircrafts(page pagination.Page[domain.Aircraft]) pagination.Page[aircraft] {
-	return pagination.Map(page, func(a domain.Aircraft) aircraft {
-		return aircraft{
+type ListAircraftsResponse struct {
+	Items      []AircraftResponse `json:"items"`
+	NextCursor *string            `json:"next_cursor"`
+	HasMore    bool               `json:"has_more"`
+}
+
+func ToResponseListAircrafts(page pagination.Page[domain.Aircraft]) ListAircraftsResponse {
+	mapped := pagination.Map(page, func(a domain.Aircraft) AircraftResponse {
+		return AircraftResponse{
 			Id:                 a.Id,
 			AircraftModelId:    a.AircraftModelId,
 			RegistrationNumber: a.RegistrationNumber.String(),
@@ -25,4 +31,9 @@ func ToResponseListAircrafts(page pagination.Page[domain.Aircraft]) pagination.P
 			Mileage:            int(a.Mileage),
 		}
 	})
+	return ListAircraftsResponse{
+		Items:      mapped.Items,
+		NextCursor: mapped.NextCursor,
+		HasMore:    mapped.HasMore,
+	}
 }

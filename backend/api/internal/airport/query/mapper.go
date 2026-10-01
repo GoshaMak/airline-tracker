@@ -6,8 +6,8 @@ import (
 	"api/internal/pagination"
 )
 
-func QueryToListAirportsResponse(page pagination.Page[domain.Airport]) pagination.Page[dto.AirportResponse] {
-	return pagination.Map(page, func(a domain.Airport) dto.AirportResponse {
+func QueryToListAirportsResponse(page pagination.Page[domain.Airport]) dto.ListAirportsResponse {
+	mapped := pagination.Map(page, func(a domain.Airport) dto.AirportResponse {
 		return dto.AirportResponse{
 			ID: a.ID,
 			AirportDTO: dto.AirportDTO{
@@ -18,4 +18,9 @@ func QueryToListAirportsResponse(page pagination.Page[domain.Airport]) paginatio
 			},
 		}
 	})
+	return dto.ListAirportsResponse{
+		Items:      mapped.Items,
+		NextCursor: mapped.NextCursor,
+		HasMore:    mapped.HasMore,
+	}
 }

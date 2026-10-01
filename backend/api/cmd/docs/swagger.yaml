@@ -22,10 +22,14 @@ definitions:
     type: object
   api_internal_flight_dto.ListFlightsResponse:
     properties:
-      flights:
+      has_more:
+        type: boolean
+      items:
         items:
           $ref: '#/definitions/dto.FlightInfo'
         type: array
+      next_cursor:
+        type: string
     type: object
   dto.AircraftDTO:
     properties:
@@ -71,6 +75,19 @@ definitions:
       max_speed:
         type: integer
       model:
+        type: string
+    type: object
+  dto.AircraftResponse:
+    properties:
+      aircraft_model_id:
+        type: string
+      id:
+        type: string
+      mileage:
+        type: integer
+      registration_number:
+        type: string
+      serial_number:
         type: string
     type: object
   dto.AirportDTO:
@@ -145,6 +162,17 @@ definitions:
       gate:
         $ref: '#/definitions/dto.GateDTO'
     type: object
+  dto.CreateSubscriptionRequest:
+    properties:
+      flight_id:
+        type: string
+      notify_before_minutes:
+        minimum: 0
+        type: integer
+    required:
+    - flight_id
+    - notify_before_minutes
+    type: object
   dto.CreateUserDTO:
     properties:
       email:
@@ -194,17 +222,25 @@ definitions:
     type: object
   dto.ListAircraftsResponse:
     properties:
-      aircrafts:
+      has_more:
+        type: boolean
+      items:
         items:
-          $ref: '#/definitions/dto.aircraft'
+          $ref: '#/definitions/dto.AircraftResponse'
         type: array
+      next_cursor:
+        type: string
     type: object
   dto.ListAirportsResponse:
     properties:
-      airports:
+      has_more:
+        type: boolean
+      items:
         items:
           $ref: '#/definitions/dto.AirportResponse'
         type: array
+      next_cursor:
+        type: string
     type: object
   dto.ListFlightByIdResponse:
     properties:
@@ -213,10 +249,14 @@ definitions:
     type: object
   dto.ListGatesResponse:
     properties:
-      gates:
+      has_more:
+        type: boolean
+      items:
         items:
           $ref: '#/definitions/dto.GateDTO'
         type: array
+      next_cursor:
+        type: string
     type: object
   dto.LoginRequestDTO:
     properties:
@@ -236,19 +276,6 @@ definitions:
     properties:
       flight:
         $ref: '#/definitions/dto.flightUpdateInfo'
-    type: object
-  dto.aircraft:
-    properties:
-      aircraft_model_id:
-        type: string
-      id:
-        type: string
-      mileage:
-        type: integer
-      registration_number:
-        type: string
-      serial_number:
-        type: string
     type: object
   dto.flightUpdateInfo:
     properties:
@@ -279,6 +306,19 @@ paths:
       consumes:
       - application/json
       description: list aircrafts
+      parameters:
+      - default: 50
+        description: Maximum number of items to return
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Opaque cursor returned as next_cursor by the previous page
+        in: query
+        minLength: 1
+        name: cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -286,6 +326,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/dto.ListAircraftsResponse'
+        "400":
+          description: Bad Request
         "401":
           description: Unauthorized
         "500":
@@ -381,6 +423,19 @@ paths:
       - Aircraft
   /api/v1/airports:
     get:
+      parameters:
+      - default: 50
+        description: Maximum number of items to return
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Opaque cursor returned as next_cursor by the previous page
+        in: query
+        minLength: 1
+        name: cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -388,6 +443,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/dto.ListAirportsResponse'
+        "400":
+          description: Bad Request
         "500":
           description: Internal Server Error
       summary: list airports
@@ -452,6 +509,19 @@ paths:
       consumes:
       - application/json
       description: list all flights
+      parameters:
+      - default: 50
+        description: Maximum number of items to return
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Opaque cursor returned as next_cursor by the previous page
+        in: query
+        minLength: 1
+        name: cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -459,6 +529,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
+        "400":
+          description: Bad Request
         "500":
           description: Internal Server Error
       summary: list all flights
@@ -556,6 +628,19 @@ paths:
     get:
       consumes:
       - application/json
+      parameters:
+      - default: 50
+        description: Maximum number of items to return
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Opaque cursor returned as next_cursor by the previous page
+        in: query
+        minLength: 1
+        name: cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -563,6 +648,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/dto.ListGatesResponse'
+        "400":
+          description: Bad Request
         "401":
           description: Unauthorized
         "500":
@@ -616,6 +703,19 @@ paths:
       consumes:
       - application/json
       description: get all flights in which user is subscribed
+      parameters:
+      - default: 50
+        description: Maximum number of items to return
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Opaque cursor returned as next_cursor by the previous page
+        in: query
+        minLength: 1
+        name: cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -623,6 +723,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api_internal_flight_dto.ListFlightsResponse'
+        "400":
+          description: Bad Request
         "401":
           description: Unauthorized
         "500":
@@ -634,11 +736,12 @@ paths:
       - User
     post:
       parameters:
-      - description: flight id
-        in: query
-        name: flight_id
+      - description: subscription
+        in: body
+        name: subscription
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/dto.CreateSubscriptionRequest'
       produces:
       - application/json
       responses:

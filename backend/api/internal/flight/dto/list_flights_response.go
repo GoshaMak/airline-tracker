@@ -27,12 +27,23 @@ type FlightInfo struct {
 	Plan   *string `json:"plan"`
 }
 
+type ListFlightsResponse struct {
+	Items      []FlightInfo `json:"items"`
+	NextCursor *string      `json:"next_cursor"`
+	HasMore    bool         `json:"has_more"`
+}
+
 func ToResponseListFlights(
 	page pagination.Page[domain.Flight],
-) pagination.Page[FlightInfo] {
-	return pagination.Map(page, func(f domain.Flight) FlightInfo {
+) ListFlightsResponse {
+	mapped := pagination.Map(page, func(f domain.Flight) FlightInfo {
 		return ToFlightInfoDomain(&f)
 	})
+	return ListFlightsResponse{
+		Items:      mapped.Items,
+		NextCursor: mapped.NextCursor,
+		HasMore:    mapped.HasMore,
+	}
 }
 
 func ToFlightInfoDomain(f *domain.Flight) FlightInfo {

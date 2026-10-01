@@ -140,7 +140,10 @@ func (h *UserHandler) Unsubscribe(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Success 200 {object} dto.ListFlightsResponse
+// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
+// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
+// @Success 200 {object} flightDTO.ListFlightsResponse
+// @Failure 400
 // @Failure 401
 // @Failure 500
 // @Router /api/v1/subscriptions [get]

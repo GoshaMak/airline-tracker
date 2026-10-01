@@ -2,7 +2,7 @@ package handler
 
 import (
 	"api/internal/flight/command"
-	"api/internal/flight/dto"
+	flightDTO "api/internal/flight/dto"
 	"api/internal/flight/usecase"
 	"api/internal/middleware"
 	"api/internal/pagination"
@@ -46,7 +46,10 @@ func RegisterRoutes(i do.Injector, r *gin.RouterGroup) {
 // @Tags Flight
 // @Accept json
 // @Produce json
-// @Success 200 {object} dto.ListFlightsResponse
+// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
+// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
+// @Success 200 {object} flightDTO.ListFlightsResponse
+// @Failure 400
 // @Failure 500
 // @Router /api/v1/flights [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
@@ -63,7 +66,7 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 		return
 	}
 
-	response := dto.ToResponseListFlights(page)
+	response := flightDTO.ToResponseListFlights(page)
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -73,7 +76,7 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 // @Accept json
 // @Param id path string true "flight id"
 // @Produce json
-// @Success 200 {object} dto.ListFlightByIdResponse
+// @Success 200 {object} flightDTO.ListFlightByIdResponse
 // @Failure 400
 // @Failure 404
 // @Failure 500
@@ -99,8 +102,8 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 		return
 	}
 
-	fi := dto.ToFlightInfoDomain(&fd)
-	resp := dto.ListFlightByIdResponse{Flight: fi}
+	fi := flightDTO.ToFlightInfoDomain(&fd)
+	resp := flightDTO.ListFlightByIdResponse{Flight: fi}
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -110,7 +113,7 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param flight body dto.CreateFlightRequest true "flight info"
+// @Param flight body flightDTO.CreateFlightRequest true "flight info"
 // @Success 201 "flight created"
 // @Failure 400
 // @Failure 401
@@ -118,7 +121,7 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 // @Router /api/v1/flights [post]
 func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.CreateFlight"
-	req := &dto.CreateFlightRequest{}
+	req := &flightDTO.CreateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
@@ -145,7 +148,7 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "flight id"
-// @Param flight body dto.UpdateFlightRequest true "flight info"
+// @Param flight body flightDTO.UpdateFlightRequest true "flight info"
 // @Success 200
 // @Failure 400
 // @Failure 401
@@ -154,7 +157,7 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 // @Router /api/v1/flights/{id} [patch]
 func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.UpdateFlight"
-	req := &dto.UpdateFlightRequest{}
+	req := &flightDTO.UpdateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
 		slog.Warn(op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})

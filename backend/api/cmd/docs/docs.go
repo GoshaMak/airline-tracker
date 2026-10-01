@@ -33,12 +33,33 @@ const docTemplate = `{
                     "Aircraft"
                 ],
                 "summary": "list aircrafts (only admin)",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Opaque cursor returned as next_cursor by the previous page",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.ListAircraftsResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "401": {
                         "description": "Unauthorized"
@@ -192,12 +213,33 @@ const docTemplate = `{
                     "Airport"
                 ],
                 "summary": "list airports",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Opaque cursor returned as next_cursor by the previous page",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.ListAirportsResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "500": {
                         "description": "Internal Server Error"
@@ -303,12 +345,33 @@ const docTemplate = `{
                     "Flight"
                 ],
                 "summary": "list all flights",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Opaque cursor returned as next_cursor by the previous page",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "500": {
                         "description": "Internal Server Error"
@@ -470,12 +533,33 @@ const docTemplate = `{
                     "Gate"
                 ],
                 "summary": "list gates (only admin)",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Opaque cursor returned as next_cursor by the previous page",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.ListGatesResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "401": {
                         "description": "Unauthorized"
@@ -566,12 +650,33 @@ const docTemplate = `{
                     "User"
                 ],
                 "summary": "list flights (only user)",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Opaque cursor returned as next_cursor by the previous page",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/api_internal_flight_dto.ListFlightsResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "401": {
                         "description": "Unauthorized"
@@ -596,11 +701,13 @@ const docTemplate = `{
                 "summary": "subscribe user (only user)",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "flight id",
-                        "name": "flight_id",
-                        "in": "query",
-                        "required": true
+                        "description": "subscription",
+                        "name": "subscription",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateSubscriptionRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -713,11 +820,17 @@ const docTemplate = `{
         "api_internal_flight_dto.ListFlightsResponse": {
             "type": "object",
             "properties": {
-                "flights": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "items": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.FlightInfo"
                     }
+                },
+                "next_cursor": {
+                    "type": "string"
                 }
             }
         },
@@ -783,6 +896,26 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "model": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AircraftResponse": {
+            "type": "object",
+            "properties": {
+                "aircraft_model_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mileage": {
+                    "type": "integer"
+                },
+                "registration_number": {
+                    "type": "string"
+                },
+                "serial_number": {
                     "type": "string"
                 }
             }
@@ -892,6 +1025,22 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateSubscriptionRequest": {
+            "type": "object",
+            "required": [
+                "flight_id",
+                "notify_before_minutes"
+            ],
+            "properties": {
+                "flight_id": {
+                    "type": "string"
+                },
+                "notify_before_minutes": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
         "dto.CreateUserDTO": {
             "type": "object",
             "properties": {
@@ -965,22 +1114,34 @@ const docTemplate = `{
         "dto.ListAircraftsResponse": {
             "type": "object",
             "properties": {
-                "aircrafts": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.aircraft"
+                        "$ref": "#/definitions/dto.AircraftResponse"
                     }
+                },
+                "next_cursor": {
+                    "type": "string"
                 }
             }
         },
         "dto.ListAirportsResponse": {
             "type": "object",
             "properties": {
-                "airports": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "items": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.AirportResponse"
                     }
+                },
+                "next_cursor": {
+                    "type": "string"
                 }
             }
         },
@@ -995,11 +1156,17 @@ const docTemplate = `{
         "dto.ListGatesResponse": {
             "type": "object",
             "properties": {
-                "gates": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "items": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.GateDTO"
                     }
+                },
+                "next_cursor": {
+                    "type": "string"
                 }
             }
         },
@@ -1029,26 +1196,6 @@ const docTemplate = `{
             "properties": {
                 "flight": {
                     "$ref": "#/definitions/dto.flightUpdateInfo"
-                }
-            }
-        },
-        "dto.aircraft": {
-            "type": "object",
-            "properties": {
-                "aircraft_model_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "mileage": {
-                    "type": "integer"
-                },
-                "registration_number": {
-                    "type": "string"
-                },
-                "serial_number": {
-                    "type": "string"
                 }
             }
         },
