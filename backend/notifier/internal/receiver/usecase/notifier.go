@@ -34,6 +34,7 @@ func (uc *NotifierUsecase) SaveNotification(
 	if cmd.ActualDeparture != nil {
 		sendAt = *cmd.ActualDeparture
 	}
+	sendAt = sendAt.Add(-time.Duration(cmd.NotifyBeforeMinutes) * time.Minute)
 	if sendAt.Before(time.Now().UTC()) {
 		slog.Info(op+": notification already expired", "sendAt", sendAt)
 		return nil

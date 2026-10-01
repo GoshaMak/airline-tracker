@@ -3,7 +3,8 @@ package dto
 import "time"
 
 type SubscriptionCreatedDTO struct {
-	Email string `json:"email"`
+	Email               string `json:"email"`
+	NotifyBeforeMinutes int64  `json:"notify_before_minutes"`
 
 	ScheduledDeparture time.Time  `json:"scheduled_departure"`
 	ActualDeparture    *time.Time `json:"actual_departure"`

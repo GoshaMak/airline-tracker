@@ -4,12 +4,12 @@ import { applyToken, clearToken } from "./state.js";
 
 export async function loadFlights({ api, state }) {
   const response = await api.request("/flights");
-  state.flights = response.flights || [];
+  state.flights = response.items || [];
 }
 
 export async function loadAirports({ api, state }) {
   const response = await api.request("/airports");
-  state.airports = response.airports || [];
+  state.airports = response.items || [];
 }
 
 export async function loadSubscriptions({ api, state }) {
@@ -19,7 +19,7 @@ export async function loadSubscriptions({ api, state }) {
   }
 
   const response = await api.request("/subscriptions");
-  state.subscriptions = response.flights || [];
+  state.subscriptions = response.items || [];
 }
 
 function aircraftModelId(aircraft) {
@@ -34,7 +34,7 @@ export async function loadAircrafts({ api, state }) {
   }
 
   const response = await api.request("/aircraft");
-  const aircrafts = response.aircrafts || [];
+  const aircrafts = response.items || [];
   state.aircrafts = aircrafts;
 
   const modelIds = [...new Set(aircrafts.map((aircraft) => aircraftModelId(aircraft)).filter(Boolean))];
@@ -54,7 +54,7 @@ export async function loadGates({ api, state }) {
   }
 
   const response = await api.request("/gates");
-  state.gates = response.gates || [];
+  state.gates = response.items || [];
 }
 
 export async function loadAdminResources(context) {
@@ -99,7 +99,10 @@ export function logoutUser({ sessionStore, state }) {
 }
 
 export async function subscribeToFlight({ api, flightId, state }) {
-  await api.request(`/subscriptions?flight_id=${encodeURIComponent(flightId)}`, { method: "POST" });
+  await api.request("/subscriptions", {
+    method: "POST",
+    body: JSON.stringify({ flight_id: flightId, notify_before_minutes: 0 }),
+  });
 
   const flight = state.flights.find((item) => item.id === flightId);
   if (flight && !state.subscriptions.some((item) => item.id === flightId)) {

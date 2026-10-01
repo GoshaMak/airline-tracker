@@ -2,6 +2,7 @@ package dto
 
 import (
 	"api/internal/fleet/domain"
+	"api/internal/pagination"
 
 	"github.com/google/uuid"
 )
@@ -14,23 +15,14 @@ type aircraft struct {
 	Mileage            int       `json:"mileage"`
 }
 
-type ListAircraftsResponse struct {
-	Aircrafts []aircraft `json:"aircrafts"`
-}
-
-func ToResponseListAircrafts(aircrafts []domain.Aircraft) ListAircraftsResponse {
-	resp := ListAircraftsResponse{
-		Aircrafts: make([]aircraft, len(aircrafts)),
-	}
-	for i, a := range aircrafts {
-		r := aircraft{
+func ToResponseListAircrafts(page pagination.Page[domain.Aircraft]) pagination.Page[aircraft] {
+	return pagination.Map(page, func(a domain.Aircraft) aircraft {
+		return aircraft{
 			Id:                 a.Id,
 			AircraftModelId:    a.AircraftModelId,
 			RegistrationNumber: a.RegistrationNumber.String(),
 			SerialNumber:       a.SerialNumber.String(),
 			Mileage:            int(a.Mileage),
 		}
-		resp.Aircrafts[i] = r
-	}
-	return resp
+	})
 }

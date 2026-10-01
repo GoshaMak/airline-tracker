@@ -4,6 +4,7 @@ import (
 	"api/internal/fleet/domain"
 	"api/internal/fleet/domain/repository"
 	"api/internal/fleet/infra/postgres/model"
+	"api/internal/pagination"
 	"context"
 	"errors"
 	"fmt"
@@ -76,4 +77,35 @@ func (r *aircraftRepository) List(ctx context.Context) ([]domain.Aircraft, error
 		ads[i] = ad
 	}
 	return ads, nil
+}
+
+func (r *aircraftRepository) ListPage(
+	ctx context.Context,
+	params pagination.Params,
+) ([]domain.Aircraft, error) {
+	const op = "AircraftRepository.ListPage"
+	query := `
+	select *
+	from aircraft
+	where ($1::uuid is null or id > $1)
+	order by id
+	limit $2
+	`
+	rows, err := r.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AircraftModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	aircraft := make([]domain.Aircraft, len(models))
+	for i, aircraftModel := range models {
+		item, err := model.AircraftModelToDomain(aircraftModel)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		aircraft[i] = item
+	}
+	return aircraft, nil
 }

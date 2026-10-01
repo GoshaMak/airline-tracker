@@ -1,21 +1,16 @@
 package dto
 
-import "api/internal/airport/domain"
+import (
+	"api/internal/airport/domain"
+	"api/internal/pagination"
+)
 
-type ListGatesResponse struct {
-	Gates []GateDTO `json:"gates"`
-}
-
-func ToResponseListGates(gs []domain.Gate) ListGatesResponse {
-	gates := make([]GateDTO, len(gs))
-	for i, g := range gs {
-		gates[i] = GateDTO{
+func ToResponseListGates(page pagination.Page[domain.Gate]) pagination.Page[GateDTO] {
+	return pagination.Map(page, func(g domain.Gate) GateDTO {
+		return GateDTO{
 			Id:        g.Id,
 			AirportId: g.AirportId,
 			Number:    g.Number.String(),
 		}
-	}
-	return ListGatesResponse{
-		Gates: gates,
-	}
+	})
 }

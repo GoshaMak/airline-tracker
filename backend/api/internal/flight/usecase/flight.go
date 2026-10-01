@@ -5,6 +5,7 @@ import (
 	"api/internal/flight/command"
 	"api/internal/flight/domain"
 	"api/internal/flight/domain/repository"
+	"api/internal/pagination"
 	publisherDomain "api/internal/publisher/domain"
 	outboxRepository "api/internal/publisher/domain/repository"
 	"context"
@@ -21,6 +22,25 @@ import (
 type FlightUsecase struct {
 	repo       repository.FlightRepository
 	outboxRepo outboxRepository.OutboxRepository
+}
+
+type paginatedFlightRepository interface {
+	ListFlightsPage(context.Context, pagination.Params) ([]domain.Flight, error)
+}
+
+func (uc *FlightUsecase) ListFlightsPage(params pagination.Params) (pagination.Page[domain.Flight], error) {
+	if repo, ok := uc.repo.(paginatedFlightRepository); ok {
+		flights, err := repo.ListFlightsPage(context.Background(), params)
+		if err != nil {
+			return pagination.Page[domain.Flight]{}, fmt.Errorf("FlightUsecase.ListFlightsPage: %w", err)
+		}
+		return pagination.FromFetched(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
+	}
+	flights, err := uc.ListFlights()
+	if err != nil {
+		return pagination.Page[domain.Flight]{}, err
+	}
+	return pagination.Paginate(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
 }
 
 func NewFlightUsecase(i do.Injector) (*FlightUsecase, error) {

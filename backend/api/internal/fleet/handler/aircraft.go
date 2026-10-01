@@ -5,6 +5,7 @@ import (
 	"api/internal/fleet/dto"
 	"api/internal/fleet/usecase"
 	"api/internal/middleware"
+	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
@@ -84,12 +85,17 @@ func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 // @Router /api/v1/aircraft [get]
 func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
 	const op = "AircraftHandler.ListAircrafts"
-	as, err := h.uc.ListAircrafts()
+	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+		return
+	}
+	page, err := h.uc.ListAircraftsPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-	resp := dto.ToResponseListAircrafts(as)
+	resp := dto.ToResponseListAircrafts(page)
 	ctx.JSON(http.StatusOK, resp)
 }

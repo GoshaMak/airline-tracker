@@ -108,13 +108,15 @@ func TestNotifierUsecase_SaveNotification(t *testing.T) {
 		repo := &memoryNotifications{}
 		uc := &NotifierUsecase{repo: repo}
 		cmd := subscriptionMother(t)
+		cmd.NotifyBeforeMinutes = 30
 		// Act
 		err := uc.SaveNotification(context.Background(), cmd)
 		// Assert
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(repo.items) != 1 || repo.items[0].Type != domain.NotificationSubscribed || !repo.items[0].SendAt.Equal(cmd.ScheduledDeparture) {
+		wantSendAt := cmd.ScheduledDeparture.Add(-30 * time.Minute)
+		if len(repo.items) != 1 || repo.items[0].Type != domain.NotificationSubscribed || !repo.items[0].SendAt.Equal(wantSendAt) {
 			t.Fatalf("stored notifications: %+v", repo.items)
 		}
 		var payload command.SubscriptionCreatedPayloadModel

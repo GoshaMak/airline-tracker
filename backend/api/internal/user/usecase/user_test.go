@@ -28,6 +28,40 @@ type userRepoMock struct {
 	existFn     func(ctx context.Context, uid uuid.UUID) (userDomain.User, error)
 	subscribeFn func(ctx context.Context, uid, fid uuid.UUID) error
 	listFn      func(ctx context.Context, uid uuid.UUID) ([]flightDomain.Flight, error)
+	createFn    func(ctx context.Context, uid, fid uuid.UUID, minutes int64) (bool, error)
+	addTimersFn func(ctx context.Context, uid, fid uuid.UUID, minutes []int64) ([]int64, error)
+	deleteFn    func(ctx context.Context, uid, fid uuid.UUID) error
+}
+
+func (m *userRepoMock) Create(
+	ctx context.Context,
+	uid,
+	fid uuid.UUID,
+	notifyBeforeMinutes int64,
+) (bool, error) {
+	if m.createFn != nil {
+		return m.createFn(ctx, uid, fid, notifyBeforeMinutes)
+	}
+	return false, nil
+}
+
+func (m *userRepoMock) AddTimers(
+	ctx context.Context,
+	uid,
+	fid uuid.UUID,
+	notifyBeforeMinutes []int64,
+) ([]int64, error) {
+	if m.addTimersFn != nil {
+		return m.addTimersFn(ctx, uid, fid, notifyBeforeMinutes)
+	}
+	return nil, nil
+}
+
+func (m *userRepoMock) Delete(ctx context.Context, uid, fid uuid.UUID) error {
+	if m.deleteFn != nil {
+		return m.deleteFn(ctx, uid, fid)
+	}
+	return nil
 }
 
 func (m *userRepoMock) SaveUser(ctx context.Context, u userDomain.User) error {

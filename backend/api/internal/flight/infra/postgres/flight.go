@@ -4,6 +4,7 @@ import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
 	"api/internal/flight/infra/postgres/model"
+	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	userModel "api/internal/user/infra/postgres/model"
 
@@ -168,6 +169,37 @@ func (p *PostgresDB) ListFlights(ctx context.Context) ([]domain.Flight, error) {
 		flights[i] = f
 	}
 
+	return flights, nil
+}
+
+func (p *PostgresDB) ListFlightsPage(
+	ctx context.Context,
+	params pagination.Params,
+) ([]domain.Flight, error) {
+	const op = "PostgresDB.ListFlightsPage"
+	query := `
+	select *
+	from scan_flights_info()
+	where ($1::uuid is null or id > $1)
+	order by id
+	limit $2
+	`
+	rows, err := p.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	flights := make([]domain.Flight, len(models))
+	for i, flightModel := range models {
+		flight, err := model.FlightModelToDomain(flightModel)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		flights[i] = flight
+	}
 	return flights, nil
 }
 

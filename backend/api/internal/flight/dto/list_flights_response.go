@@ -2,6 +2,7 @@ package dto
 
 import (
 	"api/internal/flight/domain"
+	"api/internal/pagination"
 	"api/internal/utils"
 	"time"
 
@@ -26,20 +27,12 @@ type FlightInfo struct {
 	Plan   *string `json:"plan"`
 }
 
-type ListFlightsResponse struct {
-	Flights []FlightInfo `json:"flights"`
-}
-
 func ToResponseListFlights(
-	flights []domain.Flight,
-) ListFlightsResponse {
-	resp := ListFlightsResponse{
-		Flights: make([]FlightInfo, len(flights), cap(flights)),
-	}
-	for i := range flights {
-		resp.Flights[i] = ToFlightInfoDomain(&flights[i])
-	}
-	return resp
+	page pagination.Page[domain.Flight],
+) pagination.Page[FlightInfo] {
+	return pagination.Map(page, func(f domain.Flight) FlightInfo {
+		return ToFlightInfoDomain(&f)
+	})
 }
 
 func ToFlightInfoDomain(f *domain.Flight) FlightInfo {

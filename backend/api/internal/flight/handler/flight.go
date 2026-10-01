@@ -5,6 +5,7 @@ import (
 	"api/internal/flight/dto"
 	"api/internal/flight/usecase"
 	"api/internal/middleware"
+	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
@@ -50,14 +51,19 @@ func RegisterRoutes(i do.Injector, r *gin.RouterGroup) {
 // @Router /api/v1/flights [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	const op = "FlightHandler.ListFlights"
-	flights, err := h.uc.ListFlights()
+	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+		return
+	}
+	page, err := h.uc.ListFlightsPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
-	response := dto.ToResponseListFlights(flights)
+	response := dto.ToResponseListFlights(page)
 	ctx.JSON(http.StatusOK, response)
 }
 

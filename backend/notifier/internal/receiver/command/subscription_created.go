@@ -7,7 +7,8 @@ import (
 )
 
 type SubscriptionCreatedCommand struct {
-	Email common.Email
+	Email               common.Email
+	NotifyBeforeMinutes int64
 
 	ScheduledDeparture time.Time
 	ActualDeparture    *time.Time
@@ -51,7 +52,8 @@ func NewSubscriptionCreatedCommand(
 	}
 
 	return SubscriptionCreatedCommand{
-		Email: email,
+		Email:               email,
+		NotifyBeforeMinutes: req.NotifyBeforeMinutes,
 
 		ScheduledDeparture: req.ScheduledDeparture,
 		ActualDeparture:    req.ActualDeparture,

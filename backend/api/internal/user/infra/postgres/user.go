@@ -3,6 +3,7 @@ package postgres
 import (
 	flightDomain "api/internal/flight/domain"
 	flightModel "api/internal/flight/infra/postgres/model"
+	"api/internal/pagination"
 	"api/internal/user/domain"
 	"api/internal/user/domain/repository"
 	"api/internal/user/infra/postgres/model"
@@ -28,6 +29,12 @@ type userDB interface {
 }
 
 func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
+	return &userRepository{
+		conn: do.MustInvoke[*pgxpool.Pool](i),
+	}, nil
+}
+
+func NewSubscriptionRepository(i do.Injector) (repository.SubscriptionRepository, error) {
 	return &userRepository{
 		conn: do.MustInvoke[*pgxpool.Pool](i),
 	}, nil
@@ -132,6 +139,90 @@ func (r *userRepository) Subscribe(
 	return nil
 }
 
+func (r *userRepository) Create(
+	ctx context.Context,
+	uid,
+	fid uuid.UUID,
+	notifyBeforeMinutes int64,
+) (bool, error) {
+	const op = "UserRepository.CreateSubscription"
+	if err := r.Subscribe(ctx, uid, fid); err != nil &&
+		!errors.Is(err, repository.ErrUserAlreadySubscribed) {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	query := `
+	insert into subscription_notification_timers(subscription_id, notify_before_minutes)
+	select id, $3
+	from subscriptions
+	where user_id = $1 and flight_id = $2
+	on conflict (subscription_id, notify_before_minutes) do nothing
+	returning notify_before_minutes
+	`
+	rows, err := r.conn.Query(ctx, query, uid, fid, notifyBeforeMinutes)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	values, err := pgx.CollectRows(rows, pgx.RowTo[int64])
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return len(values) > 0, nil
+}
+
+func (r *userRepository) AddTimers(
+	ctx context.Context,
+	uid,
+	fid uuid.UUID,
+	notifyBeforeMinutes []int64,
+) ([]int64, error) {
+	const op = "UserRepository.AddTimers"
+	findQuery := `
+	select id
+	from subscriptions
+	where user_id = $1 and flight_id = $2
+	`
+	rows, err := r.conn.Query(ctx, findQuery, uid, fid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	subscriptionID, err := pgx.CollectExactlyOneRow(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repository.ErrSubscriptionNotFound
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	insertQuery := `
+	insert into subscription_notification_timers(subscription_id, notify_before_minutes)
+	select $1, unnest($2::bigint[])
+	on conflict (subscription_id, notify_before_minutes) do nothing
+	returning notify_before_minutes
+	`
+	rows, err = r.conn.Query(ctx, insertQuery, subscriptionID, notifyBeforeMinutes)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	added, err := pgx.CollectRows(rows, pgx.RowTo[int64])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return added, nil
+}
+
+func (r *userRepository) Delete(ctx context.Context, uid, fid uuid.UUID) error {
+	const op = "UserRepository.DeleteSubscription"
+	query := `
+	delete from subscriptions
+	where user_id = $1 and flight_id = $2
+	`
+	if _, err := r.conn.Exec(ctx, query, uid, fid); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
 func (r *userRepository) ListFlights(
 	ctx context.Context,
 	uid uuid.UUID,
@@ -158,4 +249,36 @@ func (r *userRepository) ListFlights(
 		fsDs[i] = fd
 	}
 	return fsDs, nil
+}
+
+func (r *userRepository) ListFlightsPage(
+	ctx context.Context,
+	uid uuid.UUID,
+	params pagination.Params,
+) ([]flightDomain.Flight, error) {
+	const op = "UserRepository.ListFlightsPage"
+	query := `
+	select *
+	from scan_user_flights_info($1)
+	where ($2::uuid is null or id > $2)
+	order by id
+	limit $3
+	`
+	rows, err := r.conn.Query(ctx, query, uid, params.CursorValue(), params.FetchLimit())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[flightModel.FlightModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	flights := make([]flightDomain.Flight, len(models))
+	for i, modelItem := range models {
+		flight, err := flightModel.FlightModelToDomain(modelItem)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		flights[i] = flight
+	}
+	return flights, nil
 }

@@ -4,6 +4,7 @@ import (
 	airportRepository "api/internal/airport/domain/repository"
 	flightDomain "api/internal/flight/domain"
 	flightRepository "api/internal/flight/domain/repository"
+	"api/internal/pagination"
 	publisherDomain "api/internal/publisher/domain"
 	outboxRepository "api/internal/publisher/domain/repository"
 	"api/internal/user/domain"
@@ -21,18 +22,91 @@ import (
 
 type UserUsecase struct {
 	userRepo   userRepository.UserRepository
+	subRepo    userRepository.SubscriptionRepository
 	outboxRepo outboxRepository.OutboxRepository
 	flightRepo flightRepository.FlightRepository
 	gateRepo   airportRepository.GateRepository
 }
 
+type paginatedSubscriptionRepository interface {
+	ListFlightsPage(context.Context, uuid.UUID, pagination.Params) ([]flightDomain.Flight, error)
+}
+
 func NewUserUsecase(i do.Injector) (*UserUsecase, error) {
+	userRepo := do.MustInvoke[userRepository.UserRepository](i)
+	subRepo, ok := userRepo.(userRepository.SubscriptionRepository)
+	if !ok {
+		subRepo = do.MustInvoke[userRepository.SubscriptionRepository](i)
+	}
 	return &UserUsecase{
-		userRepo:   do.MustInvoke[userRepository.UserRepository](i),
+		userRepo:   userRepo,
+		subRepo:    subRepo,
 		outboxRepo: do.MustInvoke[outboxRepository.OutboxRepository](i),
 		flightRepo: do.MustInvoke[flightRepository.FlightRepository](i),
 		gateRepo:   do.MustInvoke[airportRepository.GateRepository](i),
 	}, nil
+}
+
+func (uc *UserUsecase) CreateSubscription(uid, fid uuid.UUID, notifyBeforeMinutes int64) error {
+	const op = "UserUsecase.CreateSubscription"
+	added, err := uc.subRepo.Create(context.Background(), uid, fid, notifyBeforeMinutes)
+	if err != nil {
+		if errors.Is(err, userRepository.ErrUserNotFound) {
+			return ErrUserNotFound
+		}
+		if errors.Is(err, userRepository.ErrFlightNotFound) {
+			return ErrFlightNotFound
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !added {
+		return nil
+	}
+	return uc.publishSubscriptionNotification(uid, fid, notifyBeforeMinutes)
+}
+
+func (uc *UserUsecase) AddSubscriptionTimers(uid, fid uuid.UUID, notifyBeforeMinutes []int64) error {
+	const op = "UserUsecase.AddSubscriptionTimers"
+	added, err := uc.subRepo.AddTimers(context.Background(), uid, fid, notifyBeforeMinutes)
+	if err != nil {
+		if errors.Is(err, userRepository.ErrSubscriptionNotFound) {
+			return ErrSubscriptionNotFound
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	for _, minutes := range added {
+		if err := uc.publishSubscriptionNotification(uid, fid, minutes); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+	}
+	return nil
+}
+
+func (uc *UserUsecase) DeleteSubscription(uid, fid uuid.UUID) error {
+	const op = "UserUsecase.DeleteSubscription"
+	if err := uc.subRepo.Delete(context.Background(), uid, fid); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (uc *UserUsecase) publishSubscriptionNotification(uid, fid uuid.UUID, notifyBeforeMinutes int64) error {
+	const op = "UserUsecase.publishSubscriptionNotification"
+	payload, err := uc.formPayload(uid, fid, notifyBeforeMinutes)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	topic := os.Getenv("SUBSCRIPTION_CREATED_TOPIC")
+	slog.Debug(op+": payload formed", "payload", payload)
+	ob, err := publisherDomain.NewOutbox(topic, &payload)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if err := uc.outboxRepo.Save(context.Background(), ob); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	slog.Debug(op+": saved to outbox", "outbox", ob)
+	return nil
 }
 
 func (uc *UserUsecase) GetUser(email, password string) (*domain.User, error) {
@@ -89,7 +163,7 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 	}
 
 	topic := os.Getenv("SUBSCRIPTION_CREATED_TOPIC") // TODO: get it from config?
-	payload, err := uc.formPayload(uid, fid)
+	payload, err := uc.formPayload(uid, fid, 0)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -106,7 +180,7 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 	return nil
 }
 
-func (uc *UserUsecase) formPayload(uid, fid uuid.UUID) (domain.SubscriptionCreatedPayload, error) {
+func (uc *UserUsecase) formPayload(uid, fid uuid.UUID, notifyBeforeMinutes int64) (domain.SubscriptionCreatedPayload, error) {
 	const op = "UserUsecase.formPayload"
 	u, err := uc.userRepo.Exist(context.Background(), uid)
 	if err != nil {
@@ -142,7 +216,7 @@ func (uc *UserUsecase) formPayload(uid, fid uuid.UUID) (domain.SubscriptionCreat
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	p, err := domain.NewSubscriptionCreatedPayload(u.Email, f, depAirport, arrAirport)
+	p, err := domain.NewSubscriptionCreatedPayload(u.Email, f, depAirport, arrAirport, notifyBeforeMinutes)
 	if err != nil {
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -151,9 +225,27 @@ func (uc *UserUsecase) formPayload(uid, fid uuid.UUID) (domain.SubscriptionCreat
 
 func (uc *UserUsecase) ListFlights(uid uuid.UUID) ([]flightDomain.Flight, error) {
 	const op = "UserUsecase.ListFlights"
-	flights, err := uc.userRepo.ListFlights(context.Background(), uid)
+	flights, err := uc.subRepo.ListFlights(context.Background(), uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return flights, nil
+}
+
+func (uc *UserUsecase) ListFlightsPage(
+	uid uuid.UUID,
+	params pagination.Params,
+) (pagination.Page[flightDomain.Flight], error) {
+	if repo, ok := uc.subRepo.(paginatedSubscriptionRepository); ok {
+		flights, err := repo.ListFlightsPage(context.Background(), uid, params)
+		if err != nil {
+			return pagination.Page[flightDomain.Flight]{}, fmt.Errorf("UserUsecase.ListFlightsPage: %w", err)
+		}
+		return pagination.FromFetched(flights, params, func(f flightDomain.Flight) uuid.UUID { return f.Id }), nil
+	}
+	flights, err := uc.ListFlights(uid)
+	if err != nil {
+		return pagination.Page[flightDomain.Flight]{}, err
+	}
+	return pagination.Paginate(flights, params, func(f flightDomain.Flight) uuid.UUID { return f.Id }), nil
 }

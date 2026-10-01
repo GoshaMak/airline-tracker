@@ -10,7 +10,8 @@ import (
 
 // INFO: SubscriptionCreatedPayload structure is topic specific
 type SubscriptionCreatedPayload struct {
-	Email common.Email
+	Email               common.Email
+	NotifyBeforeMinutes int64
 
 	ScheduledDeparture time.Time
 	ActualDeparture    *time.Time
@@ -32,13 +33,15 @@ func NewSubscriptionCreatedPayload(
 	flight flightDomain.Flight,
 	depAirport,
 	arrAirport airportDomain.Airport,
+	notifyBeforeMinutes int64,
 ) (SubscriptionCreatedPayload, error) {
 	return SubscriptionCreatedPayload{
 		Email: email,
 
-		ScheduledDeparture: flight.ScheduledDeparture,
-		ActualDeparture:    flight.ActualDeparture,
-		FlightStatus:       flight.Status,
+		ScheduledDeparture:  flight.ScheduledDeparture,
+		ActualDeparture:     flight.ActualDeparture,
+		FlightStatus:        flight.Status,
+		NotifyBeforeMinutes: notifyBeforeMinutes,
 
 		DepartureAirportIATACode: depAirport.IATACode,
 		DepartureAirportTitle:    depAirport.Title,
@@ -53,7 +56,8 @@ func NewSubscriptionCreatedPayload(
 }
 
 type SubscriptionCreatedPayloadModel struct {
-	Email string `json:"email"`
+	Email               string `json:"email"`
+	NotifyBeforeMinutes int64  `json:"notify_before_minutes"`
 
 	ScheduledDeparture time.Time  `json:"scheduled_departure"`
 	ActualDeparture    *time.Time `json:"actual_departure"`
@@ -76,6 +80,7 @@ func (p *SubscriptionCreatedPayload) MarshalJSON() ([]byte, error) {
 		ScheduledDeparture:       p.ScheduledDeparture,
 		ActualDeparture:          p.ActualDeparture,
 		FlightStatus:             p.FlightStatus.String(),
+		NotifyBeforeMinutes:      p.NotifyBeforeMinutes,
 		DepartureAirportIATACode: p.DepartureAirportIATACode.String(),
 		DepartureAirportTitle:    p.DepartureAirportTitle.String(),
 		DepartureAirportCity:     p.DepartureAirportCity.String(),
@@ -140,7 +145,8 @@ func (p *SubscriptionCreatedPayload) UnmarshalJSON(data []byte) error {
 		ScheduledDeparture: m.ScheduledDeparture,
 		ActualDeparture:    m.ActualDeparture,
 
-		FlightStatus: fs,
+		FlightStatus:        fs,
+		NotifyBeforeMinutes: m.NotifyBeforeMinutes,
 
 		DepartureAirportIATACode: depIATA,
 		DepartureAirportTitle:    depTitle,

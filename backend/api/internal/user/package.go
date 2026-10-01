@@ -12,4 +12,5 @@ var Package = do.Package(
 	do.Lazy(handler.NewUserHandler),
 	do.Lazy(usecase.NewUserUsecase),
 	do.Lazy(postgres.NewUserRepository),
+	do.Lazy(postgres.NewSubscriptionRepository),
 )

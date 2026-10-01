@@ -4,6 +4,7 @@ import (
 	"api/internal/airport/domain"
 	"api/internal/airport/domain/repository"
 	"api/internal/airport/infra/postgres/model"
+	"api/internal/pagination"
 	"context"
 	"errors"
 	"fmt"
@@ -113,4 +114,35 @@ func (r *gateRepository) List(ctx context.Context) ([]domain.Gate, error) {
 		gsd[i] = gd
 	}
 	return gsd, nil
+}
+
+func (r *gateRepository) ListPage(
+	ctx context.Context,
+	params pagination.Params,
+) ([]domain.Gate, error) {
+	const op = "GateRepository.ListPage"
+	query := `
+	select *
+	from gates
+	where ($1::uuid is null or id > $1)
+	order by id
+	limit $2
+	`
+	rows, err := r.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.GateModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	gates := make([]domain.Gate, len(models))
+	for i, gateModel := range models {
+		gate, err := model.GateModelToDomain(gateModel)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		gates[i] = gate
+	}
+	return gates, nil
 }

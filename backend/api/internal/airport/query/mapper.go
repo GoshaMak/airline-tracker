@@ -1,11 +1,14 @@
 package query
 
-import "api/internal/airport/dto"
+import (
+	"api/internal/airport/domain"
+	"api/internal/airport/dto"
+	"api/internal/pagination"
+)
 
-func QueryToListAirportsResponse(q ListAirportsQuery) dto.ListAirportsResponse {
-	resp := dto.ListAirportsResponse{}
-	for _, a := range q.Airports {
-		resp.Airports = append(resp.Airports, dto.AirportResponse{
+func QueryToListAirportsResponse(page pagination.Page[domain.Airport]) pagination.Page[dto.AirportResponse] {
+	return pagination.Map(page, func(a domain.Airport) dto.AirportResponse {
+		return dto.AirportResponse{
 			ID: a.ID,
 			AirportDTO: dto.AirportDTO{
 				IATACode: a.IATACode.String(),
@@ -13,7 +16,6 @@ func QueryToListAirportsResponse(q ListAirportsQuery) dto.ListAirportsResponse {
 				City:     a.City.String(),
 				Country:  a.Country.String(),
 			},
-		})
-	}
-	return resp
+		}
+	})
 }

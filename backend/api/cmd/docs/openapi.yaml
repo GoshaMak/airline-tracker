@@ -434,6 +434,8 @@ paths:
                 $ref: '#/components/schemas/Message'
               example:
                 msg: user subscribed
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':

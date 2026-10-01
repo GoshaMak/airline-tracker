@@ -4,6 +4,7 @@ import (
 	"api/internal/airport/domain"
 	"api/internal/airport/domain/repository"
 	"api/internal/airport/infra/postgres/model"
+	"api/internal/pagination"
 	"context"
 	"errors"
 	"fmt"
@@ -101,6 +102,44 @@ func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport,
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		airports[i] = a
+	}
+	return airports, nil
+}
+
+func (r *airportRepository) ListAirportsPage(
+	ctx context.Context,
+	params pagination.Params,
+) ([]domain.Airport, error) {
+	const op = "AirportRepository.ListAirportsPage"
+	const query = `
+	select
+		a.id as id,
+		a.iata_code as iata_code,
+		a.title as title,
+		c.name as city,
+		cntr.code as country
+	from airports a
+		join cities c on c.id = a.city_id
+		join countries cntr on cntr.id = c.country_id
+	where ($1::uuid is null or a.id > $1)
+	order by a.id
+	limit $2
+	`
+	rows, err := r.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AirportModel])
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	airports := make([]domain.Airport, len(models))
+	for i, airportModel := range models {
+		airport, err := model.AirportModelToDomain(airportModel)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		airports[i] = airport
 	}
 	return airports, nil
 }

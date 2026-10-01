@@ -5,6 +5,7 @@ import (
 	"api/internal/airport/dto"
 	"api/internal/airport/usecase"
 	"api/internal/middleware"
+	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
@@ -85,13 +86,18 @@ func (h *GateHandler) CreateGate(ctx *gin.Context) {
 // @Router /api/v1/gates [get]
 func (h *GateHandler) ListGates(ctx *gin.Context) {
 	const op = "GateHandler.ListGates"
-	gs, err := h.uc.ListGates()
+	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+		return
+	}
+	page, err := h.uc.ListGatesPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
 
-	resp := dto.ToResponseListGates(gs)
+	resp := dto.ToResponseListGates(page)
 	ctx.JSON(http.StatusOK, resp)
 }

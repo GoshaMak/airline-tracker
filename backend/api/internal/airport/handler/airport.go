@@ -6,6 +6,7 @@ import (
 	"api/internal/airport/query"
 	"api/internal/airport/usecase"
 	"api/internal/middleware"
+	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
@@ -87,12 +88,17 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 // @Router /api/v1/airports [get]
 func (h *AirportHandler) ListAirports(ctx *gin.Context) {
 	const op = "AirportHandler.ListAirports"
-	airports, err := h.uc.ListAirports()
+	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
+		return
+	}
+	page, err := h.uc.ListAirportsPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
 		return
 	}
-	resp := query.QueryToListAirportsResponse(airports)
+	resp := query.QueryToListAirportsResponse(page)
 	ctx.JSON(http.StatusOK, resp)
 }

@@ -7,4 +7,5 @@ var (
 	ErrUserNotFound          = errors.New("user not found")
 	ErrFlightNotFound        = errors.New("flight not found")
 	ErrUserAlreadySubscribed = errors.New("user already subscribed")
+	ErrSubscriptionNotFound  = errors.New("subscription not found")
 )
