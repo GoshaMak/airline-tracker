@@ -13,6 +13,7 @@ type Call struct {
 	SQL  string
 	Args []any
 }
+
 type DB struct {
 	Calls    []Call
 	ExecErr  error
@@ -25,10 +26,12 @@ func (db *DB) Exec(_ context.Context, sql string, args ...any) (pgconn.CommandTa
 	db.Calls = append(db.Calls, Call{sql, args})
 	return pgconn.NewCommandTag("OK"), db.ExecErr
 }
+
 func (db *DB) Query(_ context.Context, sql string, args ...any) (pgx.Rows, error) {
 	db.Calls = append(db.Calls, Call{sql, args})
 	return db.Rows, db.QueryErr
 }
+
 func (db *DB) QueryRow(_ context.Context, sql string, args ...any) pgx.Row {
 	db.Calls = append(db.Calls, Call{sql, args})
 	return db.Row
@@ -57,8 +60,10 @@ type Rows struct {
 	index   int
 }
 
-func (r *Rows) Close()     {}
+func (r *Rows) Close() {}
+
 func (r *Rows) Err() error { return r.ReadErr }
+
 func (r *Rows) Next() bool {
 	if r.index >= len(r.Records) {
 		return false
@@ -66,6 +71,7 @@ func (r *Rows) Next() bool {
 	r.index++
 	return true
 }
+
 func (r *Rows) FieldDescriptions() []pgconn.FieldDescription {
 	f := make([]pgconn.FieldDescription, len(r.Columns))
 	for i, name := range r.Columns {
@@ -73,7 +79,9 @@ func (r *Rows) FieldDescriptions() []pgconn.FieldDescription {
 	}
 	return f
 }
+
 func (r *Rows) RawValues() [][]byte { return make([][]byte, len(r.Columns)) }
+
 func (r *Rows) Scan(dest ...any) error {
 	for i, d := range dest {
 		v := reflect.ValueOf(d).Elem()

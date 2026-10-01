@@ -18,12 +18,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// airportMother is a complete fixture shared by the repository tests.
 func airportMother() domain.Airport {
 	return domain.Airport{ID: uuid.New(), IATACode: domain.IATACode("SVO"),
 		Title: domain.Title("Sheremetyevo"), City: common.City("Moscow"),
 		Country: common.Country("RU")}
 }
+
 func airportRows(a domain.Airport) *pgxfake.Rows {
 	return &pgxfake.Rows{Columns: []string{"id", "iata_code", "title", "city", "country"},
 		Records: [][]any{{a.ID, a.IATACode.String(), a.Title.String(), a.City.String(), a.Country.String()}}}
