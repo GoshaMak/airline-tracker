@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airline Tracker — Documentation</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 24px;
+            line-height: 1.7;
+        }
+
+        pre {
+            overflow-x: auto;
+            padding: 16px;
+            background: #f4f4f4;
+            border-radius: 8px;
+        }
+
+        img {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <main id="content">Загрузка документации...</main>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+
+    <script>
+        fetch('/documentation.md')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('README not found');
+                }
+                return response.text();
+            })
+            .then(markdown => {
+                const html = marked.parse(markdown);
+                document.getElementById('content').innerHTML =
+                    DOMPurify.sanitize(html);
+            })
+            .catch(error => {
+                document.getElementById('content').textContent =
+                    'Ошибка загрузки документации: ' + error.message;
+            });
+    </script>
+</body>
+</html>
+
