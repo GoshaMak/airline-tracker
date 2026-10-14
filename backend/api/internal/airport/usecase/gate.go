@@ -25,6 +25,9 @@ func (uc *GateUsecase) ListGatesPage(params pagination.Params) (pagination.Page[
 	if repo, ok := uc.repo.(paginatedGateRepository); ok {
 		gates, err := repo.ListPage(context.Background(), params)
 		if err != nil {
+			if errors.Is(err, repository.ErrOperationNotPermitted) {
+				return pagination.Page[domain.Gate]{}, ErrOperationNotPermitted
+			}
 			return pagination.Page[domain.Gate]{}, fmt.Errorf("GateUsecase.ListGatesPage: %w", err)
 		}
 		return pagination.FromFetched(gates, params, func(g domain.Gate) uuid.UUID { return g.Id }), nil
@@ -53,6 +56,9 @@ func (uc *GateUsecase) CreateGate(cmd *command.CreateGateCommand) error {
 		if errors.Is(err, repository.ErrGateAlreadyExists) {
 			return ErrGateAlreadyExists
 		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -63,6 +69,9 @@ func (uc *GateUsecase) ListGates() ([]domain.Gate, error) {
 	const op = "GateUsecase.ListGates"
 	gs, err := uc.repo.List(context.Background())
 	if err != nil {
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return nil, ErrOperationNotPermitted
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return gs, nil

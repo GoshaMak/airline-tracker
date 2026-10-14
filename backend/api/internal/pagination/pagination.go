@@ -91,8 +91,6 @@ func Paginate[T any](items []T, params Params, id func(T) uuid.UUID) Page[T] {
 	}
 }
 
-// FromFetched builds a page from an ordered database result fetched with
-// FetchLimit. The result must contain only rows after Params.Cursor.
 func FromFetched[T any](items []T, params Params, id func(T) uuid.UUID) Page[T] {
 	hasMore := len(items) > params.Limit
 	if hasMore {

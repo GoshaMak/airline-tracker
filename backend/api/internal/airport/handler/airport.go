@@ -5,6 +5,7 @@ import (
 	"api/internal/airport/dto"
 	"api/internal/airport/query"
 	"api/internal/airport/usecase"
+	"api/internal/httperror"
 	"api/internal/middleware"
 	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
@@ -62,7 +63,7 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
@@ -79,7 +80,7 @@ func (h *AirportHandler) ListAirports(ctx *gin.Context) {
 	page, err := h.uc.ListAirportsPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 	resp := query.QueryToListAirportsResponse(page)

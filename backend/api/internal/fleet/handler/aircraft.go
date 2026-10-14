@@ -4,6 +4,7 @@ import (
 	"api/internal/fleet/command"
 	"api/internal/fleet/dto"
 	"api/internal/fleet/usecase"
+	"api/internal/httperror"
 	"api/internal/middleware"
 	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
@@ -55,7 +56,7 @@ func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft created"})
@@ -71,7 +72,7 @@ func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
 	page, err := h.uc.ListAircraftsPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 	resp := dto.ToResponseListAircrafts(page)

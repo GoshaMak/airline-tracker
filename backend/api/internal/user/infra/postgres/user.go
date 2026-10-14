@@ -3,6 +3,7 @@ package postgres
 import (
 	flightDomain "api/internal/flight/domain"
 	flightModel "api/internal/flight/infra/postgres/model"
+	infraPostgres "api/internal/infra/postgres"
 	"api/internal/pagination"
 	"api/internal/user/domain"
 	"api/internal/user/domain/repository"
@@ -10,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -57,7 +59,7 @@ func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return repository.ErrUserAlreadyExists
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -69,19 +71,19 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 	`
 	row, err := r.conn.Query(ctx, query, email)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	um, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.UserModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, repository.ErrUserNotFound
 		}
-		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	ud, err := model.UserModelToDomain(um)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return ud, nil
 }
@@ -93,19 +95,19 @@ func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User,
 	`
 	row, err := r.conn.Query(ctx, query, uid)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	um, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.UserModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, repository.ErrUserNotFound
 		}
-		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	ud, err := model.UserModelToDomain(um)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("%s: %w", op, err)
+		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return ud, nil
 }
@@ -134,7 +136,7 @@ func (r *userRepository) Subscribe(
 				return repository.ErrUserAlreadySubscribed
 			}
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -148,7 +150,7 @@ func (r *userRepository) Create(
 	const op = "UserRepository.CreateSubscription"
 	if err := r.Subscribe(ctx, uid, fid); err != nil &&
 		!errors.Is(err, repository.ErrUserAlreadySubscribed) {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	query := `
@@ -161,11 +163,11 @@ func (r *userRepository) Create(
 	`
 	rows, err := r.conn.Query(ctx, query, uid, fid, notifyBeforeMinutes)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	values, err := pgx.CollectRows(rows, pgx.RowTo[int64])
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return len(values) > 0, nil
 }
@@ -184,14 +186,14 @@ func (r *userRepository) AddTimers(
 	`
 	rows, err := r.conn.Query(ctx, findQuery, uid, fid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	subscriptionID, err := pgx.CollectExactlyOneRow(rows, pgx.RowTo[uuid.UUID])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repository.ErrSubscriptionNotFound
 		}
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	insertQuery := `
@@ -202,11 +204,11 @@ func (r *userRepository) AddTimers(
 	`
 	rows, err = r.conn.Query(ctx, insertQuery, subscriptionID, notifyBeforeMinutes)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	added, err := pgx.CollectRows(rows, pgx.RowTo[int64])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return added, nil
 }
@@ -218,7 +220,7 @@ func (r *userRepository) Delete(ctx context.Context, uid, fid uuid.UUID) error {
 	where user_id = $1 and flight_id = $2
 	`
 	if _, err := r.conn.Exec(ctx, query, uid, fid); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -233,18 +235,18 @@ func (r *userRepository) ListFlights(
 	`
 	rows, err := r.conn.Query(ctx, query, uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	fsMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[flightModel.FlightModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	fsDs := make([]flightDomain.Flight, len(fsMs))
 	for i, fm := range fsMs {
 		fd, err := flightModel.FlightModelToDomain(fm)
 		if err != nil {
-			return nil, err
+			return nil, translateError(err)
 		}
 		fsDs[i] = fd
 	}
@@ -266,19 +268,27 @@ func (r *userRepository) ListFlightsPage(
 	`
 	rows, err := r.conn.Query(ctx, query, uid, params.CursorValue(), params.FetchLimit())
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[flightModel.FlightModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	flights := make([]flightDomain.Flight, len(models))
 	for i, modelItem := range models {
 		flight, err := flightModel.FlightModelToDomain(modelItem)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		flights[i] = flight
 	}
 	return flights, nil
+}
+
+func translateError(err error) error {
+	if infraPostgres.IsAccessError(err) {
+		slog.Error("PostgreSQL operation rejected", "err", err)
+		return repository.ErrOperationNotPermitted
+	}
+	return err
 }

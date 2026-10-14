@@ -47,7 +47,7 @@ func (r *gateRepository) Save(
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return repository.ErrGateAlreadyExists
 		}
-		return err
+		return translateError(err)
 	}
 	return nil
 }
@@ -72,19 +72,19 @@ func (r *gateRepository) GetAirportByGateId(
 	`
 	rows, err := r.conn.Query(ctx, query, gid)
 	if err != nil {
-		return domain.Airport{}, fmt.Errorf("%s: %w", op, err)
+		return domain.Airport{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	am, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AirportModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Airport{}, repository.ErrAirportNotFound
 		}
-		return domain.Airport{}, fmt.Errorf("%s: %w", op, err)
+		return domain.Airport{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	ad, err := model.AirportModelToDomain(am)
 	if err != nil {
-		return domain.Airport{}, fmt.Errorf("%s: %w", op, err)
+		return domain.Airport{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	return ad, nil
@@ -98,18 +98,18 @@ func (r *gateRepository) List(ctx context.Context) ([]domain.Gate, error) {
 	`
 	rows, err := r.conn.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	gms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.GateModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	gsd := make([]domain.Gate, len(gms))
 	for i, gm := range gms {
 		gd, err := model.GateModelToDomain(gm)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		gsd[i] = gd
 	}
@@ -130,17 +130,17 @@ func (r *gateRepository) ListPage(
 	`
 	rows, err := r.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.GateModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	gates := make([]domain.Gate, len(models))
 	for i, gateModel := range models {
 		gate, err := model.GateModelToDomain(gateModel)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		gates[i] = gate
 	}

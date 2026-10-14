@@ -28,6 +28,9 @@ func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			return domain.User{}, ErrUserNotFound
 		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return domain.User{}, ErrOperationNotPermitted
+		}
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -43,6 +46,9 @@ func (uc *AuthUsecase) CreateUser(u domain.User) error {
 	if err := uc.repo.SaveUser(context.Background(), u); err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
 			return ErrUserAlreadyExists
+		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}

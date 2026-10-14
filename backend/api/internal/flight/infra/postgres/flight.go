@@ -55,7 +55,7 @@ func (p *PostgresDB) Save(ctx context.Context, f domain.Flight) error {
 		f.ArrivalGateId,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -68,19 +68,19 @@ func (p *PostgresDB) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, e
 	`
 	row, err := p.conn.Query(ctx, query, fid)
 	if err != nil {
-		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	fm, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Flight{}, ErrFlightNotFound
 		}
-		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	fd, err := model.FlightModelToDomain(fm)
 	if err != nil {
-		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
+		return domain.Flight{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return fd, nil
 }
@@ -95,7 +95,7 @@ func (p *PostgresDB) Update(
 	set`
 
 	if _, err := p.Exist(ctx, ufi.FlightId); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	args := []any{}
@@ -137,7 +137,7 @@ func (p *PostgresDB) Update(
 
 	_, err := p.conn.Exec(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	return nil
@@ -151,18 +151,18 @@ func (p *PostgresDB) ListFlights(ctx context.Context) ([]domain.Flight, error) {
 	`
 	rows, err := p.conn.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	flightsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	flights := make([]domain.Flight, len(flightsModels))
 	for i, m := range flightsModels {
 		f, err := model.FlightModelToDomain(m)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		flights[i] = f
 	}
@@ -184,17 +184,17 @@ func (p *PostgresDB) ListFlightsPage(
 	`
 	rows, err := p.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.FlightModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	flights := make([]domain.Flight, len(models))
 	for i, flightModel := range models {
 		flight, err := model.FlightModelToDomain(flightModel)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		flights[i] = flight
 	}
@@ -213,19 +213,19 @@ func (p *PostgresDB) GetFlightRoute(
 	`
 	rows, err := p.conn.Query(ctx, query, fid)
 	if err != nil {
-		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
+		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	rm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightRouteModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.FlightRoute{}, ErrFlightRouteNotFound
 		}
-		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
+		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	rd, err := model.FlightRouteModelToDomain(rm)
 	if err != nil {
-		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
+		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	return rd, nil
@@ -245,17 +245,17 @@ func (p *PostgresDB) ListSubscribers(
 
 	rows, err := p.conn.Query(ctx, query, fid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	userMs, err := pgx.CollectRows(rows, pgx.RowToStructByName[userModel.UserModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	users := make([]userDomain.User, len(userMs))
 	for i, um := range userMs {
 		u, err := userModel.UserModelToDomain(um)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		users[i] = u
 	}
@@ -300,16 +300,16 @@ func (p *PostgresDB) GetFlightAirports(
 	`
 	rows, err := p.conn.Query(ctx, query, fid)
 	if err != nil {
-		return dep, arr, fmt.Errorf("%s: %w", op, err)
+		return dep, arr, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	fam, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.FlightAirportsModel])
 	slog.Debug(op, "fam", fam)
 	if err != nil {
-		return dep, arr, fmt.Errorf("%s: %w", op, err)
+		return dep, arr, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	dep, arr, err = model.FlightAirportsModelToDomain(fam)
 	if err != nil {
-		return dep, arr, fmt.Errorf("%s: %w", op, err)
+		return dep, arr, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return dep, arr, nil
 }

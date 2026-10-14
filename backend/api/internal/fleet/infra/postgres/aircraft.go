@@ -4,10 +4,12 @@ import (
 	"api/internal/fleet/domain"
 	"api/internal/fleet/domain/repository"
 	"api/internal/fleet/infra/postgres/model"
+	infraPostgres "api/internal/infra/postgres"
 	"api/internal/pagination"
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -49,7 +51,7 @@ func (r *aircraftRepository) SaveAircraft(
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return repository.ErrAircraftAlreadyExists
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -62,17 +64,17 @@ func (r *aircraftRepository) List(ctx context.Context) ([]domain.Aircraft, error
 	`
 	rows, err := r.conn.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	ams, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AircraftModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	ads := make([]domain.Aircraft, len(ams))
 	for i, am := range ams {
 		ad, err := model.AircraftModelToDomain(am)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		ads[i] = ad
 	}
@@ -93,19 +95,27 @@ func (r *aircraftRepository) ListPage(
 	`
 	rows, err := r.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AircraftModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	aircraft := make([]domain.Aircraft, len(models))
 	for i, aircraftModel := range models {
 		item, err := model.AircraftModelToDomain(aircraftModel)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		aircraft[i] = item
 	}
 	return aircraft, nil
+}
+
+func translateError(err error) error {
+	if infraPostgres.IsAccessError(err) {
+		slog.Error("PostgreSQL operation rejected", "err", err)
+		return repository.ErrOperationNotPermitted
+	}
+	return err
 }

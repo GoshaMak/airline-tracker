@@ -4,6 +4,7 @@ import (
 	"api/internal/airport/command"
 	"api/internal/airport/dto"
 	"api/internal/airport/usecase"
+	"api/internal/httperror"
 	"api/internal/middleware"
 	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
@@ -57,7 +58,7 @@ func (h *GateHandler) CreateGate(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
@@ -74,7 +75,7 @@ func (h *GateHandler) ListGates(ctx *gin.Context) {
 	page, err := h.uc.ListGatesPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 

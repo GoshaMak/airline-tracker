@@ -3,6 +3,7 @@ package handler
 import (
 	"api/internal/auth/dto"
 	"api/internal/auth/usecase"
+	"api/internal/httperror"
 	userDomain "api/internal/user/domain"
 	"errors"
 	"log/slog"
@@ -50,7 +51,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
@@ -78,14 +79,14 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
 	token, err := usecase.GenerateJWT(user)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 

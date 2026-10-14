@@ -2,17 +2,51 @@ include:
   - path: ./infra-compose.yml
 
 services:
-  api:
+  api: &api-service
     env_file:
       - ./api/.env
     build:
       context: .
       dockerfile: ./api/Dockerfile
     command: ["/bin/api"]
+    environment:
+      INSTANCE_ID: api
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+
+  api-read-1:
+    <<: *api-service
+    env_file:
+      - ./api/.env
+      - ./api/read.env
+    environment:
+      INSTANCE_ID: api-read-1
+
+  api-read-2:
+    <<: *api-service
+    env_file:
+      - ./api/.env
+      - ./api/read.env
+    environment:
+      INSTANCE_ID: api-read-2
+
+  api-publisher:
+    env_file:
+      - ./api/.env
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    command: ["/bin/publisher"]
+    environment:
+      LOG_FILE: publisher.log
+    restart: unless-stopped
+    depends_on:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -70,6 +104,13 @@ services:
   nginx:
     image: nginx:stable-alpine
     restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+      api-read-1:
+        condition: service_started
+      api-read-2:
+        condition: service_started
     ports:
       - "127.0.0.1:8080:80"
     volumes:

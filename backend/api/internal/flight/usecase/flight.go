@@ -32,6 +32,9 @@ func (uc *FlightUsecase) ListFlightsPage(params pagination.Params) (pagination.P
 	if repo, ok := uc.repo.(paginatedFlightRepository); ok {
 		flights, err := repo.ListFlightsPage(context.Background(), params)
 		if err != nil {
+			if errors.Is(err, repository.ErrOperationNotPermitted) {
+				return pagination.Page[domain.Flight]{}, ErrOperationNotPermitted
+			}
 			return pagination.Page[domain.Flight]{}, fmt.Errorf("FlightUsecase.ListFlightsPage: %w", err)
 		}
 		return pagination.FromFetched(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
@@ -54,6 +57,9 @@ func (uc *FlightUsecase) ListFlights() ([]domain.Flight, error) {
 	const op = "FlightUsecase.ListFlights"
 	flights, err := uc.repo.ListFlights(context.Background())
 	if err != nil {
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return nil, ErrOperationNotPermitted
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return flights, nil
@@ -66,6 +72,9 @@ func (uc *FlightUsecase) CreateFlight(cmd command.CreateFlightCommand) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := uc.repo.Save(context.Background(), f); err != nil {
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
@@ -77,6 +86,9 @@ func (uc *FlightUsecase) FlightById(fid uuid.UUID) (domain.Flight, error) {
 	if err != nil {
 		if errors.Is(err, repository.ErrFlightNotFound) {
 			return domain.Flight{}, ErrFlightNotFound
+		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return domain.Flight{}, ErrOperationNotPermitted
 		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -92,6 +104,9 @@ func (uc *FlightUsecase) UpdateFlight(cmd command.UpdateFlightCommand) error {
 	if err := uc.repo.Update(context.Background(), ufi); err != nil {
 		if errors.Is(err, repository.ErrFlightNotFound) {
 			return ErrFlightNotFound
+		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -143,6 +158,9 @@ func (uc *FlightUsecase) formPayload(
 	const op = "FlightUsecase.formPayload"
 	users, err := uc.repo.ListSubscribers(context.Background(), ufi.FlightId)
 	if err != nil {
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return domain.FlightUpdatedPayload{}, ErrOperationNotPermitted
+		}
 		return domain.FlightUpdatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 

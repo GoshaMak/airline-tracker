@@ -6,9 +6,9 @@ import (
 	authHandler "api/internal/auth/handler"
 	fleetHandler "api/internal/fleet/handler"
 	flightHandler "api/internal/flight/handler"
-	"api/internal/infra/kafka"
 	"api/internal/infra/postgres"
 	"api/internal/infra/redis"
+	"api/internal/middleware"
 	userHandler "api/internal/user/handler"
 	"context"
 
@@ -31,6 +31,7 @@ type Server struct {
 
 func NewServer(injector *do.RootScope) (*Server, error) {
 	router := gin.Default()
+	router.Use(middleware.Instance(os.Getenv("INSTANCE_ID")))
 
 	registerRoutes(injector, router)
 
@@ -43,7 +44,6 @@ func NewServer(injector *do.RootScope) (*Server, error) {
 func (s *Server) Run(ctx context.Context) error {
 	defer postgres.CloseConnection(do.MustInvoke[*pgxpool.Pool](s.injector))
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](s.injector))
-	defer kafka.CloseConnection(do.MustInvoke[*kafka.NotifySender](s.injector))
 
 	port := os.Getenv("PORT")
 	if err := s.router.Run(":" + port); err != nil {

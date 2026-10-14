@@ -196,7 +196,7 @@ Airline Tracker — система для просмотра рейсов и о�
 
 Необходимы GNU Make, Docker с плагином Docker Compose и заполненные файлы окружения:
 
-- `backend/api/.env` и `backend/api/migrate.env`;
+- `backend/api/.env`, `backend/api/read.env` и `backend/api/migrate.env`;
 - `backend/notifier/.env` и `backend/notifier/migrate.env`;
 - `utils/.env` — только для генератора тестовых данных.
 
@@ -209,6 +209,52 @@ make release
 После запуска веб-интерфейс доступен на <http://localhost:8080>, API — на <http://localhost:8080/api/v1>, интерактивная документация API (Swagger UI) — на <http://localhost:8080/api/v1/docs/>, OpenAPI-спецификация в YAML — на <http://localhost:8080/api/v1/openapi.yml>. Единственное описание интерфейса API находится в [OpenAPI 3.0 спецификации](backend/api/cmd/docs/openapi.yml). Swagger UI читает её напрямую; аннотации в Go и генерация Swagger-файлов не используются.
 
 Для отладки используйте `make debug`: дополнительно публикуются локальные порты PostgreSQL, Redis и Kafka, а фронтенд доступен напрямую на <http://localhost:3000> (порт можно изменить через `FRONTEND_PORT`). В режиме `make release` опубликован только порт общего Nginx — `127.0.0.1:8080`. API и notifier подключаются к инфраструктуре через Docker-сеть в обоих режимах.
+
+### Балансировка API (пункт 1 задания)
+
+Используются три экземпляра одного образа API и одна общая PostgreSQL:
+
+| Экземпляр | Внутренний адрес | Прямой адрес в debug | Права БД | Вес чтения |
+|---|---|---|---|---|
+| Основной | `api:8080` | `127.0.0.1:8081` | Чтение и запись (`app_user`) | 2 |
+| Только чтение | `api-read-1:8080` | `127.0.0.1:8082` | Чтение (`app_reader`) | 1 |
+| Только чтение | `api-read-2:8080` | `127.0.0.1:8083` | Чтение (`app_reader`) | 1 |
+
+Общий nginx направляет GET/HEAD к `/api/v1/` в группу с весами `2:1:1`, остальные методы — только в основной экземпляр. В штатном режиме основной обрабатывает примерно половину запросов чтения, каждый дополнительный — четверть. При отказах соотношение меняется; при недоступности основного запись не переносится на экземпляры чтения. API-запросы frontend на debug-порту 3000 также проходят через общий nginx.
+
+Каждый API-ответ содержит `X-Backend-Instance`: `api`, `api-read-1` или `api-read-2`. Все экземпляры запускают одинаковый HTTP API без режима `READ_ONLY` и без проверок read/write в Go. Маршрутизацию методов выполняет nginx, а PostgreSQL ограничивает `app_reader` правами SELECT и включает `default_transaction_read_only` для этой роли. Redis остаётся общим кэшем; ограничения БД не запрещают заполнение кэша.
+
+Outbox publisher запускается отдельно: сервис Compose `api-publisher` выполняет `/bin/publisher` из того же образа, что и API. Он использует подключение `app_user` из `backend/api/.env`, читает outbox, отправляет события в Kafka и отмечает их отправленными. HTTP API только сохраняет события в outbox и не запускает фоновый издатель; его запуск больше не зависит от доступности Kafka. Publisher не имеет HTTP-порта, ждёт PostgreSQL, Kafka и API-миграции и корректно завершает работу по SIGTERM. Должен работать один экземпляр publisher: текущий алгоритм не обеспечивает безопасное конкурентное извлечение событий несколькими workers.
+
+Прямые debug-порты 8081–8083 обходят nginx. Попытку изменить бизнес-данные на экземпляре чтения отклонит PostgreSQL. Коды SQLSTATE `25006` и `42501` распознаются только в PostgreSQL-слое: он логирует техническую причину и возвращает ошибку репозитория. Usecase переводит её в собственную `ErrOperationNotPermitted`; HTTP-обработчик анализирует только эту ошибку usecase. Для рейсов между PostgreSQL и usecase дополнительно выполняется перевод в ошибку составного репозитория PostgreSQL/Redis. Ответ сохраняет HTTP 500 с нейтральным пояснением: `code: operation_not_permitted`, `msg: operation is not permitted`. Клиенту не сообщаются тип БД, режим подключения, SQL или имена таблиц. Другие внутренние ошибки возвращают `msg: internal error`. Ответа `403/read_only_instance` в API больше нет. Операции без записи в PostgreSQL, например генерация UUID, при прямом обращении разрешены. Для отдельного HTTP-отказа до API потребуется nginx-вход с фильтрацией методов перед экземплярами чтения.
+
+Миграция `20260611191216_grant_privileges.sql` выдаёт `spectator` SELECT на существующие и будущие таблицы `api_schema`, а `admin` — полные права на таблицы этой схемы. `ALTER DEFAULT PRIVILEGES` действует на таблицы, создаваемые той же ролью, которая выполняет миграции (`postgres` в текущей конфигурации). Роли записи предметных областей получают права только на явно перечисленные таблицы; новые таблицы нужно добавлять в соответствующие GRANT. Миграция notifier аналогично настраивает текущие и будущие таблицы `notifier_schema` для `app_user`.
+
+Миграция `20261014120000_create_api_reader.sql` создаёт пользователя чтения с фиксированным паролем и назначает ему `spectator`. Дополнительные экземпляры ждут успешного завершения мигратора. Все экземпляры наследуют один `JWT_KEY` из `backend/api/.env`.
+
+Важно: исправления старых миграций применяются при развёртывании новой БД. Если эти миграции уже выполнены, Goose не запустит их повторно: для существующей БД нужна отдельная корректирующая миграция. Не удаляйте том с данными ради применения исправлений.
+
+Фиксированный пароль `app_reader` — `reader_pswd`; он указан в SQL-миграции и строке подключения в `backend/api/read.env`. Оба read-only сервиса загружают этот файл после `backend/api/.env`, переопределяя только подключение к PostgreSQL. Файлы `*.env` исключены из Git. Эти учётные данные предназначены только для локальной разработки. Если миграция уже применена, изменение её файла не обновит пароль существующей роли: потребуется отдельная миграция с `ALTER ROLE`.
+
+Проверки после запуска (приведены как инструкции, не выполняются автоматически):
+
+```bash
+# Смотреть X-Backend-Instance при последовательных GET через балансировщик.
+curl -i http://localhost:8080/api/v1/status
+
+# В debug прямое чтение должно вернуть 200.
+curl -i http://localhost:8082/api/v1/status
+curl -i http://localhost:8083/api/v1/status
+
+# POST через балансировщик должен вернуть 200 и X-Backend-Instance: api.
+curl -i -X POST http://localhost:8080/api/v1/uuids
+
+# Проверить реальные права БД: can_read=true, can_insert=false, can_update=false,
+# can_delete=false, can_truncate=false.
+docker compose -f backend/docker-compose.yml exec postgres psql -U postgres -d airline_tracker -c "SELECT has_table_privilege('app_reader', 'api_schema.flights', 'SELECT') AS can_read, has_table_privilege('app_reader', 'api_schema.flights', 'INSERT') AS can_insert, has_table_privilege('app_reader', 'api_schema.flights', 'UPDATE') AS can_update, has_table_privilege('app_reader', 'api_schema.flights', 'DELETE') AS can_delete, has_table_privilege('app_reader', 'api_schema.flights', 'TRUNCATE') AS can_truncate;"
+```
+
+Репликация БД и `/mirror` в этом пункте не реализуются.
 
 Остановка приложения и удаление созданных Compose-томов:
 

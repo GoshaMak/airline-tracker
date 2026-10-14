@@ -57,6 +57,9 @@ func (uc *UserUsecase) CreateSubscription(uid, fid uuid.UUID, notifyBeforeMinute
 		if errors.Is(err, userRepository.ErrFlightNotFound) {
 			return ErrFlightNotFound
 		}
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !added {
@@ -72,6 +75,9 @@ func (uc *UserUsecase) AddSubscriptionTimers(uid, fid uuid.UUID, notifyBeforeMin
 		if errors.Is(err, userRepository.ErrSubscriptionNotFound) {
 			return ErrSubscriptionNotFound
 		}
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	for _, minutes := range added {
@@ -85,6 +91,9 @@ func (uc *UserUsecase) AddSubscriptionTimers(uid, fid uuid.UUID, notifyBeforeMin
 func (uc *UserUsecase) DeleteSubscription(uid, fid uuid.UUID) error {
 	const op = "UserUsecase.DeleteSubscription"
 	if err := uc.subRepo.Delete(context.Background(), uid, fid); err != nil {
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
@@ -103,6 +112,9 @@ func (uc *UserUsecase) publishSubscriptionNotification(uid, fid uuid.UUID, notif
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := uc.outboxRepo.Save(context.Background(), ob); err != nil {
+		if errors.Is(err, outboxRepository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	slog.Debug(op+": saved to outbox", "outbox", ob)
@@ -119,6 +131,9 @@ func (uc *UserUsecase) GetUser(email, password string) (*domain.User, error) {
 		err = fmt.Errorf("Empty email and phone")
 	}
 	if err != nil {
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return nil, ErrOperationNotPermitted
+		}
 		return nil, err
 	}
 	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
@@ -133,6 +148,9 @@ func (uc *UserUsecase) GetUserById(uid uuid.UUID) (domain.User, error) {
 	if err != nil {
 		if errors.Is(err, userRepository.ErrUserNotFound) {
 			return domain.User{}, ErrUserNotFound
+		}
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return domain.User{}, ErrOperationNotPermitted
 		}
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -159,6 +177,9 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 		if errors.Is(err, userRepository.ErrUserAlreadySubscribed) {
 			return nil
 		}
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -173,6 +194,9 @@ func (uc *UserUsecase) Subscribe(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := uc.outboxRepo.Save(context.Background(), ob); err != nil {
+		if errors.Is(err, outboxRepository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	slog.Debug(op+": saved to outbox", "outbox", ob)
@@ -187,6 +211,9 @@ func (uc *UserUsecase) formPayload(uid, fid uuid.UUID, notifyBeforeMinutes int64
 		if errors.Is(err, userRepository.ErrUserNotFound) {
 			return domain.SubscriptionCreatedPayload{}, ErrUserNotFound
 		}
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return domain.SubscriptionCreatedPayload{}, ErrOperationNotPermitted
+		}
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -194,6 +221,9 @@ func (uc *UserUsecase) formPayload(uid, fid uuid.UUID, notifyBeforeMinutes int64
 	if err != nil {
 		if errors.Is(err, flightRepository.ErrFlightNotFound) {
 			return domain.SubscriptionCreatedPayload{}, ErrFlightNotFound
+		}
+		if errors.Is(err, flightRepository.ErrOperationNotPermitted) {
+			return domain.SubscriptionCreatedPayload{}, ErrOperationNotPermitted
 		}
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -203,16 +233,25 @@ func (uc *UserUsecase) formPayload(uid, fid uuid.UUID, notifyBeforeMinutes int64
 		if errors.Is(err, flightRepository.ErrFlightRouteNotFound) {
 			return domain.SubscriptionCreatedPayload{}, ErrFlightRouteNotFound
 		}
+		if errors.Is(err, flightRepository.ErrOperationNotPermitted) {
+			return domain.SubscriptionCreatedPayload{}, ErrOperationNotPermitted
+		}
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	depAirport, err := uc.gateRepo.GetAirportByGateId(context.Background(), route.DepartureGateId)
 	if err != nil {
+		if errors.Is(err, airportRepository.ErrOperationNotPermitted) {
+			return domain.SubscriptionCreatedPayload{}, ErrOperationNotPermitted
+		}
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	arrAirport, err := uc.gateRepo.GetAirportByGateId(context.Background(), route.ArrivalGateId)
 	if err != nil {
+		if errors.Is(err, airportRepository.ErrOperationNotPermitted) {
+			return domain.SubscriptionCreatedPayload{}, ErrOperationNotPermitted
+		}
 		return domain.SubscriptionCreatedPayload{}, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -227,6 +266,9 @@ func (uc *UserUsecase) ListFlights(uid uuid.UUID) ([]flightDomain.Flight, error)
 	const op = "UserUsecase.ListFlights"
 	flights, err := uc.subRepo.ListFlights(context.Background(), uid)
 	if err != nil {
+		if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+			return nil, ErrOperationNotPermitted
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return flights, nil
@@ -239,6 +281,9 @@ func (uc *UserUsecase) ListFlightsPage(
 	if repo, ok := uc.subRepo.(paginatedSubscriptionRepository); ok {
 		flights, err := repo.ListFlightsPage(context.Background(), uid, params)
 		if err != nil {
+			if errors.Is(err, userRepository.ErrOperationNotPermitted) {
+				return pagination.Page[flightDomain.Flight]{}, ErrOperationNotPermitted
+			}
 			return pagination.Page[flightDomain.Flight]{}, fmt.Errorf("UserUsecase.ListFlightsPage: %w", err)
 		}
 		return pagination.FromFetched(flights, params, func(f flightDomain.Flight) uuid.UUID { return f.Id }), nil

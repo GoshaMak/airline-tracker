@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	infraPostgres "api/internal/infra/postgres"
 	"api/internal/publisher/domain"
 	"api/internal/publisher/domain/repository"
 	"api/internal/publisher/infra/postgres/model"
@@ -42,14 +43,14 @@ func (r *outboxRepository) Save(
 
 	obm, err := model.OutboxDomainToModel(ob)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	_, err = r.conn.Exec(ctx, query,
 		obm.Id, obm.Topic, obm.Payload, obm.CreatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -84,11 +85,11 @@ func (r *outboxRepository) ListNotSent(
 
 	rows, err := r.conn.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	obms, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.OutboxModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	if len(obms) > 0 {
 		slog.Debug(op, "obms", obms)
@@ -98,7 +99,7 @@ func (r *outboxRepository) ListNotSent(
 		payload := newPayload()
 		ob, err := model.OutboxModelToDomain(obm, payload)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		obs[i] = ob
 	}
@@ -116,7 +117,15 @@ func (r *outboxRepository) MarkAsSent(ctx context.Context, ob domain.Outbox) err
 
 	_, err := r.conn.Exec(ctx, query, ob.SentAt, ob.Id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
+}
+
+func translateError(err error) error {
+	if infraPostgres.IsAccessError(err) {
+		slog.Error("PostgreSQL operation rejected", "err", err)
+		return repository.ErrOperationNotPermitted
+	}
+	return err
 }

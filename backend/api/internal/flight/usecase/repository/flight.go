@@ -40,6 +40,9 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 func (r *flightRepository) Save(ctx context.Context, flight domain.Flight) error {
 	const op = "FlightRepository.Save"
 	if err := r.db.Save(ctx, flight); err != nil {
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return repository.ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -71,6 +74,9 @@ func (r *flightRepository) Exist(ctx context.Context, fid uuid.UUID) (domain.Fli
 		if errors.Is(err, postgres.ErrFlightNotFound) {
 			return domain.Flight{}, repository.ErrFlightNotFound
 		}
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return domain.Flight{}, repository.ErrOperationNotPermitted
+		}
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, err)
 	}
 	return f, nil
@@ -82,6 +88,9 @@ func (r *flightRepository) Update(ctx context.Context, ufi domain.UpdateFlightIn
 		slog.Warn(op, "err", err)
 		if errors.Is(err, postgres.ErrFlightNotFound) {
 			return repository.ErrFlightNotFound
+		}
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return repository.ErrOperationNotPermitted
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -112,6 +121,9 @@ func (r *flightRepository) ListFlights(ctx context.Context) ([]domain.Flight, er
 
 	flights, err = r.db.ListFlights(ctx)
 	if err != nil {
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return nil, repository.ErrOperationNotPermitted
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -135,6 +147,9 @@ func (r *flightRepository) GetFlightRoute(ctx context.Context, fid uuid.UUID) (d
 		if errors.Is(err, postgres.ErrFlightRouteNotFound) {
 			return domain.FlightRoute{}, repository.ErrFlightRouteNotFound
 		}
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return domain.FlightRoute{}, repository.ErrOperationNotPermitted
+		}
 		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, err)
 	}
 	return fr, nil
@@ -144,6 +159,9 @@ func (r *flightRepository) ListSubscribers(ctx context.Context, fid uuid.UUID) (
 	const op = "FlightRepository.ListSubscribers"
 	subs, err := r.db.ListSubscribers(ctx, fid)
 	if err != nil {
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return nil, repository.ErrOperationNotPermitted
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return subs, nil
@@ -156,6 +174,9 @@ func (r *flightRepository) GetFlightAirports(
 	const op = "FlightRepository.GetFlightAirports"
 	dep, arr, err = r.db.GetFlightAirports(ctx, fid)
 	if err != nil {
+		if errors.Is(err, postgres.ErrOperationNotPermitted) {
+			return dep, arr, repository.ErrOperationNotPermitted
+		}
 		return dep, arr, fmt.Errorf("%s: %w", op, err)
 	}
 	return dep, arr, nil

@@ -26,6 +26,9 @@ func (uc *AirportUsecase) ListAirportsPage(params pagination.Params) (pagination
 	if repo, ok := uc.repo.(paginatedAirportRepository); ok {
 		airports, err := repo.ListAirportsPage(context.Background(), params)
 		if err != nil {
+			if errors.Is(err, repository.ErrOperationNotPermitted) {
+				return pagination.Page[domain.Airport]{}, ErrOperationNotPermitted
+			}
 			return pagination.Page[domain.Airport]{}, fmt.Errorf("AirportUsecase.ListAirportsPage: %w", err)
 		}
 		return pagination.FromFetched(airports, params, func(a domain.Airport) uuid.UUID { return a.ID }), nil
@@ -54,6 +57,9 @@ func (uc *AirportUsecase) CreateAirport(cmd *command.CreateAirportCommand) error
 		if errors.Is(err, repository.ErrAirportAlreadyExists) {
 			return ErrAirportAlreadyExists
 		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -64,6 +70,9 @@ func (uc *AirportUsecase) ListAirports() (query.ListAirportsQuery, error) {
 	const op = "AirportUsecase.ListAirports"
 	airports, err := uc.repo.ListAirports(context.Background())
 	if err != nil {
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return query.ListAirportsQuery{}, ErrOperationNotPermitted
+		}
 		return query.ListAirportsQuery{}, fmt.Errorf("%s: %w", op, err)
 	}
 

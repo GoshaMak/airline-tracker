@@ -18,7 +18,6 @@ import (
 	"syscall"
 
 	"github.com/samber/do/v2"
-	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -48,17 +47,13 @@ func main() {
 		flight.Package,
 		user.Package,
 		infra.Package,
-		publisher.Package,
+		publisher.OutboxPackage,
 	)
 
 	srv, err := server.NewServer(injector)
 	if err != nil {
 		slog.Error("error creating server", "err", err)
-	}
-
-	pub, err := publisher.NewPublisher(injector)
-	if err != nil {
-		slog.Info("error creating publisher", "err", err)
+		os.Exit(1)
 	}
 
 	ctx, stop := signal.NotifyContext(
@@ -68,17 +63,7 @@ func main() {
 	)
 	defer stop()
 
-	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		return srv.Run(ctx)
-	})
-
-	g.Go(func() error {
-		return pub.Run(ctx)
-	})
-
-	if err := g.Wait(); err != nil {
+	if err := srv.Run(ctx); err != nil {
 		slog.Info("app error", "err", err)
 		os.Exit(1)
 	}

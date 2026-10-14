@@ -32,6 +32,9 @@ func (uc *AircraftModelUsecase) CreateAircraftModel(cmd command.CreateAircraftMo
 		if errors.Is(err, repository.ErrAircraftModelAlreadyExists) {
 			return ErrAircraftModelAlreadyExists
 		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
@@ -43,6 +46,9 @@ func (uc *AircraftModelUsecase) AircraftById(id uuid.UUID) (domain.AircraftModel
 	if err != nil {
 		if errors.Is(err, repository.ErrAircraftModelNotFound) {
 			return domain.AircraftModel{}, ErrAircraftModelNotFound
+		}
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return domain.AircraftModel{}, ErrOperationNotPermitted
 		}
 		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
 	}

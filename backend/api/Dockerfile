@@ -24,8 +24,13 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux \
     go build -o /bin/api ./cmd/api
 
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux \
+    go build -o /bin/publisher ./cmd/publisher
 
 FROM alpine:latest
 
 COPY --from=builder /bin/api /bin/api
 COPY --from=builder /bin/migrate /bin/migrate
+COPY --from=builder /bin/publisher /bin/publisher

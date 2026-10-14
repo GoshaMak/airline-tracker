@@ -4,6 +4,7 @@ import (
 	"api/internal/fleet/command"
 	"api/internal/fleet/dto"
 	"api/internal/fleet/usecase"
+	"api/internal/httperror"
 	"api/internal/middleware"
 	userDomain "api/internal/user/domain"
 	"errors"
@@ -77,7 +78,7 @@ func (h *AircraftModelHandler) AircraftModelById(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 

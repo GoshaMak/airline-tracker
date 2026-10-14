@@ -4,7 +4,6 @@ import (
 	"api/internal/infra/kafka"
 	"api/internal/publisher/domain"
 	"api/internal/publisher/domain/repository"
-	"api/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -55,6 +54,9 @@ func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 		return &SendPayload{}
 	})
 	if err != nil {
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return ErrOperationNotPermitted
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -69,9 +71,12 @@ func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 			if err := uc.ns.SendMessage(ob.Topic, msg); err != nil {
 				return fmt.Errorf("%s: %w", op, err)
 			}
-			obs[i].SentAt = utils.Ptr(time.Now())
+			obs[i].SentAt = new(time.Now())
 
 			if err := uc.repo.MarkAsSent(ctx, obs[i]); err != nil {
+				if errors.Is(err, repository.ErrOperationNotPermitted) {
+					return ErrOperationNotPermitted
+				}
 				return fmt.Errorf("%s: %w", op, err)
 			}
 

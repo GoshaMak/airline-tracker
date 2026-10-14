@@ -4,10 +4,12 @@ import (
 	"api/internal/airport/domain"
 	"api/internal/airport/domain/repository"
 	"api/internal/airport/infra/postgres/model"
+	infraPostgres "api/internal/infra/postgres"
 	"api/internal/pagination"
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -52,9 +54,9 @@ func (r *airportRepository) Save(
 	row := r.conn.QueryRow(ctx, cityQuery, a.City.String(), a.Country.String())
 	if err := row.Scan(&cityId); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("%s: %w: city or country not found", op, err)
+			return fmt.Errorf("%s: %w: city or country not found", op, translateError(err))
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	_, err := r.conn.Exec(ctx, query,
@@ -65,7 +67,7 @@ func (r *airportRepository) Save(
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return repository.ErrAirportAlreadyExists
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -85,21 +87,21 @@ func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport,
 	`
 	rows, err := r.conn.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	airportsModels, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AirportModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	airports := make([]domain.Airport, len(airportsModels))
 	for i, am := range airportsModels {
 		a, err := model.AirportModelToDomain(am)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		airports[i] = a
 	}
@@ -127,19 +129,27 @@ func (r *airportRepository) ListAirportsPage(
 	`
 	rows, err := r.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.AirportModel])
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	airports := make([]domain.Airport, len(models))
 	for i, airportModel := range models {
 		airport, err := model.AirportModelToDomain(airportModel)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, translateError(err))
 		}
 		airports[i] = airport
 	}
 	return airports, nil
+}
+
+func translateError(err error) error {
+	if infraPostgres.IsAccessError(err) {
+		slog.Error("PostgreSQL operation rejected", "err", err)
+		return repository.ErrOperationNotPermitted
+	}
+	return err
 }

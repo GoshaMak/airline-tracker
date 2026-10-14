@@ -4,6 +4,7 @@ import (
 	"api/internal/flight/command"
 	flightDTO "api/internal/flight/dto"
 	"api/internal/flight/usecase"
+	"api/internal/httperror"
 	"api/internal/middleware"
 	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
@@ -51,7 +52,7 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	page, err := h.uc.ListFlightsPage(params)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
@@ -76,7 +77,7 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
@@ -101,7 +102,7 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	}
 	if err := h.uc.CreateFlight(cmd); err != nil { // FIX: returns 500 if flight exists
 		slog.Warn(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "flight created"})
@@ -137,7 +138,7 @@ func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 

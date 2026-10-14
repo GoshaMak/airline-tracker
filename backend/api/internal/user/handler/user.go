@@ -2,6 +2,7 @@ package handler
 
 import (
 	flightDTO "api/internal/flight/dto"
+	"api/internal/httperror"
 	"api/internal/middleware"
 	"api/internal/pagination"
 	"api/internal/user/domain"
@@ -65,7 +66,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
@@ -97,7 +98,7 @@ func (h *UserHandler) AddTimers(ctx *gin.Context) {
 			return
 		}
 		slog.Error(op, "err", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"msg": "notification timers added"})
@@ -118,7 +119,7 @@ func (h *UserHandler) Unsubscribe(ctx *gin.Context) {
 	}
 	if err := h.uc.DeleteSubscription(uid, fid); err != nil {
 		slog.Error(op, "err", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -142,7 +143,7 @@ func (h *UserHandler) ListFlights(ctx *gin.Context) {
 	page, err := h.uc.ListFlightsPage(uid, params)
 	if err != nil {
 		slog.Error(op, "err", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "internal error"})
+		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 

@@ -8,4 +8,5 @@ var (
 	ErrFlightNotFound        = errors.New("flight not found")
 	ErrUserAlreadySubscribed = errors.New("user already subscribed")
 	ErrSubscriptionNotFound  = errors.New("subscription not found")
+	ErrOperationNotPermitted = errors.New("repository operation not permitted")
 )

@@ -9,6 +9,11 @@ info:
     protected require a JWT issued by the token endpoint. Administrative
     operations additionally require the `admin` role; subscription operations
     require the `user` role.
+
+    GET requests are balanced across three backend instances with weights 2:1:1.
+    Other methods are routed to the writable instance. Database permissions
+    restrict the two additional instances to reading business data.
+    Responses include X-Backend-Instance to identify the serving instance.
 servers:
   - url: http://localhost:8080
     description: Local API service
@@ -585,15 +590,33 @@ components:
           example:
             msg: user not found
     InternalError:
-      description: Unexpected server error.
+      description: Unexpected server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Message'
-          example:
-            msg: internal error
+            $ref: '#/components/schemas/InternalErrorResponse'
+          examples:
+            generic:
+              value:
+                msg: internal error
+            operationNotPermitted:
+              value:
+                code: operation_not_permitted
+                msg: operation is not permitted
 
   schemas:
+    InternalErrorResponse:
+      type: object
+      required: [msg]
+      properties:
+        msg:
+          type: string
+          description: Error explanation
+        code:
+          type: string
+          description: Optional application error code
+          enum: [operation_not_permitted]
+
     Uuid:
       type: string
       format: uuid

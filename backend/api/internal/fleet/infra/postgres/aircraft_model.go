@@ -49,7 +49,7 @@ func (r *aircraftModelRepository) SaveAircraftModel(
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return repository.ErrAircraftModelAlreadyExists
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
 }
@@ -66,19 +66,19 @@ func (r *aircraftModelRepository) GetAircraftModelById(
 	`
 	rows, err := r.conn.Query(ctx, query, id)
 	if err != nil {
-		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
+		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	amm, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.AircraftModelModel])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.AircraftModel{}, repository.ErrAircraftModelNotFound
 		}
-		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
+		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	amd, err := model.AircraftModelModelToDomain(amm)
 	if err != nil {
-		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, err)
+		return domain.AircraftModel{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
 	return amd, nil
