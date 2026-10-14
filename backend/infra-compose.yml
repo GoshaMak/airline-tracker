@@ -6,8 +6,6 @@ services:
       POSTGRES_DB: airline_tracker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init/:/docker-entrypoint-initdb.d
@@ -24,8 +22,6 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -37,8 +33,6 @@ services:
 
   kafka:
     image: apache/kafka:latest
-    ports:
-      - "9092:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller

@@ -1,4 +1,3 @@
-FROM nginx:1.27-alpine
+FROM nginx:stable-alpine
 
-COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY src /usr/share/nginx/html

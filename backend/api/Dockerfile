@@ -29,5 +29,3 @@ FROM alpine:latest
 
 COPY --from=builder /bin/api /bin/api
 COPY --from=builder /bin/migrate /bin/migrate
-
-EXPOSE 8080

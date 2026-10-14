@@ -1,4 +1,5 @@
 BACKEND_DIR := backend
+FRONTEND_DIR := frontend
 
 .PHONY: test
 test:
@@ -8,13 +9,9 @@ test:
 backend-%:
 	$(MAKE) -C $(BACKEND_DIR) $*
 
-.PHONY: frontend-up
-frontend-up:
-	docker compose -f frontend/docker-compose.yml up --build -d
-
-.PHONY: frontend-down
-frontend-down:
-	docker compose -f frontend/docker-compose.yml down
+.PHONY: frontend-%
+frontend-%:
+	$(MAKE) -C $(FRONTEND_DIR) $*
 
 .PHONY: fill-db
 fill-db:
@@ -23,11 +20,11 @@ fill-db:
 .PHONY: debug
 debug: backend-debug
 debug: fill-db
-debug: frontend-up
+debug: frontend-debug
 
 .PHONY: release
 release: backend-release
-release: frontend-up
+release: frontend-release
 
 .PHONY: down
 down: frontend-down

@@ -35,17 +35,6 @@ func RegisterGateRoutes(i do.Injector, r *gin.RouterGroup) {
 	}
 }
 
-// @Summary create gate (only admin)
-// @Tags Gate
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param gate body dto.CreateGateRequest true "gate info"
-// @Success 201 "gate created"
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/gates [post]
 func (h *GateHandler) CreateGate(ctx *gin.Context) {
 	const op = "GateHandler.CreateGate"
 	req := &dto.CreateGateRequest{}
@@ -75,18 +64,6 @@ func (h *GateHandler) CreateGate(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "gate created"})
 }
 
-// @Summary list gates (only admin)
-// @Tags Gate
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
-// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
-// @Success 200 {object} dto.ListGatesResponse
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/gates [get]
 func (h *GateHandler) ListGates(ctx *gin.Context) {
 	const op = "GateHandler.ListGates"
 	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))

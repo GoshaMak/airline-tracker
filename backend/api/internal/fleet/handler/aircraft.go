@@ -35,18 +35,6 @@ func RegisterAircraftRoutes(i do.Injector, r *gin.RouterGroup) {
 	}
 }
 
-// @Summary add aircraft (only admin)
-// @Description create new aircraft
-// @Tags Aircraft
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param aircraft body dto.CreateAircraftRequest true "aircraft info"
-// @Success 201 "created"
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/aircraft [post]
 func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 	const op = "AircraftHandler.AddAircraft"
 	req := &dto.CreateAircraftRequest{}
@@ -73,19 +61,6 @@ func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft created"})
 }
 
-// @Summary list aircrafts (only admin)
-// @Description list aircrafts
-// @Tags Aircraft
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
-// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
-// @Success 200 {object} dto.ListAircraftsResponse
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/aircraft [get]
 func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
 	const op = "AircraftHandler.ListAircrafts"
 	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))

@@ -1,18 +1,12 @@
 API_PREFIX := ./api
 NOTIFIER_PREFIX := ./notifier
 PACKAGE ?= ./internal/flight/usecase
-
-HANDLERS := $(shell find $(API_PREFIX)/internal -type d -name handler | paste -sd ",")
-DTOS := $(shell find $(API_PREFIX)/internal -type d -name dto | paste -sd ",")
-
-.PHONY: swagger
-swagger:
-	swag init -g server.go -o $(API_PREFIX)/cmd/docs --parseInternal=true \
-		--dir $(API_PREFIX)/internal/server/,$(HANDLERS),$(DTOS)
+COMPOSE_ARGS := -f docker-compose.yml
+DEBUG_COMPOSE_ARGS := -f infra-compose.debug.yml
 
 .PHONY: up
 up:
-	docker compose up --build -d
+	docker compose $(COMPOSE_ARGS) up --build -d
 
 .PHONY: test
 test:
@@ -35,7 +29,9 @@ format:
 	cd $(NOTIFIER_PREFIX) && go mod tidy
 
 .PHONY: debug
-debug: format swagger up
+debug: format
+debug: COMPOSE_ARGS += $(DEBUG_COMPOSE_ARGS)
+debug: up
 
 .PHONY: release
 release: up

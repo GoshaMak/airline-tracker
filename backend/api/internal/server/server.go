@@ -22,18 +22,7 @@ import (
 	rds "github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
-
-// @title Airline Tracker
-// @version 1.0.0
-// @description HTTP API for browsing flights and managing airline tracker data.
-
-// @host localhost:8080
-
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
 
 type Server struct {
 	router   *gin.Engine
@@ -65,35 +54,23 @@ func (s *Server) Run(ctx context.Context) error {
 	return nil
 }
 
-// @Summary status example
-// @Description check status
-// @Tags Utils
-// @Accept json
-// @Produce json
-// @Success 200 "OK"
-// @Router /api/v1/status [get]
 func status(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "OK")
 }
 
-// @Summary create UUID
-// @Description creates a new UUID
-// @Tags Utils
-// @Accept json
-// @Produce json
-// @Success 200 "uuid"
-// @Router /api/v1/uuids [post]
 func createUUID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, uuid.NewString())
 }
 
 func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	api := r.Group("/api/v1")
-	api.GET("/status", status)
-	api.POST("/uuids", createUUID)
-	api.GET("/openapi.yaml", func(ctx *gin.Context) {
-		ctx.Data(http.StatusOK, "application/yaml; charset=utf-8", docs.OpenAPI)
-	})
+
+	{
+		api.GET("/status", status)
+		api.POST("/uuids", createUUID)
+	}
+
+	registerDocumentationRoutes(api)
 
 	authHandler.RegisterAuthRoutes(i, api)
 	slog.Debug("Auth routes successfully registered")
@@ -116,12 +93,31 @@ func registerRoutes(i *do.RootScope, r *gin.Engine) {
 	userHandler.RegisterRoutes(i, api)
 	slog.Debug("User routes successfully registered")
 
-	r.GET(
-		"/swagger/*any",
-		ginSwagger.WrapHandler(
-			swaggerFiles.Handler,
-			ginSwagger.URL("/api/v1/openapi.yaml"),
-		),
-	)
-	slog.Debug("Swagger routes successfully registered")
+	r.GET("/swagger/*any", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusMovedPermanently, "/api/v1/docs/")
+	})
+}
+
+func registerDocumentationRoutes(api *gin.RouterGroup) {
+	serveOpenAPI := func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "application/yaml; charset=utf-8", docs.OpenAPI)
+	}
+
+	api.GET("/openapi.yml", serveOpenAPI)
+	api.GET("/openapi.yaml", serveOpenAPI)
+	api.GET("/docs", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusMovedPermanently, "/api/v1/docs/")
+	})
+
+	assets := http.StripPrefix("/api/v1/docs", http.FileServer(swaggerFiles.HTTP))
+	api.GET("/docs/*any", func(ctx *gin.Context) {
+		switch ctx.Param("any") {
+		case "/", "/index.html":
+			ctx.Data(http.StatusOK, "text/html; charset=utf-8", docs.UI)
+		case "/swagger-ui.css", "/swagger-ui-bundle.js", "/oauth2-redirect.html":
+			assets.ServeHTTP(ctx.Writer, ctx.Request)
+		default:
+			ctx.Status(http.StatusNotFound)
+		}
+	})
 }

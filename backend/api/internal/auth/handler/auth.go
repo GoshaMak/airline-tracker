@@ -29,17 +29,6 @@ func RegisterAuthRoutes(i do.Injector, r *gin.RouterGroup) {
 	r.POST("/auth/tokens", h.Login)
 }
 
-// @Summary register
-// @Description creates a user
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param user body dto.CreateUserDTO true "user info"
-// @Success 201 "user created"
-// @Failure 400
-// @Failure 409 "user exists"
-// @Failure 500
-// @Router /api/v1/users [post]
 func (h *AuthHandler) Register(ctx *gin.Context) {
 	const op = "AuthHandler.Register"
 	var req dto.CreateUserDTO
@@ -68,17 +57,6 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "user created"})
 }
 
-// @Summary login
-// @Description user authentication
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param user body dto.LoginRequestDTO true "user info"
-// @Success 200 {object} dto.LoginResponseDTO "auth token"
-// @Failure 400
-// @Failure 404
-// @Failure 500
-// @Router /api/v1/auth/tokens [post]
 func (h *AuthHandler) Login(ctx *gin.Context) {
 	const op = "AuthHandler.Login"
 	var req dto.LoginRequestDTO

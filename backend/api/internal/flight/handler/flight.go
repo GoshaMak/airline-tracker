@@ -41,17 +41,6 @@ func RegisterRoutes(i do.Injector, r *gin.RouterGroup) {
 	}
 }
 
-// @Summary list all flights
-// @Description list all flights
-// @Tags Flight
-// @Accept json
-// @Produce json
-// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
-// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
-// @Success 200 {object} flightDTO.ListFlightsResponse
-// @Failure 400
-// @Failure 500
-// @Router /api/v1/flights [get]
 func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	const op = "FlightHandler.ListFlights"
 	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
@@ -70,17 +59,6 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// @Summary flight info
-// @Description get flight info by its id
-// @Tags Flight
-// @Accept json
-// @Param id path string true "flight id"
-// @Produce json
-// @Success 200 {object} flightDTO.ListFlightByIdResponse
-// @Failure 400
-// @Failure 404
-// @Failure 500
-// @Router /api/v1/flights/{id} [get]
 func (h *FlightHandler) FlightById(ctx *gin.Context) {
 	const op = "FlightHandler.FlightById"
 	fidStr := ctx.Param("id")
@@ -107,18 +85,6 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// @Summary create flight (only admin)
-// @Description create a flight
-// @Tags Flight
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param flight body flightDTO.CreateFlightRequest true "flight info"
-// @Success 201 "flight created"
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/flights [post]
 func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.CreateFlight"
 	req := &flightDTO.CreateFlightRequest{}
@@ -141,20 +107,6 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "flight created"})
 }
 
-// @Summary update flight (only admin)
-// @Description updates flight. able to update: all deps, status, plan
-// @Tags Flight
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param id path string true "flight id"
-// @Param flight body flightDTO.UpdateFlightRequest true "flight info"
-// @Success 200
-// @Failure 400
-// @Failure 401
-// @Failure 404
-// @Failure 500
-// @Router /api/v1/flights/{id} [patch]
 func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.UpdateFlight"
 	req := &flightDTO.UpdateFlightRequest{}

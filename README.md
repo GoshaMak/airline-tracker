@@ -206,7 +206,9 @@ Airline Tracker — система для просмотра рейсов и о�
 make release
 ```
 
-После запуска веб-интерфейс доступен на <http://localhost:3000>, API — на <http://localhost:8080/api/v1>, Swagger UI — на <http://localhost:8080/swagger/index.html>, Kafka UI — на <http://localhost:8081>. Каноническое описание интерфейса API находится в [OpenAPI 3.0 спецификации](backend/api/cmd/docs/openapi.yaml).
+После запуска веб-интерфейс доступен на <http://localhost:8080>, API — на <http://localhost:8080/api/v1>, интерактивная документация API (Swagger UI) — на <http://localhost:8080/api/v1/docs/>, OpenAPI-спецификация в YAML — на <http://localhost:8080/api/v1/openapi.yml>. Единственное описание интерфейса API находится в [OpenAPI 3.0 спецификации](backend/api/cmd/docs/openapi.yml). Swagger UI читает её напрямую; аннотации в Go и генерация Swagger-файлов не используются.
+
+Для отладки используйте `make debug`: дополнительно публикуются локальные порты PostgreSQL, Redis и Kafka, а фронтенд доступен напрямую на <http://localhost:3000> (порт можно изменить через `FRONTEND_PORT`). В режиме `make release` опубликован только порт общего Nginx — `127.0.0.1:8080`. API и notifier подключаются к инфраструктуре через Docker-сеть в обоих режимах.
 
 Остановка приложения и удаление созданных Compose-томов:
 

@@ -40,17 +40,6 @@ func RegisterAirportRoutes(i do.Injector, r *gin.RouterGroup) {
 	}
 }
 
-// @Summary create airport (only admin)
-// @Tags Airport
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param airport body dto.CreateAirportRequest true "airport info"
-// @Success 201 "airport created"
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/airports [post]
 func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 	const op = "AirportHandler.CreateAirport"
 	req := &dto.CreateAirportRequest{}
@@ -80,15 +69,6 @@ func (h *AirportHandler) CreateAirport(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "airport created"})
 }
 
-// @Summary list airports
-// @Tags Airport
-// @Produce json
-// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
-// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
-// @Success 200 {object} dto.ListAirportsResponse
-// @Failure 400
-// @Failure 500
-// @Router /api/v1/airports [get]
 func (h *AirportHandler) ListAirports(ctx *gin.Context) {
 	const op = "AirportHandler.ListAirports"
 	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))

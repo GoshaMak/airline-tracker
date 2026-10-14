@@ -35,18 +35,6 @@ func RegisterAircraftModelRoutes(i do.Injector, r *gin.RouterGroup) {
 	}
 }
 
-// @Summary add aircraft model (only admin)
-// @Description create new aircraft model
-// @Tags Aircraft
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param aircraft_model body dto.CreateAircraftModelRequest true "aircraft model info"
-// @Success 201 "created"
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/aircraft-models [post]
 func (h *AircraftModelHandler) CreateAircraftModel(ctx *gin.Context) {
 	const op = "AircraftModelHandler.AddAircraftModel"
 	req := &dto.CreateAircraftModelRequest{}
@@ -73,18 +61,6 @@ func (h *AircraftModelHandler) CreateAircraftModel(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft model created"})
 }
 
-// @Summary get info (only admin)
-// @Description aircraft model info
-// @Tags Aircraft
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param id path string true "aircraft model id"
-// @Success 200 {object} dto.AircraftModelInfoResponse
-// @Failure 401
-// @Failure 404
-// @Failure 500
-// @Router /api/v1/aircraft-models/{id} [get]
 func (h *AircraftModelHandler) AircraftModelById(ctx *gin.Context) {
 	const op = "AircraftModelHandler.AircraftModelById"
 	idStr := ctx.Param("id")

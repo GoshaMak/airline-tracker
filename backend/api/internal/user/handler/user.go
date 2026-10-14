@@ -38,16 +38,6 @@ func RegisterRoutes(i do.Injector, r *gin.RouterGroup) {
 	}
 }
 
-// @Summary subscribe user (only user)
-// @Tags User
-// @Security BearerAuth
-// @Param subscription body userDTO.CreateSubscriptionRequest true "subscription"
-// @Produce json
-// @Success 200 "user subscribed"
-// @Failure 401
-// @Failure 404
-// @Failure 500
-// @Router /api/v1/subscriptions [post]
 func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	const op = "UserHandler.Subscribe"
 	uidStr := ctx.GetString("user_id")
@@ -134,19 +124,6 @@ func (h *UserHandler) Unsubscribe(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// @Summary list flights (only user)
-// @Description get all flights in which user is subscribed
-// @Tags User
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param limit query int false "Maximum number of items to return" default(50) minimum(1) maximum(100)
-// @Param cursor query string false "Opaque cursor returned as next_cursor by the previous page" minlength(1)
-// @Success 200 {object} flightDTO.ListFlightsResponse
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /api/v1/subscriptions [get]
 func (h *UserHandler) ListFlights(ctx *gin.Context) {
 	const op = "UserHandler.ListFlights"
 	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
