@@ -67,6 +67,7 @@ func FlightAirportsModelToDomain(
 	if err != nil {
 		return dep, arr, err
 	}
+	dep.ID = fam.DepartureAirportID
 
 	arrIata, err := airportDomain.NewIATACode(fam.ArrivalAirportIATACode)
 	if err != nil {
@@ -88,6 +89,7 @@ func FlightAirportsModelToDomain(
 	if err != nil {
 		return dep, arr, err
 	}
+	arr.ID = fam.ArrivalAirportID
 
 	return dep, arr, nil
 }

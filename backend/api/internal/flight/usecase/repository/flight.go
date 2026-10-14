@@ -18,10 +18,10 @@ import (
 
 type flightRepository struct {
 	db repository.FlightRepository
-	rd cachePort
+	rd cache
 }
 
-type cachePort interface {
+type cache interface {
 	SaveFlight(context.Context, domain.Flight) error
 	SaveFlights(context.Context, []domain.Flight) error
 	GetFlightById(context.Context, uuid.UUID) (domain.Flight, error)
@@ -36,6 +36,7 @@ func NewFlightRepository(i do.Injector) (repository.FlightRepository, error) {
 		rd: do.MustInvoke[*redis.RedisDB](i),
 	}, nil
 }
+
 func (r *flightRepository) Save(ctx context.Context, flight domain.Flight) error {
 	const op = "FlightRepository.Save"
 	if err := r.db.Save(ctx, flight); err != nil {

@@ -2,332 +2,352 @@ package redis
 
 import (
 	"api/internal/flight/domain"
+	"api/internal/flight/infra/redis/model"
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
 	allure "github.com/allure-framework/allure-go/commons/gotest"
+	"github.com/go-redis/redismock/v9"
 	"github.com/google/uuid"
-	rds "github.com/redis/go-redis/v9"
 )
 
-// flightMother supplies a valid object; no Redis server is needed.
 func flightMother() domain.Flight {
 	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
-	return domain.Flight{Id: uuid.New(), AircraftId: uuid.New(),
-		ScheduledDeparture: now, ScheduledArrival: now.Add(time.Hour),
-		Status: domain.Scheduled, DepartureAirportId: uuid.New(), ArrivalAirportId: uuid.New(),
-		DepartureGateId: uuid.New(), ArrivalGateId: uuid.New()}
+	return domain.Flight{
+		Id:                 uuid.New(),
+		AircraftId:         uuid.New(),
+		ScheduledDeparture: now,
+		ScheduledArrival:   now.Add(time.Hour),
+		Status:             domain.Scheduled,
+		DepartureAirportId: uuid.New(),
+		ArrivalAirportId:   uuid.New(),
+		DepartureGateId:    uuid.New(),
+		ArrivalGateId:      uuid.New(),
+	}
 }
+
 func flightHash(f domain.Flight) map[string]string {
-	return map[string]string{
-		"aircraft_id": f.AircraftId.String(), "scheduled_departure": f.ScheduledDeparture.Format(time.RFC3339Nano),
-		"scheduled_arrival": f.ScheduledArrival.Format(time.RFC3339Nano), "status": "scheduled",
-		"departure_airport_id": f.DepartureAirportId.String(), "arrival_airport_id": f.ArrivalAirportId.String(),
-		"departure_gate_id": f.DepartureGateId.String(), "arrival_gate_id": f.ArrivalGateId.String(),
+	hash := map[string]string{
+		"aircraft_id":          f.AircraftId.String(),
+		"scheduled_departure":  f.ScheduledDeparture.Format(time.RFC3339Nano),
+		"scheduled_arrival":    f.ScheduledArrival.Format(time.RFC3339Nano),
+		"status":               f.Status.String(),
+		"departure_airport_id": f.DepartureAirportId.String(),
+		"arrival_airport_id":   f.ArrivalAirportId.String(),
+		"departure_gate_id":    f.DepartureGateId.String(),
+		"arrival_gate_id":      f.ArrivalGateId.String(),
+	}
+	if f.ActualDeparture != nil {
+		hash["actual_departure"] = f.ActualDeparture.Format(time.RFC3339Nano)
+	}
+	if f.ActualArrival != nil {
+		hash["actual_arrival"] = f.ActualArrival.Format(time.RFC3339Nano)
+	}
+	if f.Plan != nil {
+		hash["plan"] = f.Plan.String()
+	}
+	return hash
+}
+
+func newRedisFixture(t *testing.T) (*RedisDB, redismock.ClientMock) {
+	t.Helper()
+	client, mock := redismock.NewClientMock()
+	t.Cleanup(func() { _ = client.Close() })
+	return &RedisDB{cln: client}, mock
+}
+
+func assertRedisExpectations(t *testing.T, mock redismock.ClientMock) {
+	t.Helper()
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("redis expectations: %v", err)
 	}
 }
 
-type fakeRedis struct {
-	redisClient
-	hashes  map[string]map[string]string
-	keys    []string
-	pipeErr error
-	hsetErr error
-	scanErr error
-	calls   []string
-}
-
-func newFakeRedis() *fakeRedis                 { return &fakeRedis{hashes: make(map[string]map[string]string)} }
-func (f *fakeRedis) Pipeline() rds.Pipeliner   { return &fakePipe{f: f} }
-func (f *fakeRedis) TxPipeline() rds.Pipeliner { return &fakePipe{f: f} }
-func (f *fakeRedis) HGetAll(ctx context.Context, key string) *rds.MapStringStringCmd {
-	f.calls = append(f.calls, "HGETALL "+key)
-	c := rds.NewMapStringStringCmd(ctx, "hgetall", key)
-	c.SetVal(f.hashes[key])
-	return c
-}
-func (f *fakeRedis) HSet(ctx context.Context, key string, _ ...interface{}) *rds.IntCmd {
-	f.calls = append(f.calls, "HSET "+key)
-	c := rds.NewIntCmd(ctx, "hset", key)
-	if f.hsetErr != nil {
-		c.SetErr(f.hsetErr)
+func expectFlightHSet(mock redismock.ClientMock, f domain.Flight) *redismock.ExpectedInt {
+	var plan *string
+	if f.Plan != nil {
+		plan = new(f.Plan.String())
 	}
-	return c
+	return mock.ExpectHSet("flight:"+f.Id.String(), model.FlightModel{
+		Id:                 f.Id,
+		AircraftId:         f.AircraftId.String(),
+		ScheduledDeparture: f.ScheduledDeparture,
+		ScheduledArrival:   f.ScheduledArrival,
+		ActualDeparture:    f.ActualDeparture,
+		ActualArrival:      f.ActualArrival,
+		Status:             f.Status.String(),
+		Plan:               plan,
+		DepartureAirportId: f.DepartureAirportId.String(),
+		ArrivalAirportId:   f.ArrivalAirportId.String(),
+		DepartureGateId:    f.DepartureGateId.String(),
+		ArrivalGateId:      f.ArrivalGateId.String(),
+	})
 }
-func (f *fakeRedis) SScan(ctx context.Context, _ string, _ uint64, _ string, _ int64) *rds.ScanCmd {
-	c := rds.NewScanCmd(ctx, nil, "sscan")
-	c.SetVal(f.keys, 0)
-	if f.scanErr != nil {
-		c.SetErr(f.scanErr)
-	}
-	return c
-}
-func (f *fakeRedis) Scan(ctx context.Context, _ uint64, _ string, _ int64) *rds.ScanCmd {
-	c := rds.NewScanCmd(ctx, nil, "scan")
-	c.SetVal(f.keys, 0)
-	if f.scanErr != nil {
-		c.SetErr(f.scanErr)
-	}
-	return c
-}
-
-type fakePipe struct {
-	rds.Pipeliner
-	f    *fakeRedis
-	cmds []rds.Cmder
-}
-
-func (p *fakePipe) HSet(ctx context.Context, key string, _ ...interface{}) *rds.IntCmd {
-	p.f.calls = append(p.f.calls, "HSET "+key)
-	c := rds.NewIntCmd(ctx, "hset", key)
-	p.cmds = append(p.cmds, c)
-	return c
-}
-func (p *fakePipe) SAdd(ctx context.Context, key string, _ ...interface{}) *rds.IntCmd {
-	p.f.calls = append(p.f.calls, "SADD "+key)
-	c := rds.NewIntCmd(ctx, "sadd", key)
-	p.cmds = append(p.cmds, c)
-	return c
-}
-func (p *fakePipe) SRem(ctx context.Context, key string, _ ...interface{}) *rds.IntCmd {
-	p.f.calls = append(p.f.calls, "SREM "+key)
-	c := rds.NewIntCmd(ctx, "srem", key)
-	p.cmds = append(p.cmds, c)
-	return c
-}
-func (p *fakePipe) Unlink(ctx context.Context, key ...string) *rds.IntCmd {
-	p.f.calls = append(p.f.calls, "UNLINK "+key[0])
-	c := rds.NewIntCmd(ctx, "unlink", key[0])
-	p.cmds = append(p.cmds, c)
-	return c
-}
-func (p *fakePipe) HGetAll(ctx context.Context, key string) *rds.MapStringStringCmd {
-	p.f.calls = append(p.f.calls, "HGETALL "+key)
-	c := rds.NewMapStringStringCmd(ctx, "hgetall", key)
-	c.SetVal(p.f.hashes[key])
-	p.cmds = append(p.cmds, c)
-	return c
-}
-func (p *fakePipe) Exec(context.Context) ([]rds.Cmder, error) { return p.cmds, p.f.pipeErr }
 
 func TestRedisDB_SaveFlight(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		failure error
-	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		allure.Test(t, tt.name, func(allureContext *allure.Context) {
-			t := allureContext.T()
-
-			// Arrange
+	}{
+		{
+			name: "positive",
+		},
+		{
+			name:    "negative pipeline error",
+			failure: errors.New("redis unavailable"),
+		},
+	} {
+		allure.Test(t, tt.name, func(ctx *allure.Context) {
+			t := ctx.T()
+			repo, mock := newRedisFixture(t)
+			defer assertRedisExpectations(t, mock)
 			f := flightMother()
-			fake := newFakeRedis()
-			fake.pipeErr = tt.failure
-			repo := &RedisDB{cln: fake}
-			// Act
-			err := repo.SaveFlight(context.Background(), f)
-			// Assert
-			if (tt.failure == nil && err != nil) || (tt.failure != nil && !errors.Is(err, tt.failure)) {
-				t.Fatal(err)
+			f.ActualDeparture = new(f.ScheduledDeparture.Add(time.Minute))
+			f.ActualArrival = new(f.ScheduledArrival.Add(time.Minute))
+			f.Plan = new(domain.FlightPlan("DCT SVO LED"))
+			mock.ExpectTxPipeline()
+			expectFlightHSet(mock, f).SetVal(1)
+			mock.ExpectSAdd("flight:ids", "flight:"+f.Id.String()).SetVal(1)
+			exec := mock.ExpectTxPipelineExec()
+			if tt.failure != nil {
+				exec.SetErr(tt.failure)
 			}
-			if len(fake.calls) != 2 || fake.calls[0] != "HSET flight:"+f.Id.String() || fake.calls[1] != "SADD flight:ids" {
-				t.Fatalf("calls=%v", fake.calls)
+			err := repo.SaveFlight(context.Background(), f)
+			if !errors.Is(err, tt.failure) {
+				t.Fatalf("err=%v, want=%v", err, tt.failure)
 			}
 		})
 	}
 }
+
 func TestRedisDB_SaveFlights(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		failure error
-	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		allure.Test(t, tt.name, func(allureContext *allure.Context) {
-			t := allureContext.T()
-
-			// Arrange
-			f := flightMother()
-			fake := newFakeRedis()
-			fake.pipeErr = tt.failure
-			repo := &RedisDB{cln: fake}
-			// Act
-			err := repo.SaveFlights(context.Background(), []domain.Flight{f})
-			// Assert
-			if (tt.failure == nil && err != nil) || (tt.failure != nil && !errors.Is(err, tt.failure)) {
-				t.Fatal(err)
+	}{
+		{
+			name: "positive",
+		},
+		{
+			name:    "negative pipeline error",
+			failure: errors.New("redis unavailable"),
+		},
+	} {
+		allure.Test(t, tt.name, func(ctx *allure.Context) {
+			t := ctx.T()
+			repo, mock := newRedisFixture(t)
+			defer assertRedisExpectations(t, mock)
+			f, second := flightMother(), flightMother()
+			second.Status = domain.Boarding
+			second.Plan = new(domain.FlightPlan("DCT SVO LED"))
+			flights := []domain.Flight{f, second}
+			mock.ExpectTxPipeline()
+			for _, flight := range flights {
+				expectFlightHSet(mock, flight).SetVal(1)
+				mock.ExpectSAdd("flight:ids", "flight:"+flight.Id.String()).SetVal(1)
 			}
-			if len(fake.calls) != 2 || fake.calls[0] != "HSET flight:"+f.Id.String() {
-				t.Fatalf("calls=%v", fake.calls)
+			exec := mock.ExpectTxPipelineExec()
+			if tt.failure != nil {
+				exec.SetErr(tt.failure)
+			}
+			err := repo.SaveFlights(context.Background(), flights)
+			if !errors.Is(err, tt.failure) {
+				t.Fatalf("err=%v, want=%v", err, tt.failure)
 			}
 		})
 	}
 }
-func TestRedisDB_GetFlightById(t *testing.T) {
-	allure.Test(t, "positive: decodes cached flight", func(allureContext *allure.Context) {
-		t := allureContext.T()
 
-		// Arrange
+func TestRedisDB_GetFlightById(t *testing.T) {
+	allure.Test(t, "positive: decodes cached flight", func(ctx *allure.Context) {
+		t := ctx.T()
 		f := flightMother()
-		fake := newFakeRedis()
-		fake.hashes["flight:"+f.Id.String()] = flightHash(f)
-		repo := &RedisDB{cln: fake}
-		// Act
+		f.ActualDeparture = new(f.ScheduledDeparture.Add(time.Minute))
+		f.ActualArrival = new(f.ScheduledArrival.Add(time.Minute))
+		f.Plan = new(domain.FlightPlan("DCT SVO LED"))
+		repo, mock := newRedisFixture(t)
+		defer assertRedisExpectations(t, mock)
+		mock.ExpectHGetAll("flight:" + f.Id.String()).SetVal(flightHash(f))
 		got, err := repo.GetFlightById(context.Background(), f.Id)
-		// Assert
-		if err != nil || got.Id != f.Id || got.Status != domain.Scheduled {
-			t.Fatalf("got=%+v, err=%v", got, err)
+		if err != nil || !reflect.DeepEqual(got, f) {
+			t.Fatalf("got=%+v, want=%+v, err=%v", got, f, err)
 		}
 	})
-	allure.Test(t, "negative: missing hash", func(allureContext *allure.Context) {
-		t := allureContext.T()
 
-		// Arrange
-		repo := &RedisDB{cln: newFakeRedis()}
-		// Act
-		_, err := repo.GetFlightById(context.Background(), uuid.New())
-		// Assert
+	allure.Test(t, "negative: missing hash", func(ctx *allure.Context) {
+		t := ctx.T()
+		fid := uuid.New()
+		repo, mock := newRedisFixture(t)
+		defer assertRedisExpectations(t, mock)
+		mock.ExpectHGetAll("flight:" + fid.String()).SetVal(map[string]string{})
+		_, err := repo.GetFlightById(context.Background(), fid)
 		if !errors.Is(err, ErrFlightNotFound) {
 			t.Fatal(err)
 		}
 	})
 }
+
 func TestRedisDB_DeleteFlightById(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		failure error
-	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		allure.Test(t, tt.name, func(allureContext *allure.Context) {
-			t := allureContext.T()
-
-			// Arrange
-			f := flightMother()
-			fake := newFakeRedis()
-			fake.pipeErr = tt.failure
-			repo := &RedisDB{cln: fake}
-			// Act
-			err := repo.DeleteFlightById(context.Background(), f.Id)
-			// Assert
-			if (tt.failure == nil && err != nil) || (tt.failure != nil && !errors.Is(err, tt.failure)) {
-				t.Fatal(err)
+	}{
+		{
+			name: "positive",
+		},
+		{
+			name:    "negative pipeline error",
+			failure: errors.New("redis unavailable"),
+		},
+	} {
+		allure.Test(t, tt.name, func(ctx *allure.Context) {
+			t := ctx.T()
+			repo, mock := newRedisFixture(t)
+			defer assertRedisExpectations(t, mock)
+			fid := uuid.New()
+			key := "flight:" + fid.String()
+			mock.ExpectTxPipeline()
+			mock.ExpectSRem("flight:ids", key).SetVal(1)
+			mock.ExpectUnlink(key).SetVal(1)
+			exec := mock.ExpectTxPipelineExec()
+			if tt.failure != nil {
+				exec.SetErr(tt.failure)
 			}
-			if len(fake.calls) != 2 || fake.calls[0] != "SREM flight:ids" || fake.calls[1] != "UNLINK flight:"+f.Id.String() {
-				t.Fatalf("calls=%v", fake.calls)
+			err := repo.DeleteFlightById(context.Background(), fid)
+			if !errors.Is(err, tt.failure) {
+				t.Fatalf("err=%v, want=%v", err, tt.failure)
 			}
 		})
 	}
 }
+
 func TestRedisDB_UpdateFlights(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		failure error
-	}{{"positive", nil}, {"negative pipeline error", errors.New("redis unavailable")}} {
-		allure.Test(t, tt.name, func(allureContext *allure.Context) {
-			t := allureContext.T()
-
-			// Arrange
-			f := flightMother()
-			fake := newFakeRedis()
-			fake.pipeErr = tt.failure
-			repo := &RedisDB{cln: fake}
-			// Act
-			err := repo.UpdateFlights(context.Background(), []domain.Flight{f})
-			// Assert
-			if (tt.failure == nil && err != nil) || (tt.failure != nil && !errors.Is(err, tt.failure)) {
-				t.Fatal(err)
+	}{
+		{
+			name: "positive",
+		},
+		{
+			name:    "negative pipeline error",
+			failure: errors.New("redis unavailable"),
+		},
+	} {
+		allure.Test(t, tt.name, func(ctx *allure.Context) {
+			t := ctx.T()
+			repo, mock := newRedisFixture(t)
+			defer assertRedisExpectations(t, mock)
+			f, second := flightMother(), flightMother()
+			second.Status = domain.Boarding
+			second.Plan = new(domain.FlightPlan("DCT SVO LED"))
+			flights := []domain.Flight{f, second}
+			expectFlightHSet(mock, f).SetVal(1)
+			last := expectFlightHSet(mock, second)
+			if tt.failure != nil {
+				last.SetErr(tt.failure)
+			} else {
+				last.SetVal(1)
 			}
-			if len(fake.calls) != 1 || fake.calls[0] != "HSET flight:"+f.Id.String() {
-				t.Fatalf("calls=%v", fake.calls)
+			err := repo.UpdateFlights(context.Background(), flights)
+			if !errors.Is(err, tt.failure) {
+				t.Fatalf("err=%v, want=%v", err, tt.failure)
 			}
 		})
 	}
 }
-func TestRedisDB_GetFlights(t *testing.T) {
-	allure.Test(t, "positive: reads indexed flight", func(allureContext *allure.Context) {
-		t := allureContext.T()
 
-		// Arrange
+func TestRedisDB_GetFlights(t *testing.T) {
+	allure.Test(t, "positive: reads indexed flight", func(ctx *allure.Context) {
+		t := ctx.T()
 		f := flightMother()
-		fake := newFakeRedis()
 		key := "flight:" + f.Id.String()
-		fake.keys = []string{key}
-		fake.hashes[key] = flightHash(f)
-		repo := &RedisDB{cln: fake}
-		// Act
+		repo, mock := newRedisFixture(t)
+		defer assertRedisExpectations(t, mock)
+		mock.ExpectSScan("flight:ids", 0, "", 0).SetVal([]string{key}, 0)
+		mock.ExpectHGetAll(key).SetVal(flightHash(f))
 		got, err := repo.GetFlights(context.Background())
-		// Assert
-		if err != nil || len(got) != 1 || got[0].Id != f.Id {
+		if err != nil || !reflect.DeepEqual(got, []domain.Flight{f}) {
 			t.Fatalf("got=%+v, err=%v", got, err)
 		}
 	})
-	allure.Test(t, "negative: index scan fails", func(allureContext *allure.Context) {
-		t := allureContext.T()
 
-		// Arrange
+	allure.Test(t, "negative: index scan fails", func(ctx *allure.Context) {
+		t := ctx.T()
 		failure := errors.New("redis unavailable")
-		fake := newFakeRedis()
-		fake.scanErr = failure
-		repo := &RedisDB{cln: fake}
-		// Act
+		repo, mock := newRedisFixture(t)
+		defer assertRedisExpectations(t, mock)
+		mock.ExpectSScan("flight:ids", 0, "", 0).SetErr(failure)
 		_, err := repo.GetFlights(context.Background())
-		// Assert
 		if !errors.Is(err, failure) {
 			t.Fatal(err)
 		}
 	})
 }
+
 func TestRedisDB_UpdateFlight(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		failure error
-	}{{"positive", nil}, {"negative HSET error", errors.New("redis unavailable")}} {
-		allure.Test(t, tt.name, func(allureContext *allure.Context) {
-			t := allureContext.T()
-
-			// Arrange
-			f := flightMother()
-			fake := newFakeRedis()
-			fake.hsetErr = tt.failure
-			repo := &RedisDB{cln: fake}
+	}{
+		{
+			name: "positive",
+		},
+		{
+			name:    "negative HSET error",
+			failure: errors.New("redis unavailable"),
+		},
+	} {
+		allure.Test(t, tt.name, func(ctx *allure.Context) {
+			t := ctx.T()
+			repo, mock := newRedisFixture(t)
+			defer assertRedisExpectations(t, mock)
+			fid := uuid.New()
 			status := "boarding"
-			// Act
-			err := repo.UpdateFlight(context.Background(), domain.UpdateFlightInfo{FlightId: f.Id, Status: &status})
-			// Assert
-			if (tt.failure == nil && err != nil) || (tt.failure != nil && !errors.Is(err, tt.failure)) {
-				t.Fatal(err)
+			update := domain.UpdateFlightInfo{FlightId: fid, Status: &status}
+			expected := mock.ExpectHSet("flight:"+fid.String(), model.UpdateFlightInfoModel{
+				FlightId: fid,
+				Status:   &status,
+			})
+			if tt.failure != nil {
+				expected.SetErr(tt.failure)
+			} else {
+				expected.SetVal(1)
 			}
-			if len(fake.calls) != 1 || fake.calls[0] != "HSET flight:"+f.Id.String() {
-				t.Fatalf("calls=%v", fake.calls)
+			err := repo.UpdateFlight(context.Background(), update)
+			if !errors.Is(err, tt.failure) {
+				t.Fatalf("err=%v, want=%v", err, tt.failure)
 			}
 		})
 	}
 }
-func TestRedisDB_FlushFlights(t *testing.T) {
-	allure.Test(t, "positive: removes index and cached hashes", func(allureContext *allure.Context) {
-		t := allureContext.T()
 
-		// Arrange
-		f := flightMother()
-		fake := newFakeRedis()
-		fake.keys = []string{"flight:" + f.Id.String()}
-		repo := &RedisDB{cln: fake}
-		// Act
+func TestRedisDB_FlushFlights(t *testing.T) {
+	allure.Test(t, "positive: removes index and cached hashes", func(ctx *allure.Context) {
+		t := ctx.T()
+		key := "flight:" + uuid.NewString()
+		repo, mock := newRedisFixture(t)
+		defer assertRedisExpectations(t, mock)
+		mock.ExpectScan(0, "flight:*", 0).SetVal([]string{key}, 0)
+		mock.ExpectUnlink("flight:ids").SetVal(1)
+		mock.ExpectUnlink(key).SetVal(1)
 		err := repo.FlushFlights(context.Background())
-		// Assert
-		if err != nil || len(fake.calls) != 2 || fake.calls[0] != "UNLINK flight:ids" || fake.calls[1] != "UNLINK flight:"+f.Id.String() {
-			t.Fatalf("err=%v, calls=%v", err, fake.calls)
+		if err != nil {
+			t.Fatal(err)
 		}
 	})
-	allure.Test(t, "negative: pipeline error", func(allureContext *allure.Context) {
-		t := allureContext.T()
 
-		// Arrange
+	allure.Test(t, "negative: pipeline error", func(ctx *allure.Context) {
+		t := ctx.T()
 		failure := errors.New("redis unavailable")
-		fake := newFakeRedis()
-		fake.pipeErr = failure
-		repo := &RedisDB{cln: fake}
-		// Act
+		repo, mock := newRedisFixture(t)
+		defer assertRedisExpectations(t, mock)
+		mock.ExpectScan(0, "flight:*", 0).SetVal([]string{}, 0)
+		mock.ExpectUnlink("flight:ids").SetErr(failure)
 		err := repo.FlushFlights(context.Background())
-		// Assert
 		if !errors.Is(err, failure) {
 			t.Fatal(err)
 		}

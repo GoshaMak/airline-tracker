@@ -214,26 +214,48 @@ make release
 make down
 ```
 
-Запуск тестов бэкенда:
+Запуск unit-тестов компонента `flight` и генерация Allure-отчёта:
 
 ```bash
-make backend-test
+make test
 ```
 
-Запуск unit-тестов без доступа к интернету и без запущенных PostgreSQL, Redis или Kafka:
+Тесты используют фикстуры в памяти и тестовые зависимости. Запуск настоящих PostgreSQL, Redis и Kafka не требуется. Для просмотра отчёта:
 
 ```bash
-cd backend
-make test-offline
-```
-
-Для первого запуска зависимости Go и нужная версия компилятора должны уже находиться в локальном кэше. Цель `test-offline` запрещает обращение к Go proxy и серверу контрольных сумм. Новые тесты репозиториев используют pgx/Redis-фикстуры в памяти, а тесты сценариев проверяют как состояние хранилища в памяти, так и вызовы зависимостей.
-
-HTML-отчёт Allure по тестам API и notifier:
-
-```bash
-make backend-allure-report
 backend/.tools/allure-2.46.1/bin/allure open backend/allure-report
 ```
 
-Команда из корня проекта скачивает Allure CLI 2.46.1 в `backend/.tools`, проверяет SHA-256 архива, загружает зависимости обоих Go-модулей и создаёт HTML в `backend/allure-report`. Нужны Go 1.26.4 или новее, Java, curl, tar и sha256sum. Адаптер `allure-go` записывает отдельные позитивные и негативные под-тесты в `backend/allure-results`; сами тесты запускаются с `GOPROXY=off`. Оба каталога результатов и локальная установка CLI игнорируются Git. Для последующих полностью офлайн-запусков используйте `make backend-allure-results` (только результаты) или `make backend-test-offline` (только тесты). Для HTML-отчёта без сети после первого запуска снова используйте `make backend-allure-report`: зависимости и CLI уже будут в локальном кэше.
+Команда `make test` скачивает Allure CLI 2.46.1 в `backend/.tools`, если он ещё не установлен, проверяет SHA-256 архива и запускает тесты из `backend/api/internal/flight`: бизнес-логика, составной репозиторий, PostgreSQL и Redis. Go при необходимости загружает зависимости. Нужны Go 1.26.4 или новее, Java, curl, tar и sha256sum. Результаты сохраняются в `backend/allure-results`, HTML-отчёт — в `backend/allure-report`. Эти каталоги и локальная установка CLI игнорируются Git. Из каталога `backend` используется та же команда `make test`.
+
+Для измерения покрытия условий установите `gobco` в каталог из `PATH`:
+
+```bash
+go install github.com/rillig/gobco@v1.3.4
+```
+
+Из каталога `backend`:
+
+```bash
+make gobco
+make gobco PACKAGE=./internal/flight/infra/redis
+```
+
+По умолчанию проверяется `flight/usecase`. `gobco` обрабатывает один пакет за запуск; `PACKAGE` задаётся относительно `backend/api`. Скрипт использует временный `go.mod` с подключением локального модуля `shared` и удаляет временные файлы после запуска. Из корня проекта используйте `make backend-gobco`.
+
+Для запуска одного теста по названию из каталога `backend`:
+
+```bash
+make test-name TEST=TestFlightUsecase_UpdateFlight
+make test-name PACKAGE=./internal/flight/infra/redis TEST=TestRedisDB_SaveFlight
+```
+
+По умолчанию используется пакет `flight/usecase`. Запускаются выбранный тест и его подтесты с подробным выводом и без кеширования результата. Из корня проекта используйте `make backend-test-name TEST=TestFlightUsecase_UpdateFlight`.
+
+Пример Chicago-теста репозитория:
+
+```bash
+make test-name TEST=TestRedisDB_UpdateFlight_Chicago
+```
+
+Он проверяет сохранённое состояние через настоящий `RedisDB` и клиент Redis. Тестовый сервер `miniredis` работает в памяти внутри процесса теста на временном локальном порту. Mock-ожидания не используются; внешние сервисы и интернет для выполнения теста не нужны.

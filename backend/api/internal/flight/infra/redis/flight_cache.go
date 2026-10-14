@@ -14,16 +14,7 @@ import (
 )
 
 type RedisDB struct {
-	cln redisClient
-}
-
-type redisClient interface {
-	TxPipeline() rds.Pipeliner
-	Pipeline() rds.Pipeliner
-	HGetAll(context.Context, string) *rds.MapStringStringCmd
-	HSet(context.Context, string, ...interface{}) *rds.IntCmd
-	SScan(context.Context, string, uint64, string, int64) *rds.ScanCmd
-	Scan(context.Context, uint64, string, int64) *rds.ScanCmd
+	cln *rds.Client
 }
 
 func NewRedisDB(i do.Injector) (*RedisDB, error) {

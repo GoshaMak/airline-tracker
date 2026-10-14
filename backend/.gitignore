@@ -1,3 +1,5 @@
 .tools/
 allure-results/
 allure-report/
+coverage.out
+coverage.html

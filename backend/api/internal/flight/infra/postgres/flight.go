@@ -8,7 +8,6 @@ import (
 	userDomain "api/internal/user/domain"
 	userModel "api/internal/user/infra/postgres/model"
 
-	"api/internal/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -18,7 +17,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
@@ -33,7 +31,7 @@ type flightDB interface {
 
 func NewPostgresDB(i do.Injector) (*PostgresDB, error) {
 	return &PostgresDB{
-		conn: do.MustInvoke[*pgxpool.Pool](i),
+		conn: do.MustInvokeAs[flightDB](i),
 	}, nil
 }
 
@@ -41,7 +39,7 @@ func (p *PostgresDB) Save(ctx context.Context, f domain.Flight) error {
 	const op = "PostgresDB.SaveFlight"
 	var plan *string
 	if f.Plan != nil {
-		plan = utils.Ptr(f.Plan.String())
+		plan = new(f.Plan.String())
 	}
 	_, err := p.conn.Exec(ctx,
 		"select add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",

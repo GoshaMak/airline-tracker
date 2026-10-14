@@ -1,5 +1,9 @@
 BACKEND_DIR := backend
 
+.PHONY: test
+test:
+	$(MAKE) -C $(BACKEND_DIR) test
+
 .PHONY: backend-%
 backend-%:
 	$(MAKE) -C $(BACKEND_DIR) $*
