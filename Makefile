@@ -5,6 +5,10 @@ FRONTEND_DIR := frontend
 test:
 	$(MAKE) -C $(BACKEND_DIR) test
 
+.PHONY: load-test
+load-test:
+	k6 run --no-usage-report --new-machine-readable-summary=false tests/load/api.js
+
 .PHONY: backend-%
 backend-%:
 	$(MAKE) -C $(BACKEND_DIR) $*
