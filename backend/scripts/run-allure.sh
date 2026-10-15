@@ -28,7 +28,7 @@ if (
   ALLURE_LABEL_EPIC=api \
     go test -cover -count=1 -coverprofile=coverage.out ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements'
 ); then
-  :
+  cd "$backend_dir/api" && python3 ../scripts/render-coverage.py
 else
   test_status=1
 fi
