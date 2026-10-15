@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"shared/logger"
+	"shared/observability"
 	"syscall"
 
 	"github.com/samber/do/v2"
@@ -31,7 +32,7 @@ func main() {
 			return
 		}
 		defer logFile.Close()
-		w = logFile
+		w = io.MultiWriter(os.Stdout, logFile)
 	}
 	if err := logger.SetupLogger(w); err != nil {
 		slog.Error("can't setup logger", "err", err)
@@ -59,15 +60,10 @@ func main() {
 	)
 	defer stop()
 
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		if err := notifier.Run(ctx); err != nil {
-			return err
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error { return observability.Run(ctx) })
+	eg.Go(func() error { return notifier.Run(ctx) })
+	if err := eg.Wait(); err != nil {
 		slog.Error("notifier faced error", "err", err)
 		os.Exit(1)
 	}

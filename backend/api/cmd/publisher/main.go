@@ -11,10 +11,12 @@ import (
 	"os"
 	"os/signal"
 	"shared/logger"
+	"shared/observability"
 	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -32,7 +34,7 @@ func run() error {
 			return err
 		}
 		defer file.Close()
-		output = file
+		output = io.MultiWriter(os.Stdout, file)
 	}
 	if err := logger.SetupLogger(output); err != nil {
 		return err
@@ -66,7 +68,10 @@ func run() error {
 	}
 	slog.Info("outbox publisher started")
 
-	if err := worker.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error { return observability.Run(ctx) })
+	eg.Go(func() error { return worker.Run(ctx) })
+	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
 	slog.Info("outbox publisher stopped")

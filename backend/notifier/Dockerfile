@@ -3,7 +3,7 @@ FROM golang:1.26 AS builder
 WORKDIR /backend
 
 COPY go.work go.work.sum ./
-COPY shared/go.mod ./shared/
+COPY shared/go.mod shared/go.sum ./shared/
 COPY api/go.mod api/go.sum ./api/
 COPY notifier/go.mod notifier/go.sum ./notifier/
 

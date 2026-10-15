@@ -1,8 +1,16 @@
 include:
   - path: ./infra-compose.yml
+  - path: ./monitoring-compose.yml
 
 services:
   api: &api-service
+    labels:
+      airline_tracker.logs: "true"
+    logging: &application-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - ./api/.env
     build:
@@ -59,6 +67,9 @@ services:
       INSTANCE_ID: api-mirror-read-2
 
   api-publisher:
+    labels:
+      airline_tracker.logs: "true"
+    logging: *application-logging
     env_file:
       - ./api/.env
     build:
@@ -109,6 +120,9 @@ services:
         condition: service_healthy
 
   notifier:
+    labels:
+      airline_tracker.logs: "true"
+    logging: *application-logging
     env_file:
       - ./notifier/.env
     build:
@@ -150,6 +164,9 @@ services:
         condition: service_healthy
 
   nginx:
+    labels:
+      airline_tracker.logs: "true"
+    logging: *application-logging
     image: openresty/openresty:1.29.2.4-1-alpine
     restart: unless-stopped
     depends_on:

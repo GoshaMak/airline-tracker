@@ -1,5 +1,12 @@
 services:
   frontend: &frontend-service
+    labels:
+      airline_tracker.logs: "true"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     build:
       context: .
       dockerfile: Dockerfile

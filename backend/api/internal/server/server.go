@@ -11,6 +11,8 @@ import (
 	"api/internal/middleware"
 	userHandler "api/internal/user/handler"
 	"context"
+	"errors"
+	"time"
 
 	"log/slog"
 	"net/http"
@@ -30,8 +32,8 @@ type Server struct {
 }
 
 func NewServer(injector *do.RootScope) (*Server, error) {
-	router := gin.Default()
-	router.Use(middleware.Instance(os.Getenv("INSTANCE_ID")))
+	router := gin.New()
+	router.Use(middleware.Observe(), gin.Recovery(), middleware.Instance(os.Getenv("INSTANCE_ID")))
 
 	registerRoutes(injector, router)
 
@@ -46,7 +48,26 @@ func (s *Server) Run(ctx context.Context) error {
 	defer redis.CloseConnection(do.MustInvoke[*rds.Client](s.injector))
 
 	port := os.Getenv("PORT")
-	if err := s.router.Run(":" + port); err != nil {
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           s.router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	shutdownDone := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		defer close(shutdownDone)
+		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdown); err != nil {
+			slog.Error("API shutdown failed", "err", err)
+		}
+	})
+	defer func() {
+		if !stop() {
+			<-shutdownDone
+		}
+	}()
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("Failed to run server", "err", err)
 		return err
 	}

@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: application
+    static_configs:
+      - targets:
+          - api:9090
+          - api-read-1:9090
+          - api-read-2:9090
+          - api-mirror:9090
+          - api-mirror-read-1:9090
+          - api-mirror-read-2:9090
+          - api-publisher:9090
+          - notifier:9090
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: service
+        replacement: '$1'
+      - source_labels: [service]
+        target_label: instance
+
+  - job_name: nginx
+    static_configs:
+      - targets: [nginx-exporter:9113]
+        labels:
+          service: nginx
+          instance: nginx
+      - targets: [frontend-exporter:9113]
+        labels:
+          service: frontend
+          instance: frontend
+      - targets: [frontend-mirror-exporter:9113]
+        labels:
+          service: frontend-mirror
+          instance: frontend-mirror
+
+  - job_name: monitoring
+    static_configs:
+      - targets: [prometheus:9090, loki:3100]
+
+  - job_name: grafana
+    metrics_path: /monitoring/metrics
+    static_configs:
+      - targets: [grafana:3000]
