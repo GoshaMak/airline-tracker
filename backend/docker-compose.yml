@@ -150,7 +150,7 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:stable-alpine
+    image: openresty/openresty:1.29.2.4-1-alpine
     restart: unless-stopped
     depends_on:
       api:
