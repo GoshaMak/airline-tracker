@@ -4,18 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Airline Tracker API</title>
-  <link rel="stylesheet" href="/api/v1/docs/swagger-ui.css">
+  <link rel="stylesheet" href="./swagger-ui.css">
 </head>
 <body style="margin: 0">
   <div id="swagger-ui"></div>
-  <script src="/api/v1/docs/swagger-ui-bundle.js"></script>
+  <script src="./swagger-ui-bundle.js"></script>
   <script>
     window.onload = function () {
+      const apiURL = new URL('../', window.location.href);
+      const prefix = apiURL.pathname.replace(/\/api\/v1\/$/, '');
       window.ui = SwaggerUIBundle({
-        url: '/api/v1/openapi.yml',
+        url: new URL('openapi.yml', apiURL).href,
         dom_id: '#swagger-ui',
         deepLinking: true,
         validatorUrl: null,
+        requestInterceptor: function (request) {
+          const target = new URL(request.url, window.location.origin);
+          if (target.pathname.startsWith('/api/v1/')) {
+            target.pathname = prefix + target.pathname;
+            target.protocol = window.location.protocol;
+            target.host = window.location.host;
+            request.url = target.href;
+          }
+          return request;
+        },
         presets: [SwaggerUIBundle.presets.apis]
       });
     };

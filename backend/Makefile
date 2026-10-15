@@ -8,6 +8,10 @@ DEBUG_COMPOSE_ARGS := -f infra-compose.debug.yml
 up:
 	docker compose $(COMPOSE_ARGS) up --build -d
 
+.PHONY: replication-check
+replication-check:
+	docker compose $(COMPOSE_ARGS) run --rm --no-deps --entrypoint /bin/sh replication-setup /replication/verify.sh
+
 .PHONY: test
 test:
 	sh scripts/run-allure.sh

@@ -2,6 +2,8 @@ services:
   postgres:
     image: postgres:16
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "/etc/postgresql/primary-entrypoint.sh"]
+    command: ["postgres", "-c", "config_file=/etc/postgresql/primary.conf"]
     environment:
       POSTGRES_DB: airline_tracker
       POSTGRES_USER: postgres
@@ -9,15 +11,48 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init/:/docker-entrypoint-initdb.d
+      - ./db/replication/primary-entrypoint.sh:/etc/postgresql/primary-entrypoint.sh:ro
+      - ./db/replication/primary.conf:/etc/postgresql/primary.conf:ro
+      - ./db/replication/pg_hba.conf:/etc/postgresql/replication_hba.conf:ro
     networks:
       - shared
       - default
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d airline_tracker"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d airline_tracker"]
       interval: 1s
       timeout: 1s
       retries: 10
       start_period: 1s
+
+  postgres-replica-1: &postgres-replica
+    image: postgres:16
+    restart: unless-stopped
+    command: ["postgres", "-c", "config_file=/etc/postgresql/replica.conf"]
+    environment:
+      POSTGRES_DB: airline_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_replica_1_data:/var/lib/postgresql/data
+      - ./db/init/001_roles.sql:/docker-entrypoint-initdb.d/001_roles.sql:ro
+      - ./db/replication/replica-roles.sql:/docker-entrypoint-initdb.d/002_replica_roles.sql:ro
+      - ./db/replication/replica.conf:/etc/postgresql/replica.conf:ro
+      - ./db/replication/pg_hba.conf:/etc/postgresql/replication_hba.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d airline_tracker"]
+      interval: 1s
+      timeout: 1s
+      retries: 60
+      start_period: 5s
+
+  postgres-replica-2:
+    <<: *postgres-replica
+    volumes:
+      - postgres_replica_2_data:/var/lib/postgresql/data
+      - ./db/init/001_roles.sql:/docker-entrypoint-initdb.d/001_roles.sql:ro
+      - ./db/replication/replica-roles.sql:/docker-entrypoint-initdb.d/002_replica_roles.sql:ro
+      - ./db/replication/replica.conf:/etc/postgresql/replica.conf:ro
+      - ./db/replication/pg_hba.conf:/etc/postgresql/replication_hba.conf:ro
 
   redis:
     image: redis:7
@@ -64,6 +99,10 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  postgres_replica_1_data:
+    driver: local
+  postgres_replica_2_data:
     driver: local
 
 networks:

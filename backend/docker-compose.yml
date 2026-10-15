@@ -18,12 +18,14 @@ services:
         condition: service_healthy
       api-migrate:
         condition: service_completed_successfully
+      replication-setup:
+        condition: service_completed_successfully
 
-  api-read-1:
+  api-read-1: &api-read-service
     <<: *api-service
     env_file:
       - ./api/.env
-      - ./api/read.env
+      - ./api/replica-1.env
     environment:
       INSTANCE_ID: api-read-1
 
@@ -31,9 +33,30 @@ services:
     <<: *api-service
     env_file:
       - ./api/.env
-      - ./api/read.env
+      - ./api/replica-2.env
     environment:
       INSTANCE_ID: api-read-2
+
+  api-mirror:
+    <<: *api-read-service
+    environment:
+      INSTANCE_ID: api-mirror
+
+  api-mirror-read-1:
+    <<: *api-read-service
+    env_file:
+      - ./api/.env
+      - ./api/replica-2.env
+    environment:
+      INSTANCE_ID: api-mirror-read-1
+
+  api-mirror-read-2:
+    <<: *api-read-service
+    env_file:
+      - ./api/.env
+      - ./api/replica-2.env
+    environment:
+      INSTANCE_ID: api-mirror-read-2
 
   api-publisher:
     env_file:
@@ -52,6 +75,25 @@ services:
         condition: service_healthy
       api-migrate:
         condition: service_completed_successfully
+      replication-setup:
+        condition: service_completed_successfully
+
+  replication-setup:
+    image: postgres:16
+    env_file:
+      - ./db/replication/replication.env
+    volumes:
+      - ./db/replication:/replication:ro
+    entrypoint: ["/bin/sh", "/replication/setup.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-replica-1:
+        condition: service_healthy
+      postgres-replica-2:
+        condition: service_healthy
+      notifier-migrate:
+        condition: service_completed_successfully
 
   api-migrate:
     env_file:
@@ -60,6 +102,8 @@ services:
       context: .
       dockerfile: ./api/Dockerfile
     command: ["/bin/migrate"]
+    environment:
+      PGOPTIONS: "-c synchronous_commit=local"
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,6 +122,8 @@ services:
         condition: service_healthy
       notifier-migrate:
         condition: service_completed_successfully
+      replication-setup:
+        condition: service_completed_successfully
 
   notifier-migrate:
     env_file:
@@ -86,6 +132,8 @@ services:
       context: .
       dockerfile: ./notifier/Dockerfile
     command: ["/bin/migrate"]
+    environment:
+      PGOPTIONS: "-c synchronous_commit=local"
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,6 +158,12 @@ services:
       api-read-1:
         condition: service_started
       api-read-2:
+        condition: service_started
+      api-mirror:
+        condition: service_started
+      api-mirror-read-1:
+        condition: service_started
+      api-mirror-read-2:
         condition: service_started
     ports:
       - "127.0.0.1:8080:80"

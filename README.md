@@ -196,8 +196,9 @@ Airline Tracker — система для просмотра рейсов и о�
 
 Необходимы GNU Make, Docker с плагином Docker Compose и заполненные файлы окружения:
 
-- `backend/api/.env`, `backend/api/read.env` и `backend/api/migrate.env`;
+- `backend/api/.env`, `backend/api/replica-1.env`, `backend/api/replica-2.env` и `backend/api/migrate.env`;
 - `backend/notifier/.env` и `backend/notifier/migrate.env`;
+- `backend/db/replication/replication.env` — административное подключение для настройки репликации;
 - `utils/.env` — только для генератора тестовых данных.
 
 Запуск приложения:
@@ -212,13 +213,13 @@ make release
 
 ### Балансировка API (пункт 1 задания)
 
-Используются три экземпляра одного образа API и одна общая PostgreSQL:
+Используются три экземпляра API: основной подключён к primary PostgreSQL, два дополнительных — к двум логическим репликам:
 
 | Экземпляр | Внутренний адрес | Прямой адрес в debug | Права БД | Вес чтения |
 |---|---|---|---|---|
-| Основной | `api:8080` | `127.0.0.1:8081` | Чтение и запись (`app_user`) | 2 |
-| Только чтение | `api-read-1:8080` | `127.0.0.1:8082` | Чтение (`app_reader`) | 1 |
-| Только чтение | `api-read-2:8080` | `127.0.0.1:8083` | Чтение (`app_reader`) | 1 |
+| Основной | `api:8080` | `127.0.0.1:8081` | Primary: чтение и запись (`app_user`) | 2 |
+| Только чтение | `api-read-1:8080` | `127.0.0.1:8082` | Replica 1: чтение (`app_reader`) | 1 |
+| Только чтение | `api-read-2:8080` | `127.0.0.1:8083` | Replica 2: чтение (`app_reader`) | 1 |
 
 Общий nginx направляет GET/HEAD к `/api/v1/` в группу с весами `2:1:1`, остальные методы — только в основной экземпляр. В штатном режиме основной обрабатывает примерно половину запросов чтения, каждый дополнительный — четверть. При отказах соотношение меняется; при недоступности основного запись не переносится на экземпляры чтения. API-запросы frontend на debug-порту 3000 также проходят через общий nginx.
 
@@ -234,7 +235,7 @@ Outbox publisher запускается отдельно: сервис Compose `
 
 Важно: исправления старых миграций применяются при развёртывании новой БД. Если эти миграции уже выполнены, Goose не запустит их повторно: для существующей БД нужна отдельная корректирующая миграция. Не удаляйте том с данными ради применения исправлений.
 
-Фиксированный пароль `app_reader` — `reader_pswd`; он указан в SQL-миграции и строке подключения в `backend/api/read.env`. Оба read-only сервиса загружают этот файл после `backend/api/.env`, переопределяя только подключение к PostgreSQL. Файлы `*.env` исключены из Git. Эти учётные данные предназначены только для локальной разработки. Если миграция уже применена, изменение её файла не обновит пароль существующей роли: потребуется отдельная миграция с `ALTER ROLE`.
+Фиксированный пароль `app_reader` — `reader_pswd`; он указан в SQL-миграции, инициализации ролей реплик и строках подключения в `backend/api/replica-1.env` / `replica-2.env`. Read-only сервисы загружают соответствующий файл после `backend/api/.env`, переопределяя подключение к PostgreSQL. Старый `read.env` больше не используется Compose. Файлы `*.env` исключены из Git. Эти учётные данные предназначены только для локальной разработки. Если миграция уже применена, изменение её файла не обновит пароль существующей роли: потребуется отдельная миграция с `ALTER ROLE`.
 
 Проверки после запуска (приведены как инструкции, не выполняются автоматически):
 
@@ -254,7 +255,49 @@ curl -i -X POST http://localhost:8080/api/v1/uuids
 docker compose -f backend/docker-compose.yml exec postgres psql -U postgres -d airline_tracker -c "SELECT has_table_privilege('app_reader', 'api_schema.flights', 'SELECT') AS can_read, has_table_privilege('app_reader', 'api_schema.flights', 'INSERT') AS can_insert, has_table_privilege('app_reader', 'api_schema.flights', 'UPDATE') AS can_update, has_table_privilege('app_reader', 'api_schema.flights', 'DELETE') AS can_delete, has_table_privilege('app_reader', 'api_schema.flights', 'TRUNCATE') AS can_truncate;"
 ```
 
-Репликация БД и `/mirror` в этом пункте не реализуются.
+### Зеркало `/mirror` и репликация — пункт 3
+
+Основная версия остаётся на `/`. `/mirror` перенаправляет на `/mirror/`, где работает отдельный контейнер `frontend-mirror`. Зеркало использует отдельную группу API, а не перенаправляет чтение в экземпляры основной версии:
+
+| Маршрут | Обработчик |
+|---|---|
+| `/mirror/`, `/mirror/styles.css`, `/mirror/app.js`, `/mirror/js/...` | `frontend-mirror` |
+| GET/HEAD `/mirror/api/v1/...` | `api-mirror`, `api-mirror-read-1`, `api-mirror-read-2` с весами 2:1:1 |
+| POST/PUT/PATCH/DELETE `/mirror/api/v1/...` | Основной `api`, подключённый к primary как `app_user` с правами записи |
+| `/mirror/api/v1/docs/` | Swagger UI зеркала; статика и API-запросы сохраняют префикс `/mirror` |
+| `/mirror/api/v1/openapi.yml` | Общая каноническая OpenAPI-спецификация |
+
+nginx удаляет `/mirror` только при передаче запроса во внутренний сервис. В браузере этот префикс сохраняется: HTML использует относительные ссылки на CSS/JS, а API_BASE определяется относительно URL JS-модуля. Редиректы API также переписываются с сохранением `/mirror`. Swagger UI использует относительные ссылки и направляет «Try it out» в API текущей версии. OpenAPI содержит серверы `/` и `/mirror`.
+
+Используется primary PostgreSQL и две логические синхронные реплики. `api-mirror` читает replica 1; `api-mirror-read-1` и `api-mirror-read-2` -- replica 2. Все три используют `app_reader`. Вес 2:1:1 сохраняется для API, а запросы зеркала между БД распределяются примерно поровну. Запись зеркала направляется в основной `api` на primary. Redis остаётся общим. Отдельный publisher не дублируется: существующий `api-publisher` работает на primary. JWT_KEY одинаковый; состояние входа в браузере разделяется версиями, поскольку они находятся на одном origin.
+
+Primary использует `synchronous_commit=remote_apply` и `FIRST 2 (airline_replica_1, airline_replica_2)`: подтверждение записи ждёт применения на обеих репликах. При недоступности одной реплики запись ожидает её восстановления; автоматического перехода на асинхронный режим нет. Сервис `replication-setup` копирует схему, создаёт публикацию/подписки, ждёт завершения начального копирования и подключения обеих синхронных реплик. После этого запускаются API и фоновые сервисы. Применение тестовой транзакции и запрет записи проверяются отдельно командой `make backend-replication-check`. DDL и роли логически не реплицируются; для последующих миграций нужно отдельно обновлять схему реплик.
+
+Полная инструкция, ограничения, начальное развёртывание без удаления данных и демонстрация: [PostgreSQL Primary–Replica](docs/postgresql-replication.md). Проверка после запуска: `make backend-replication-check`.
+
+Новые сервисы входят в существующие Compose-файлы и будут созданы обычным запуском backend и frontend. Дополнительные API-порты зеркала на хост не публикуются. Для применения новых бинарников и встроенного Swagger UI необходимо пересобрать API; изменение одного nginx-конфига недостаточно. Не запускайте генератор данных повторно только ради добавления зеркала:
+
+```bash
+make backend-debug
+make frontend-debug
+```
+
+Для release используйте `make release`. Динамическое DNS-разрешение позволяет backend nginx запуститься до `frontend-mirror`; до его запуска запросы интерфейса зеркала могут возвращать 502. Динамические upstream зеркала требуют nginx >= 1.27.3; используемый `nginx:stable-alpine` поддерживает эту настройку.
+
+Проверки после применения:
+
+```bash
+curl -i http://localhost:8080/mirror
+curl -i http://localhost:8080/mirror/
+curl -i http://localhost:8080/mirror/api/v1/status
+curl -i 'http://localhost:8080/mirror/api/v1/flights?limit=5'
+curl -i http://localhost:8080/mirror/api/v1/docs/
+curl -i http://localhost:8080/mirror/api/v1/docs/swagger-ui.css
+# UUID не меняет БД; этот POST проверяет маршрутизацию на основной api / primary.
+curl -i -X POST http://localhost:8080/mirror/api/v1/uuids
+```
+
+На GET `X-Backend-Instance` должен принадлежать группе `api-mirror*`, на POST — быть `api`. Браузер должен загружать ресурсы и выполнять API-запросы с `/mirror/`, не обращаться вместо этого к корневому `/api/v1/`. Тесты вычисления URL без запуска приложения: `node tests/mirror/urls.test.mjs`.
 
 Остановка приложения и удаление созданных Compose-томов:
 

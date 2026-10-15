@@ -15,8 +15,10 @@ info:
     restrict the two additional instances to reading business data.
     Responses include X-Backend-Instance to identify the serving instance.
 servers:
-  - url: http://localhost:8080
-    description: Local API service
+  - url: /
+    description: Main application
+  - url: /mirror
+    description: Mirror application
 tags:
   - name: Service
   - name: Authentication
