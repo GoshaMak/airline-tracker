@@ -1,5 +1,24 @@
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
+RUN_ID ?= local
+TEST_ENV = . tests/environment/stand.sh; environment_init "$(RUN_ID)";
+
+.PHONY: test-env-up test-env-check test-env-reset test-env-down
+test-env-up:
+	$(TEST_ENV) environment_up
+
+test-env-check:
+	$(TEST_ENV) environment_check
+
+test-env-reset:
+	$(TEST_ENV) environment_reset
+
+test-env-down:
+	$(TEST_ENV) environment_down
+
+.PHONY: test-integration
+test-integration:
+	$(TEST_ENV) environment_integration
 
 .PHONY: test
 test:

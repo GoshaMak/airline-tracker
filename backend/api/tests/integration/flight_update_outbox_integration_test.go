@@ -1,0 +1,70 @@
+//go:build integration
+
+package integration
+
+import (
+	"api/internal/flight/command"
+	"api/internal/flight/domain"
+	"encoding/json"
+	"errors"
+	"testing"
+	"time"
+
+	allure "github.com/allure-framework/allure-go/commons/gotest"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+)
+
+func TestFlightUsecase_UpdateCreatesOutboxEvent(t *testing.T) {
+	allure.Test(t, "integration: changing a subscribed flight persists an outbox event", func(a *allure.Context) {
+		t := a.T()
+		f := newFixture(t)
+		ctx := t.Context()
+		if err := f.repo.Save(ctx, f.flight); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.pool.Exec(ctx,
+			"INSERT INTO subscriptions(id, user_id, flight_id) VALUES ($1, $2, $3)",
+			uuid.New(), adminID, f.flight.Id); err != nil {
+			t.Fatal(err)
+		}
+
+		status := "delayed"
+		if err := f.uc.UpdateFlight(command.UpdateFlightCommand{FlightId: f.flight.Id, Status: &status}); err != nil {
+			t.Fatal(err)
+		}
+		updated, err := f.db.Exist(ctx, f.flight.Id)
+		if err != nil || updated.Status != domain.Delayed {
+			t.Fatalf("flight status was not persisted: %+v, err=%v", updated, err)
+		}
+		cached, err := f.cache.GetFlightById(ctx, f.flight.Id)
+		if err != nil || cached.Status != domain.Delayed {
+			t.Fatalf("cached status was not updated: %+v, err=%v", cached, err)
+		}
+
+		var payload []byte
+		var pending bool
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			err = f.pool.QueryRow(ctx,
+				"SELECT payload, sent_at IS NULL FROM outbox WHERE topic = $1 AND payload->>'flight_id' = $2",
+				"flight-updated", f.flight.Id.String()).Scan(&payload, &pending)
+			if err == nil {
+				break
+			}
+			if !errors.Is(err, pgx.ErrNoRows) || time.Now().After(deadline) {
+				t.Fatalf("outbox event did not appear: %v", err)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		var event domain.FlightUpdatedPayloadModel
+		if err := json.Unmarshal(payload, &event); err != nil {
+			t.Fatal(err)
+		}
+		if !pending || event.FlightId != f.flight.Id || event.Status == nil ||
+			*event.Status != status || len(event.Users) != 1 || event.Users[0] != "admin@airline.test" ||
+			event.DepartureAirportTitle != "Sheremetyevo" || event.ArrivalAirportTitle != "Pulkovo" {
+			t.Fatalf("unexpected outbox event: %s, pending=%v", payload, pending)
+		}
+	})
+}

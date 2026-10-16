@@ -1,0 +1,155 @@
+x-app: &app
+  image: airline-tracker-test:${TEST_RUN_ID:?Set TEST_RUN_ID}
+  build:
+    context: ../..
+    dockerfile: tests/environment/Dockerfile
+  environment: &app-env
+    MODE: DEBUG
+    GIN_MODE: release
+    PORT: "8080"
+    INSTANCE_ID: test-environment
+    POSTGRES_URI: postgres://app_user:app_pswd@postgres:5432/airline_tracker?search_path=api_schema
+    REDIS_ADDR: redis:6379
+    JWT_KEY: test-only-key-${TEST_RUN_ID:?Set TEST_RUN_ID}
+    KAFKA_PEERS: kafka:9092
+    SUBSCRIPTION_CREATED_TOPIC: subscription-created
+    FLIGHT_UPDATED_TOPIC: flight-updated
+  init: true
+
+services:
+  integration-tests:
+    image: airline-tracker-integration-tests:${TEST_RUN_ID:?Set TEST_RUN_ID}
+    profiles: [tests]
+    build:
+      context: ../..
+      dockerfile: tests/environment/Dockerfile
+      target: integration-tests
+    environment:
+      <<: *app-env
+      ALLURE_RESULTS_DIR: /results
+      ALLURE_LABEL_EPIC: integration
+    volumes:
+      - ./results/${TEST_RUN_ID}/allure-results:/results
+
+  tools:
+    image: python:3.13.7-alpine3.22
+    profiles: [tools]
+    volumes:
+      - ./scripts:/test-support:ro
+    command: [python, /test-support/check.py]
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: airline_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../backend/db/init:/docker-entrypoint-initdb.d:ro
+      - ./sql:/test-support:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d airline_tracker"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  redis:
+    image: redis:7
+    command: [redis-server, --save, "", --appendonly, "no"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  kafka:
+    image: apache/kafka:4.3.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test: [CMD-SHELL, "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 10s
+      retries: 60
+
+  mailpit:
+    image: axllent/mailpit:v1.27.8
+    healthcheck:
+      test: [CMD, /mailpit, readyz]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api-migrate:
+    <<: *app
+    command: [/bin/api-migrate]
+    environment:
+      POSTGRES_URI: postgres://postgres:postgres@postgres:5432/airline_tracker?search_path=api_schema
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  notifier-migrate:
+    <<: *app
+    command: [/bin/notifier-migrate]
+    environment:
+      POSTGRES_URI: postgres://postgres:postgres@postgres:5432/airline_tracker?search_path=notifier_schema
+    depends_on:
+      api-migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: *app
+    command: [/bin/api]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:8080/api/v1/flights?limit=1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  publisher:
+    <<: *app
+    command: [/bin/publisher]
+    healthcheck: &worker-health
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:9090/metrics"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  notifier:
+    <<: *app
+    command: [/bin/notifier]
+    healthcheck: *worker-health
+    environment:
+      <<: *app-env
+      POSTGRES_URI: postgres://app_user:app_pswd@postgres:5432/airline_tracker?search_path=notifier_schema
+      APP_EMAIL: notifications@airline.test
+      SMTP_ADDR: mailpit:1025
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

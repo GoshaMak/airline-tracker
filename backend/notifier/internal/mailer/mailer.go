@@ -1,9 +1,9 @@
 package mailer
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/smtp"
 	"os"
 	"shared/common"
@@ -12,30 +12,34 @@ import (
 )
 
 type Mailer struct {
-	Addr        string
-	AppEmail    common.Email
-	AppPassword string
-	Auth        smtp.Auth
+	Addr     string
+	AppEmail common.Email
+	Auth     smtp.Auth
 }
 
 func NewMailer(i do.Injector) (*Mailer, error) {
 	const op = "NewMailer"
-	appPassword := os.Getenv("APP_PASSWORD")
-	if len(appPassword) == 0 {
-		return nil, errors.New("empty app password")
-	}
+	addr := os.Getenv("SMTP_ADDR")
 	appEmail, err := common.NewEmail(os.Getenv("APP_EMAIL"))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	auth := smtp.PlainAuth("", appEmail.String(), appPassword, "smtp.gmail.com")
+	var auth smtp.Auth
+	if addr != "" {
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("%s: invalid SMTP_ADDR: %w", op, err)
+		}
+		if password := os.Getenv("APP_PASSWORD"); password != "" {
+			auth = smtp.PlainAuth("", appEmail.String(), password, host)
+		}
+	}
 
 	return &Mailer{
-		Addr:        "smtp.gmail.com:587",
-		AppEmail:    appEmail,
-		AppPassword: appPassword,
-		Auth:        auth,
+		Addr:     addr,
+		AppEmail: appEmail,
+		Auth:     auth,
 	}, nil
 }
 
@@ -46,14 +50,10 @@ func (m *Mailer) SendEmail(to []common.Email, msg []byte) error {
 	for _, email := range to {
 		toEmails = append(toEmails, email.String())
 	}
-	slog.Debug(op, "toEmails", toEmails, "msg", string(msg))
+	slog.Debug(op, "targets", toEmails, "message", string(msg))
 
-	slog.Info("sending email faked")
-	return nil
-
-	targetEmail := "je6t8r@gmail.com"
-	if toEmails[0] != targetEmail {
-		slog.Info("sending email faked")
+	if m.Addr == "" {
+		slog.Info("SMTP delivery disabled: SMTP_ADDR is not configured")
 		return nil
 	}
 

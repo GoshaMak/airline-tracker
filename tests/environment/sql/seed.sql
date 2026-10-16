@@ -1,0 +1,40 @@
+\set ON_ERROR_STOP on
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+SET search_path = api_schema, public;
+
+INSERT INTO users (id, email, password_hash, role) VALUES
+('00000000-0000-4000-8000-000000000001', 'admin@airline.test',
+ crypt('TestAdmin123!', '$2a$10$abcdefghijklmnopqrstuu'), 'admin');
+
+INSERT INTO countries (id, code, name) VALUES
+('00000000-0000-4000-8000-000000000010', 'RU', 'Russia');
+
+INSERT INTO cities (id, country_id, name) VALUES
+('00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000010', 'Moscow'),
+('00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000010', 'Saint Petersburg');
+
+INSERT INTO airports (id, iata_code, title, city_id) VALUES
+('00000000-0000-4000-8000-000000000021', 'SVO', 'Sheremetyevo', '00000000-0000-4000-8000-000000000011'),
+('00000000-0000-4000-8000-000000000022', 'LED', 'Pulkovo', '00000000-0000-4000-8000-000000000012');
+
+INSERT INTO gates (id, airport_id, number) VALUES
+('00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000021', 'A1'),
+('00000000-0000-4000-8000-000000000032', '00000000-0000-4000-8000-000000000022', 'B1');
+
+INSERT INTO aircraft_models (id, manufacturer, model, mass, max_altitude, max_speed) VALUES
+('00000000-0000-4000-8000-000000000040', 'Airbus', 'A320', 42000, 12000, 900);
+
+INSERT INTO aircraft (id, aircraft_model_id, registration_number, serial_number, mileage) VALUES
+('00000000-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000040', 'RA-TEST01', 'TEST000001', 0);
+
+INSERT INTO flights (id, aircraft_id, scheduled_departure, scheduled_arrival, status, plan) VALUES
+('00000000-0000-4000-8000-000000000050', '00000000-0000-4000-8000-000000000041',
+ '2099-01-15 10:00:00', '2099-01-15 11:30:00', 'scheduled', 'TEST SVO-LED');
+
+INSERT INTO flight_routes (id, flight_id, departure_gate_id, arrival_gate_id) VALUES
+('00000000-0000-4000-8000-000000000051', '00000000-0000-4000-8000-000000000050',
+ '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000032');
+
+COMMIT;
