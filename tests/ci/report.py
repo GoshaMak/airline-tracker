@@ -81,18 +81,17 @@ def generate_report(results, history):
             "reportName": "Airline Tracker tests",
         }
         (raw / "executor.json").write_text(json.dumps(executor))
-        subprocess.run(
-            [
-                "allure",
-                "generate",
-                str(raw),
-                "--clean",
-                "-o",
-                str(results / "allure-report"),
-            ],
-            check=True,
-        )
+        command = [
+            "allure",
+            "generate",
+            str(raw),
+            "--clean",
+            "-o",
+            str(results / "allure-report"),
+        ]
+        subprocess.run(command, check=True)
         shutil.copytree(results / "allure-report/history", history, dirs_exist_ok=True)
+        subprocess.run(command + ["--single-file"], check=True)
 
 
 if __name__ == "__main__":
