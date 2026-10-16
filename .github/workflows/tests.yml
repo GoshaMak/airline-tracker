@@ -1,0 +1,75 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CI_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+      CI_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@v5
+        with:
+          path: tests/ci/cache
+          key: ${{ runner.os }}-go-${{ hashFiles('backend/**/go.sum') }}
+
+      - name: Restore Allure history
+        uses: actions/cache/restore@v5
+        with:
+          path: tests/ci/history
+          key: allure-${{ github.ref }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: allure-${{ github.ref }}-
+
+      - name: Build runner
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_build
+
+      - name: Checkout commit
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_checkout
+
+      - name: Prepare test environment
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_step prepare
+
+      - name: Unit
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_step unit
+
+      - name: Integration
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_step integration
+
+      - name: E2E
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_step e2e
+
+      - name: Cleanup and report
+        if: always()
+        timeout-minutes: 5
+        run: . tests/ci/run.sh; ci_init "$CI_RUN_ID"; ci_finish
+
+      - name: Save Allure history
+        if: always() && hashFiles('tests/ci/history/history-trend.json') != ''
+        uses: actions/cache/save@v5
+        with:
+          path: tests/ci/history
+          key: allure-${{ github.ref }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Publish report and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tests/ci/work/${{ env.CI_RUN_ID }}/repo/tests/environment/results/${{ env.CI_RUN_ID }}
+          retention-days: 14

@@ -17,6 +17,11 @@ x-app: &app
   init: true
 
 services:
+  drain:
+    <<: *app
+    profiles: [tools]
+    command: [/bin/drain]
+
   e2e-tests:
     image: airline-tracker-e2e-tests:${TEST_RUN_ID:?Set TEST_RUN_ID}
     profiles: [tests]
@@ -93,6 +98,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
     healthcheck:
       test: [CMD-SHELL, "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 3s

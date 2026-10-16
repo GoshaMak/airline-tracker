@@ -24,6 +24,10 @@ test-integration:
 test-e2e:
 	$(TEST_ENV) environment_e2e
 
+.PHONY: test-ci
+test-ci:
+	. tests/ci/run.sh; ci_init "$(RUN_ID)"; ci_all
+
 .PHONY: test
 test:
 	$(MAKE) -C $(BACKEND_DIR) test

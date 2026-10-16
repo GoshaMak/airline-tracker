@@ -271,10 +271,20 @@ make down
 make test
 ```
 
+Полный запуск Unit -> Integration -> E2E в Docker:
+
+```bash
+make test-ci RUN_ID=developer-a-1
+```
+
+Проверяется текущий commit; для каждого запуска задаётся новый RUN_ID.
+GitHub Actions запускает те же этапы при push и pull request, сохраняет Allure-отчёт и историю.
+Инструкции: [CI](tests/ci/README.md), [тестовый стенд](tests/environment/README.md).
+
 Просмотр сгенерированного Allure-отчёта:
 
 ```bash
-backend/.tools/allure-2.46.1/bin/allure open backend/allure-report
+allure open backend/allure-report
 ```
 
 Измерение покрытия с помощью `gobco`:

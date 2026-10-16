@@ -16,9 +16,19 @@ replication-check:
 test:
 	sh scripts/run-allure.sh
 
+export ALLURE_RESULTS_DIR ?= $(CURDIR)/allure-results
+export ALLURE_LABEL_EPIC ?= unit
+
+.PHONY: test-unit
+test-unit:
+	cd $(API_PREFIX) && go test -v -count=1 -coverprofile=coverage.out ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' || true
+	cd $(API_PREFIX) && python3 ../scripts/render-coverage.py
+	cd $(NOTIFIER_PREFIX) && go test -v -count=1 ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' || true
+	cd shared && go test -v -count=1 ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' || true
+
 .PHONY: test-name
 test-name:
-	@cd $(API_PREFIX) && go test ./... -count=1 -run '^$(TEST)$$' 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' | grep -v '\[no tests to run\]'
+	@cd $(API_PREFIX) && go test ./... -count=1 -run '^$(TEST)$$'
 
 
 .PHONY: gobco

@@ -1,0 +1,8 @@
+**
+!backend
+!backend/scripts
+!backend/scripts/install-allure.sh
+!tests
+!tests/ci
+!tests/ci/checkout.sh
+!tests/ci/report.py

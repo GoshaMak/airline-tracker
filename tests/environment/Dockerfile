@@ -9,6 +9,11 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     CGO_ENABLED=0 go build -o /bin/notifier ./notifier/cmd/notifier && \
     CGO_ENABLED=0 go build -o /bin/notifier-migrate ./notifier/cmd/migrate
 
+COPY tests/environment/go.mod tests/environment/go.sum /test-support/
+COPY tests/environment/cmd /test-support/cmd
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -C /test-support -mod=readonly -o /bin/drain ./cmd/kafka-drain
+
 FROM builder AS integration-build
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 go test -c -tags=integration -o /bin/integration-tests ./api/tests/integration
@@ -29,3 +34,4 @@ FROM alpine:3.23.3
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /bin/api /bin/publisher /bin/api-migrate /bin/notifier /bin/notifier-migrate /bin/
+COPY --from=builder /bin/drain /bin/drain

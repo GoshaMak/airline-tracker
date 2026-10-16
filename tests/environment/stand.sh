@@ -33,15 +33,26 @@ snapshot() {
     db psql -X -qAt -U postgres -d airline_tracker -f /test-support/fingerprint.sql > "$results/baseline.fingerprint"
 }
 
-environment_reset() {
+environment_restore() {
+    for service in integration-tests e2e-tests; do
+        for container in $(docker ps -aq \
+            --filter "label=com.docker.compose.project=airline-test-$TEST_RUN_ID" \
+            --filter "label=com.docker.compose.service=$service"); do
+            docker rm -f "$container" || return
+        done
+    done
     dc stop api publisher notifier || return
+    dc run --rm --no-deps drain >> "$results/kafka-drain.jsonl" || return
     db pg_restore -U postgres -d airline_tracker --clean --if-exists --exit-on-error \
         /var/lib/postgresql/data/test-baseline.dump || return
     verify_db || return
     dc exec -T redis redis-cli FLUSHALL || return
     test "$(dc exec -T redis redis-cli DBSIZE)" = 0 || return
     dc run --rm --no-deps tools python /test-support/check.py clear-mail || return
+}
 
+environment_reset() {
+    environment_restore || return
     dc rm -sfv kafka || return
     dc up -d --wait --wait-timeout 180 kafka || return
     topics || return
@@ -68,7 +79,7 @@ environment_check() {
 }
 
 environment_down() {
-    dc down --volumes --remove-orphans
+    dc down --volumes --remove-orphans || return
     if [ -f "$results/baseline.fingerprint" ]; then
         mv "$results/baseline.fingerprint" "$results/last-baseline.fingerprint"
     fi
