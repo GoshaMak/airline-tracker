@@ -17,6 +17,21 @@ x-app: &app
   init: true
 
 services:
+  e2e-tests:
+    image: airline-tracker-e2e-tests:${TEST_RUN_ID:?Set TEST_RUN_ID}
+    profiles: [tests]
+    build:
+      context: ../..
+      dockerfile: tests/environment/Dockerfile
+      target: e2e-tests
+    environment:
+      API_BASE_URL: http://api:8080/api/v1
+      MAILPIT_URL: http://mailpit:8025
+      ALLURE_RESULTS_DIR: /results
+      ALLURE_LABEL_EPIC: e2e
+    volumes:
+      - ./results/${TEST_RUN_ID}/allure-results:/results
+
   integration-tests:
     image: airline-tracker-integration-tests:${TEST_RUN_ID:?Set TEST_RUN_ID}
     profiles: [tests]

@@ -20,6 +20,10 @@ test-env-down:
 test-integration:
 	$(TEST_ENV) environment_integration
 
+.PHONY: test-e2e
+test-e2e:
+	$(TEST_ENV) environment_e2e
+
 .PHONY: test
 test:
 	$(MAKE) -C $(BACKEND_DIR) test

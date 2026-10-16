@@ -98,3 +98,8 @@ environment_integration() {
     dc stop api publisher notifier
     environment_run dc run --build --rm --no-deps integration-tests
 }
+
+environment_e2e() {
+    environment_up
+    environment_run dc run --build --rm --no-deps e2e-tests
+}

@@ -17,6 +17,14 @@ FROM alpine:3.23.3 AS integration-tests
 COPY --from=integration-build /bin/integration-tests /bin/integration-tests
 CMD ["/bin/integration-tests", "-test.v", "-test.count=1", "-test.timeout=60s"]
 
+FROM builder AS e2e-build
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go test -c -tags=e2e -o /bin/e2e-tests ./api/tests/e2e
+
+FROM alpine:3.23.3 AS e2e-tests
+COPY --from=e2e-build /bin/e2e-tests /bin/e2e-tests
+CMD ["/bin/e2e-tests", "-test.v", "-test.count=1", "-test.timeout=90s"]
+
 FROM alpine:3.23.3
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
