@@ -98,6 +98,9 @@ def generate_report(results, history):
 if __name__ == "__main__":
     results = Path(os.environ["CI_RESULTS"])
     results.mkdir(parents=True, exist_ok=True)
-    statuses = prepare_statuses(results)
-    add_missing_results(results / "allure-results", statuses)
-    generate_report(results, Path(os.environ["CI_HISTORY"]))
+    try:
+        statuses = prepare_statuses(results)
+        add_missing_results(results / "allure-results", statuses)
+        generate_report(results, Path(os.environ["CI_HISTORY"]))
+    finally:
+        subprocess.run(["chmod", "-R", "a+rX", str(results)], check=True)

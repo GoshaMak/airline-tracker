@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 git config --global --add safe.directory /source
+git config --global --add safe.directory /source/.git
 
 test ! -e "$CI_WORK/repo"
 mkdir -p "$CI_RESULTS"
