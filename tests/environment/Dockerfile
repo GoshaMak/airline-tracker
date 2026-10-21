@@ -4,6 +4,7 @@ COPY backend/ ./
 
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 go build -o /bin/api ./api/cmd/api && \
+    CGO_ENABLED=0 go build -o /bin/create-admin ./api/cmd/create-admin && \
     CGO_ENABLED=0 go build -o /bin/publisher ./api/cmd/publisher && \
     CGO_ENABLED=0 go build -o /bin/api-migrate ./api/cmd/migrate && \
     CGO_ENABLED=0 go build -o /bin/notifier ./notifier/cmd/notifier && \
@@ -35,3 +36,4 @@ FROM alpine:3.23.3
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /bin/api /bin/publisher /bin/api-migrate /bin/notifier /bin/notifier-migrate /bin/
 COPY --from=builder /bin/drain /bin/drain
+COPY --from=builder /bin/create-admin /bin/create-admin

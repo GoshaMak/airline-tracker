@@ -4,16 +4,18 @@
 
 В артефакте `test-results-<run_id>-<attempt>` находятся:
 
-- `allure-report/`, `allure-results/` -- HTML-отчёт и результаты
+- `allure-report/index.html` -- готовый самостоятельный HTML-отчёт
+- `allure-results/` -- исходные результаты тестов
 - `commit.txt`, `tools.txt`, `*.status` -- commit, версии инструментов и статусы этапов
 - логи этапов, `services.log`, `coverage.out`, `coverage.html`
 - `final-cleanup.log`, `kafka-drain.jsonl` и отпечатки БД -- результаты восстановления
 
-Открыть отчёт:
+Чтобы посмотреть отчёт, скачайте артефакт на странице запуска GitHub Actions,
+распакуйте архив и откройте `allure-report/index.html` в браузере.
 
-```bash
-allure open <путь>/allure-report
-```
+CI сначала формирует обычный отчёт для сохранения истории запусков, затем заменяет
+его однофайловым. История остаётся в `tests/ci/history` и сохраняется в кэше Actions.
+Отчёт формируется и после падения тестов, незапущенные этапы отмечаются как `skipped`.
 
 ## Локальный запуск
 

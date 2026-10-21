@@ -28,6 +28,10 @@ test-e2e:
 test-ci:
 	. tests/ci/run.sh; ci_init "$(RUN_ID)"; ci_all
 
+.PHONY: test-traffic
+test-traffic:
+	$(TEST_ENV) environment_traffic
+
 .PHONY: test
 test:
 	$(MAKE) -C $(BACKEND_DIR) test

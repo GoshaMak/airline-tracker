@@ -12,6 +12,10 @@ up:
 replication-check:
 	docker compose $(COMPOSE_ARGS) run --rm --no-deps --entrypoint /bin/sh replication-setup /replication/verify.sh
 
+.PHONY: create-admin
+create-admin:
+	docker compose $(COMPOSE_ARGS) run --build --rm --no-deps -e ADMIN_EMAIL -e ADMIN_PASSWORD api /bin/create-admin
+
 .PHONY: test
 test:
 	sh scripts/run-allure.sh

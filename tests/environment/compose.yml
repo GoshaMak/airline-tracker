@@ -17,6 +17,13 @@ x-app: &app
   init: true
 
 services:
+  traffic:
+    image: airline-tracker-traffic:${TEST_RUN_ID:?Set TEST_RUN_ID}
+    profiles: [tools]
+    build: ../traffic
+    volumes:
+      - ./results/${TEST_RUN_ID}/traffic:/results
+
   drain:
     <<: *app
     profiles: [tools]

@@ -34,7 +34,7 @@ snapshot() {
 }
 
 environment_restore() {
-    for service in integration-tests e2e-tests; do
+    for service in integration-tests e2e-tests traffic; do
         for container in $(docker ps -aq \
             --filter "label=com.docker.compose.project=airline-test-$TEST_RUN_ID" \
             --filter "label=com.docker.compose.service=$service"); do
@@ -113,4 +113,9 @@ environment_integration() {
 environment_e2e() {
     environment_up
     environment_run dc run --build --rm --no-deps e2e-tests
+}
+
+environment_traffic() {
+    environment_up
+    environment_run dc run --build --rm --no-deps traffic
 }
