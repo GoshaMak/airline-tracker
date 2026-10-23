@@ -41,14 +41,14 @@ func (b flightBuilder) withPlan(plan string) flightBuilder {
 
 func (b flightBuilder) build() domain.Flight { return b.flight }
 
-func newPostgresFixture(t *testing.T) (*PostgresDB, pgxmock.PgxPoolIface) {
+func newPostgresFixture(t *testing.T) (*PostgresClient, pgxmock.PgxPoolIface) {
 	t.Helper()
 	pool, err := pgxmock.NewPool()
 	if err != nil {
 		t.Fatalf("create pgxmock pool: %v", err)
 	}
 	t.Cleanup(pool.Close)
-	return &PostgresDB{conn: pool}, pool
+	return &PostgresClient{conn: pool}, pool
 }
 
 func assertDBExpectations(t *testing.T, pool pgxmock.PgxPoolIface) {

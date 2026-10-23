@@ -3,7 +3,6 @@ package repository
 import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
-	flightDomainRepository "api/internal/flight/domain/repository"
 	"api/internal/flight/infra/postgres"
 	"api/internal/flight/infra/redis"
 	userDomain "api/internal/user/domain"
@@ -16,7 +15,7 @@ import (
 )
 
 type dbStub struct {
-	flightDomainRepository.FlightRepository
+	FlightDB
 	flight                                        domain.Flight
 	flights                                       []domain.Flight
 	route                                         domain.FlightRoute
@@ -68,7 +67,7 @@ func (s *dbStub) GetFlightAirports(_ context.Context, id uuid.UUID) (airportDoma
 }
 
 type cacheStub struct {
-	cache
+	FlightCache
 	flight                                       domain.Flight
 	flights                                      []domain.Flight
 	err                                          error
@@ -113,7 +112,7 @@ func (s *cacheStub) FlushFlights(context.Context) error {
 
 func newFixture() (*flightRepository, *dbStub, *cacheStub) {
 	db, cache := &dbStub{}, &cacheStub{}
-	return &flightRepository{db: db, rd: cache}, db, cache
+	return &flightRepository{db: db, cache: cache}, db, cache
 }
 
 func TestFlightRepository_Save(t *testing.T) {
@@ -161,7 +160,7 @@ func TestFlightRepository_Exist(t *testing.T) {
 		repo, db, _ := newFixture()
 		db.err = postgres.ErrFlightNotFound
 		_, err := repo.Exist(context.Background(), uuid.New())
-		if !errors.Is(err, flightDomainRepository.ErrFlightNotFound) {
+		if !errors.Is(err, ErrFlightNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -187,7 +186,7 @@ func TestFlightRepository_Update(t *testing.T) {
 		repo, db, cache := newFixture()
 		db.err = postgres.ErrFlightNotFound
 		err := repo.Update(context.Background(), domain.UpdateFlightInfo{FlightId: uuid.New()})
-		if !errors.Is(err, flightDomainRepository.ErrFlightNotFound) || cache.updateCalls != 0 {
+		if !errors.Is(err, ErrFlightNotFound) || cache.updateCalls != 0 {
 			t.Fatalf("err=%v, cache updates=%d", err, cache.updateCalls)
 		}
 	})
@@ -240,7 +239,7 @@ func TestFlightRepository_GetFlightRoute(t *testing.T) {
 		repo, db, _ := newFixture()
 		db.err = postgres.ErrFlightRouteNotFound
 		_, err := repo.GetFlightRoute(context.Background(), uuid.New())
-		if !errors.Is(err, flightDomainRepository.ErrFlightRouteNotFound) {
+		if !errors.Is(err, ErrFlightRouteNotFound) {
 			t.Fatal(err)
 		}
 	})

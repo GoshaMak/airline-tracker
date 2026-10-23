@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"io"
+	"errors"
 	"log/slog"
 	"notifier/internal/infra"
 	"notifier/internal/mailer"
@@ -14,30 +14,35 @@ import (
 	"shared/logger"
 	"shared/observability"
 	"syscall"
+	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	var w io.Writer
-	switch os.Getenv("MODE") {
-	case "DEBUG":
-		w = os.Stdout
-	default:
-		logFileName := os.Getenv("LOG_FILE")
-		logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			slog.Error("can't open log file", "err", err)
-			return
+	if err := run(); err != nil {
+		slog.Error("notifier failed", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	if err := logger.SetupLogger(os.Stdout); err != nil {
+		return err
+	}
+	shutdownTracing, err := observability.Init(context.Background(), "notifier")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := shutdownTracing(shutdownCtx); err != nil {
+			slog.Warn("tracing shutdown failed", "err", err)
 		}
-		defer logFile.Close()
-		w = io.MultiWriter(os.Stdout, logFile)
-	}
-	if err := logger.SetupLogger(w); err != nil {
-		slog.Error("can't setup logger", "err", err)
-		return
-	}
+	}()
 
 	injector := do.New(
 		notifier.Package,
@@ -46,11 +51,15 @@ func main() {
 		receiver.Package,
 		sender.Package,
 	)
+	pool, err := do.Invoke[*pgxpool.Pool](injector)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
 
 	notifier, err := do.Invoke[*notifier.Notifier](injector)
 	if err != nil {
-		slog.Error("can't start notifier", "err", err)
-		os.Exit(1)
+		return err
 	}
 
 	ctx, stop := signal.NotifyContext(
@@ -63,9 +72,9 @@ func main() {
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error { return observability.Run(ctx) })
 	eg.Go(func() error { return notifier.Run(ctx) })
-	if err := eg.Wait(); err != nil {
-		slog.Error("notifier faced error", "err", err)
-		os.Exit(1)
+	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		return err
 	}
 	slog.Info("notifier stopped peacefully")
+	return nil
 }

@@ -7,7 +7,8 @@ case "${REPLICATION_SETUP_TIMEOUT:-300}" in
 esac
 replicationDeadline=$(( $(date +%s) + ${REPLICATION_SETUP_TIMEOUT:-300} ))
 schemaFile=$(mktemp /tmp/airline-schema.XXXXXX.sql)
-trap 'rm -f "$schemaFile"' EXIT HUP INT TERM
+upgradeFile=$(mktemp /tmp/airline-upgrade.XXXXXX.sql)
+trap 'rm -f "$schemaFile" "$upgradeFile"' EXIT HUP INT TERM
 
 query() {
     psql -X --set=ON_ERROR_STOP=1 --host="$1" --tuples-only --no-align --command="$2"
@@ -42,6 +43,11 @@ for replicaIndex in 1 2; do
     subscriptionName="airline_replica_$replicaIndex"
     if [ "$(query "$replicaHost" "SELECT to_regclass('api_schema.users') IS NULL")" = t ]; then
         psql -X --set=ON_ERROR_STOP=1 --host="$replicaHost" --single-transaction --file="$schemaFile"
+    else
+        for migration in /replica-migrations/outbox.sql /replica-migrations/notifications.sql /replica-migrations/inbox-source.sql; do
+            sed '/^-- +goose Down/,$d' "$migration" > "$upgradeFile"
+            psql -X --set=ON_ERROR_STOP=1 --host="$replicaHost" --single-transaction --file="$upgradeFile"
+        done
     fi
 
     if [ "$(query "$replicaHost" "SELECT bool_and(has_table_privilege('app_reader', c.oid, 'SELECT') AND NOT has_table_privilege('app_reader', c.oid, 'INSERT,UPDATE,DELETE,TRUNCATE')) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname IN ('api_schema', 'replication_meta') AND c.relkind IN ('r', 'p')")" != t ]; then

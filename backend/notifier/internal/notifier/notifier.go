@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"notifier/internal/receiver"
@@ -40,13 +41,18 @@ func NewNotifier(i do.Injector) (*Notifier, error) {
 	}, nil
 }
 
-func (n *Notifier) Run(ctx context.Context) error {
+func (n *Notifier) Run(ctx context.Context) (result error) {
 	const op = "Notifier.Run"
+	defer func() {
+		if err := n.nr.Close(); err != nil {
+			result = errors.Join(result, fmt.Errorf("%s: close consumer: %w", op, err))
+		}
+	}()
 
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		if err := n.nr.StartConsuming(ctx); err != nil {
+		if err := n.nr.StartConsuming(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			slog.Error("error while consuming", "err", err)
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -54,7 +60,7 @@ func (n *Notifier) Run(ctx context.Context) error {
 	})
 
 	g.Go(func() error {
-		if err := n.sndr.Run(ctx); err != nil {
+		if err := n.sndr.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			slog.Error("error while sending", "err", err)
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -66,8 +72,5 @@ func (n *Notifier) Run(ctx context.Context) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := n.nr.Close(); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
 	return nil
 }

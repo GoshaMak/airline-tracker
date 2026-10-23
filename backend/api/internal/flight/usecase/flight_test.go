@@ -4,14 +4,14 @@ import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/command"
 	"api/internal/flight/domain"
-	"api/internal/flight/domain/repository"
 	flightPostgres "api/internal/flight/infra/postgres"
 	flightRedis "api/internal/flight/infra/redis"
 	redisModel "api/internal/flight/infra/redis/model"
+	"api/internal/flight/usecase/repository"
 	flightRepository "api/internal/flight/usecase/repository"
 	"api/internal/pagination"
 	publisherDomain "api/internal/publisher/domain"
-	publisherRepository "api/internal/publisher/domain/repository"
+	publisherRepository "api/internal/publisher/infra/postgres"
 	userDomain "api/internal/user/domain"
 	"context"
 	"errors"
@@ -31,7 +31,7 @@ import (
 )
 
 type flightRepoMock struct {
-	repository.FlightRepository
+	repository.FlightDB
 	saveFn            func(context.Context, domain.Flight) error
 	existFn           func(context.Context, uuid.UUID) (domain.Flight, error)
 	updateFn          func(context.Context, domain.UpdateFlightInfo) error
@@ -118,7 +118,7 @@ func flightFromCommand(cmd command.CreateFlightCommand) domain.Flight {
 	}
 }
 
-func newUsecaseFixture(repo repository.FlightRepository) *FlightUsecase {
+func newUsecaseFixture(repo repository.FlightDB) *FlightUsecase {
 	return &FlightUsecase{repo: repo}
 }
 
@@ -210,7 +210,7 @@ func TestFlightUsecase_CreateFlight_Classical(t *testing.T) {
 		cache.CustomMatch(matchFlightKey).ExpectSAdd("flight:ids", generatedKey).SetVal(1)
 		cache.ExpectTxPipelineExec()
 
-		err := uc.CreateFlight(cmd)
+		err := uc.CreateFlight(t.Context(), cmd)
 
 		if err != nil {
 			t.Fatalf("create flight: %v", err)
@@ -246,7 +246,7 @@ func TestFlightUsecase_ListFlights(t *testing.T) {
 			calls := 0
 			repo := &flightRepoMock{listFlightsFn: func(context.Context) ([]domain.Flight, error) { calls++; return tt.flights, tt.failure }}
 			uc := newUsecaseFixture(repo)
-			got, err := uc.ListFlights()
+			got, err := uc.ListFlights(t.Context())
 			if !errors.Is(err, tt.failure) || len(got) != len(tt.flights) || calls != 1 {
 				t.Fatalf("got=%+v, err=%v, calls=%d", got, err, calls)
 			}
@@ -290,7 +290,7 @@ func TestFlightUsecase_CreateFlight(t *testing.T) {
 			var saved []domain.Flight
 			repo := &flightRepoMock{saveFn: func(_ context.Context, f domain.Flight) error { saved = append(saved, f); return tt.failure }}
 			uc := newUsecaseFixture(repo)
-			err := uc.CreateFlight(cmd)
+			err := uc.CreateFlight(t.Context(), cmd)
 			if tt.invalid {
 				if err == nil || !strings.Contains(err.Error(), "departure after arrival") || len(saved) != 0 {
 					t.Fatalf("err=%v, saved=%v", err, saved)
@@ -346,7 +346,7 @@ func TestFlightUsecase_FlightById(t *testing.T) {
 				return f, nil
 			}}
 			uc := newUsecaseFixture(repo)
-			got, err := uc.FlightById(f.Id)
+			got, err := uc.FlightById(t.Context(), f.Id)
 			wantID := f.Id
 			if tt.wantErr != nil {
 				wantID = uuid.Nil
@@ -472,7 +472,7 @@ func TestFlightUsecase_UpdateFlight(t *testing.T) {
 			t := ctx.T()
 			fixture := newUpdateFlightFixture(t, tt.repoErr)
 
-			err := fixture.uc.UpdateFlight(fixture.cmd)
+			err := fixture.uc.UpdateFlight(t.Context(), fixture.cmd)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err=%v, want=%v", err, tt.wantErr)
@@ -529,7 +529,7 @@ func TestFlightUsecase_ListFlightsPage(t *testing.T) {
 				calls++
 				return []domain.Flight{third, first, second}, tt.failure
 			}}
-			var repo repository.FlightRepository = mock
+			var repo repository.FlightDB = mock
 			if tt.paginated {
 				repo = &paginatedRepoMock{flightRepoMock: mock, pageFn: func(_ context.Context, p pagination.Params) ([]domain.Flight, error) {
 					calls++
@@ -540,7 +540,7 @@ func TestFlightUsecase_ListFlightsPage(t *testing.T) {
 				}}
 			}
 			uc := newUsecaseFixture(repo)
-			got, err := uc.ListFlightsPage(params)
+			got, err := uc.ListFlightsPage(t.Context(), params)
 			if !errors.Is(err, tt.failure) || calls != 1 {
 				t.Fatalf("err=%v, calls=%d", err, calls)
 			}

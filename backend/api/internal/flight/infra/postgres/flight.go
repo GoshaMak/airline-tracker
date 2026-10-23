@@ -4,6 +4,7 @@ import (
 	airportDomain "api/internal/airport/domain"
 	"api/internal/flight/domain"
 	"api/internal/flight/infra/postgres/model"
+	infraPostgres "api/internal/infra/postgres"
 	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	userModel "api/internal/user/infra/postgres/model"
@@ -13,6 +14,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -20,28 +22,33 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type PostgresDB struct {
+type PostgresClient struct {
 	conn flightDB
 }
 
 type flightDB interface {
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 	Query(context.Context, string, ...any) (pgx.Rows, error)
+	Begin(context.Context) (pgx.Tx, error)
 }
 
-func NewPostgresDB(i do.Injector) (*PostgresDB, error) {
-	return &PostgresDB{
+func NewPostgresDB(i do.Injector) (*PostgresClient, error) {
+	return &PostgresClient{
 		conn: do.MustInvokeAs[flightDB](i),
 	}, nil
 }
 
-func (p *PostgresDB) Save(ctx context.Context, f domain.Flight) error {
-	const op = "PostgresDB.SaveFlight"
+func (p *PostgresClient) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	return infraPostgres.WithTransaction(ctx, p.conn, fn)
+}
+
+func (p *PostgresClient) Save(ctx context.Context, f domain.Flight) error {
+	const op = "PostgresClient.Save"
 	var plan *string
 	if f.Plan != nil {
 		plan = new(f.Plan.String())
 	}
-	_, err := p.conn.Exec(ctx,
+	_, err := infraPostgres.Executor(ctx, p.conn).Exec(ctx,
 		"select add_flight($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
 		f.Id,
 		f.ScheduledDeparture,
@@ -60,13 +67,13 @@ func (p *PostgresDB) Save(ctx context.Context, f domain.Flight) error {
 	return nil
 }
 
-func (p *PostgresDB) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
-	const op = "PostgresDB.Exist"
+func (p *PostgresClient) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, error) {
+	const op = "PostgresClient.Exist"
 	query := `
 	select *
 	from scan_flight_info($1)
 	`
-	row, err := p.conn.Query(ctx, query, fid)
+	row, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, fid)
 	if err != nil {
 		return domain.Flight{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -85,11 +92,11 @@ func (p *PostgresDB) Exist(ctx context.Context, fid uuid.UUID) (domain.Flight, e
 	return fd, nil
 }
 
-func (p *PostgresDB) Update(
+func (p *PostgresClient) Update(
 	ctx context.Context,
 	ufi domain.UpdateFlightInfo,
 ) error {
-	const op = "PostgresDB.Update"
+	const op = "PostgresClient.Update"
 	query := `
 	update flights
 	set`
@@ -135,7 +142,7 @@ func (p *PostgresDB) Update(
 	args = append(args, ufi.FlightId)
 	slog.Debug(op, "query", query, "args", args)
 
-	_, err := p.conn.Exec(ctx, query, args...)
+	_, err := infraPostgres.Executor(ctx, p.conn).Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -143,13 +150,80 @@ func (p *PostgresDB) Update(
 	return nil
 }
 
-func (p *PostgresDB) ListFlights(ctx context.Context) ([]domain.Flight, error) {
-	const op = "PostgresDB.ListAllFlights"
+type currentFlight struct {
+	Id                 uuid.UUID  `db:"id"`
+	ScheduledDeparture time.Time  `db:"scheduled_departure"`
+	ScheduledArrival   time.Time  `db:"scheduled_arrival"`
+	ActualDeparture    *time.Time `db:"actual_departure"`
+	ActualArrival      *time.Time `db:"actual_arrival"`
+	Status             string     `db:"status"`
+	Plan               *string    `db:"plan"`
+}
+
+func (p *PostgresClient) UpdateIfChanged(ctx context.Context, ufi domain.UpdateFlightInfo) (bool, error) {
+	op := "PostgresClient.UpdateIfChanged"
+	query := `
+	select id, scheduled_departure, scheduled_arrival, actual_departure, actual_arrival, status, plan
+	from flights
+	where id=$1
+	for update
+	`
+	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, ufi.FlightId)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, translateError(err))
+	}
+	current, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[currentFlight])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, ErrFlightNotFound
+		}
+		return false, fmt.Errorf("%s: %w", op, translateError(err))
+	}
+	if sameUpdate(current, ufi) {
+		return false, nil
+	}
+	if err := p.Update(ctx, ufi); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func sameUpdate(current currentFlight, update domain.UpdateFlightInfo) bool {
+	if update.ScheduledDeparture != nil && !current.ScheduledDeparture.Equal(*update.ScheduledDeparture) {
+		return false
+	}
+	if update.ScheduledArrival != nil && !current.ScheduledArrival.Equal(*update.ScheduledArrival) {
+		return false
+	}
+	if update.ActualDeparture != nil && !sameTime(current.ActualDeparture, update.ActualDeparture) {
+		return false
+	}
+	if update.ActualArrival != nil && !sameTime(current.ActualArrival, update.ActualArrival) {
+		return false
+	}
+	if update.Status != nil && current.Status != *update.Status {
+		return false
+	}
+	if update.Plan != nil && (current.Plan == nil || *current.Plan != *update.Plan) {
+		return false
+	}
+	return true
+}
+
+func sameTime(current, update *time.Time) bool {
+	if current == nil || update == nil {
+		return current == nil && update == nil
+	}
+	return current.Equal(*update)
+}
+
+func (p *PostgresClient) ListFlights(ctx context.Context) ([]domain.Flight, error) {
+	const op = "PostgresClient.ListFlights"
 	query := `
 	select *
 	from scan_flights_info()
 	`
-	rows, err := p.conn.Query(ctx, query)
+	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -170,7 +244,7 @@ func (p *PostgresDB) ListFlights(ctx context.Context) ([]domain.Flight, error) {
 	return flights, nil
 }
 
-func (p *PostgresDB) ListFlightsPage(
+func (p *PostgresClient) ListFlightsPage(
 	ctx context.Context,
 	params pagination.Params,
 ) ([]domain.Flight, error) {
@@ -182,7 +256,7 @@ func (p *PostgresDB) ListFlightsPage(
 	order by id
 	limit $2
 	`
-	rows, err := p.conn.Query(ctx, query, params.CursorValue(), params.FetchLimit())
+	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, params.CursorValue(), params.FetchLimit())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -201,7 +275,7 @@ func (p *PostgresDB) ListFlightsPage(
 	return flights, nil
 }
 
-func (p *PostgresDB) GetFlightRoute(
+func (p *PostgresClient) GetFlightRoute(
 	ctx context.Context,
 	fid uuid.UUID,
 ) (domain.FlightRoute, error) {
@@ -211,7 +285,7 @@ func (p *PostgresDB) GetFlightRoute(
 	from flight_routes
 	where flight_id = $1
 	`
-	rows, err := p.conn.Query(ctx, query, fid)
+	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, fid)
 	if err != nil {
 		return domain.FlightRoute{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -231,7 +305,7 @@ func (p *PostgresDB) GetFlightRoute(
 	return rd, nil
 }
 
-func (p *PostgresDB) ListSubscribers(
+func (p *PostgresClient) ListSubscribers(
 	ctx context.Context,
 	fid uuid.UUID,
 ) ([]userDomain.User, error) {
@@ -243,7 +317,7 @@ func (p *PostgresDB) ListSubscribers(
 	where s.flight_id = $1::uuid;
 	`
 
-	rows, err := p.conn.Query(ctx, query, fid)
+	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, fid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -262,7 +336,7 @@ func (p *PostgresDB) ListSubscribers(
 	return users, nil
 }
 
-func (p *PostgresDB) GetFlightAirports(
+func (p *PostgresClient) GetFlightAirports(
 	ctx context.Context,
 	fid uuid.UUID,
 ) (dep airportDomain.Airport, arr airportDomain.Airport, err error) {
@@ -298,7 +372,7 @@ func (p *PostgresDB) GetFlightAirports(
 		join cities ac on ac.id = aa.city_id
 		join countries acntr on acntr.id = ac.country_id
 	`
-	rows, err := p.conn.Query(ctx, query, fid)
+	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, fid)
 	if err != nil {
 		return dep, arr, fmt.Errorf("%s: %w", op, translateError(err))
 	}

@@ -13,12 +13,12 @@ import (
 	"github.com/samber/do/v2"
 )
 
-type RedisDB struct {
+type RedisClient struct {
 	cln *rds.Client
 }
 
-func NewRedisDB(i do.Injector) (*RedisDB, error) {
-	return &RedisDB{
+func NewRedisDB(i do.Injector) (*RedisClient, error) {
+	return &RedisClient{
 		cln: do.MustInvoke[*rds.Client](i),
 	}, nil
 }
@@ -31,7 +31,7 @@ func flightIndexKey() string {
 	return "flight:ids"
 }
 
-func (r *RedisDB) SaveFlight(
+func (r *RedisClient) SaveFlight(
 	ctx context.Context,
 	flight domain.Flight,
 ) error {
@@ -51,7 +51,7 @@ func (r *RedisDB) SaveFlight(
 	return nil
 }
 
-func (r *RedisDB) SaveFlights(
+func (r *RedisClient) SaveFlights(
 	ctx context.Context,
 	flights []domain.Flight,
 ) error {
@@ -73,7 +73,7 @@ func (r *RedisDB) SaveFlights(
 	return nil
 }
 
-func (r *RedisDB) GetFlightById(
+func (r *RedisClient) GetFlightById(
 	ctx context.Context,
 	fid uuid.UUID,
 ) (domain.Flight, error) {
@@ -101,7 +101,7 @@ func (r *RedisDB) GetFlightById(
 	return f, nil
 }
 
-func (r *RedisDB) DeleteFlightById(
+func (r *RedisClient) DeleteFlightById(
 	ctx context.Context,
 	fid uuid.UUID,
 ) error {
@@ -118,7 +118,7 @@ func (r *RedisDB) DeleteFlightById(
 }
 
 // flights must be already cached
-func (r *RedisDB) UpdateFlights(ctx context.Context, flights []domain.Flight) error {
+func (r *RedisClient) UpdateFlights(ctx context.Context, flights []domain.Flight) error {
 	const op = "RedisDB.UpdateFlights"
 	pipe := r.cln.Pipeline()
 	for _, f := range flights {
@@ -135,7 +135,7 @@ func (r *RedisDB) UpdateFlights(ctx context.Context, flights []domain.Flight) er
 	return nil
 }
 
-func (r *RedisDB) GetFlights(ctx context.Context) ([]domain.Flight, error) {
+func (r *RedisClient) GetFlights(ctx context.Context) ([]domain.Flight, error) {
 	const op = "RedisDB.GetFlights"
 	pipe := r.cln.Pipeline()
 	fiKey := flightIndexKey()
@@ -188,7 +188,7 @@ func (r *RedisDB) GetFlights(ctx context.Context) ([]domain.Flight, error) {
 	return fs, nil
 }
 
-func (r *RedisDB) UpdateFlight(
+func (r *RedisClient) UpdateFlight(
 	ctx context.Context,
 	ufi domain.UpdateFlightInfo,
 ) error {
@@ -204,7 +204,7 @@ func (r *RedisDB) UpdateFlight(
 	return nil
 }
 
-func (r *RedisDB) FlushFlights(ctx context.Context) error {
+func (r *RedisClient) FlushFlights(ctx context.Context) error {
 	const op = "RedisDB.FlushFlights"
 	const batchSize = 1000
 	iter := r.cln.Scan(ctx, 0, "flight:*", 0).Iterator()

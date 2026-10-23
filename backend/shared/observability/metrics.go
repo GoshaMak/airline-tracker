@@ -24,6 +24,37 @@ var duration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Buckets: prometheus.DefBuckets,
 }, []string{"method", "route", "status"})
 
+var jobs = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "airline_tracker_jobs_total",
+	Help: "Background operations by worker and bounded result (success, retry, failed, duplicate).",
+}, []string{"service", "result"})
+
+var jobDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Name:    "airline_tracker_job_duration_seconds",
+	Help:    "Background operation duration by worker and result.",
+	Buckets: prometheus.DefBuckets,
+}, []string{"service", "result"})
+
+var queuePending = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	Name: "airline_tracker_queue_pending",
+	Help: "Pending durable jobs, including jobs waiting for their next attempt.",
+}, []string{"service", "queue"})
+
+var queueOldest = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	Name: "airline_tracker_queue_oldest_seconds",
+	Help: "Age of the oldest pending durable job.",
+}, []string{"service", "queue"})
+
+func ObserveJob(service, result string, elapsed time.Duration) {
+	jobs.WithLabelValues(service, result).Inc()
+	jobDuration.WithLabelValues(service, result).Observe(elapsed.Seconds())
+}
+
+func SetQueue(service, queue string, pendingAmt, oldestSeconds float64) {
+	queuePending.WithLabelValues(service, queue).Set(pendingAmt)
+	queueOldest.WithLabelValues(service, queue).Set(oldestSeconds)
+}
+
 func ObserveHTTP(method, route string, status int, elapsed time.Duration) {
 	switch method {
 	case "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", "TRACE":

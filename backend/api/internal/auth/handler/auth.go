@@ -34,23 +34,23 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 	const op = "AuthHandler.Register"
 	var req dto.CreateUserDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	u, err := userDomain.NewUser(req.Email, req.Password, userDomain.UserRole)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.CreateUser(u); err != nil {
+	if err := h.uc.CreateUser(ctx.Request.Context(), u); err != nil {
 		if errors.Is(err, usecase.ErrUserAlreadyExists) {
 			ctx.JSON(http.StatusConflict, gin.H{"msg": "email is used"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -62,13 +62,12 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 	const op = "AuthHandler.Login"
 	var req dto.LoginRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	slog.Debug(op, "req", req)
 
-	user, err := h.uc.GetUser(req.Email, req.Password)
+	user, err := h.uc.GetUser(ctx.Request.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
@@ -78,14 +77,14 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
 
 	token, err := usecase.GenerateJWT(user)
 	if err != nil {
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}

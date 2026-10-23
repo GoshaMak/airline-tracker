@@ -12,12 +12,14 @@ const (
 	NotificationCreated NotificationStatus = iota
 	NotificationUrgent
 	NotificationSent
+	NotificationFailed
 )
 
 const (
 	created = "created"
 	urgent  = "urgent"
 	sent    = "sent"
+	failed  = "failed"
 )
 
 func NewNotificationStatus(status string) (NotificationStatus, error) {
@@ -30,6 +32,8 @@ func NewNotificationStatus(status string) (NotificationStatus, error) {
 
 	case sent:
 		return NotificationSent, nil
+	case failed:
+		return NotificationFailed, nil
 
 	default:
 		return -1, ErrInvalidStatus
@@ -37,5 +41,5 @@ func NewNotificationStatus(status string) (NotificationStatus, error) {
 }
 
 func (s NotificationStatus) String() string {
-	return [...]string{created, urgent, sent}[s]
+	return [...]string{created, urgent, sent, failed}[s]
 }

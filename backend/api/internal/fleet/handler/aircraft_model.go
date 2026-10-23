@@ -40,22 +40,22 @@ func (h *AircraftModelHandler) CreateAircraftModel(ctx *gin.Context) {
 	const op = "AircraftModelHandler.AddAircraftModel"
 	req := &dto.CreateAircraftModelRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 	cmd, err := command.NewCreateAircraftModelCommand(req)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.CreateAircraftModel(cmd); err != nil {
+	if err := h.uc.CreateAircraftModel(ctx.Request.Context(), cmd); err != nil {
 		if errors.Is(err, usecase.ErrAircraftModelAlreadyExists) {
 			ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft model created"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
@@ -67,17 +67,17 @@ func (h *AircraftModelHandler) AircraftModelById(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
 		return
 	}
 
-	am, err := h.uc.AircraftById(id)
+	am, err := h.uc.AircraftById(ctx.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, usecase.ErrAircraftModelNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}

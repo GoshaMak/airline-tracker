@@ -10,7 +10,7 @@ import (
 )
 
 type Publisher struct {
-	injector do.Injector
+	injector do.Injector // TODO: remove if not used
 	uc       *usecase.PublisherUsecase
 }
 

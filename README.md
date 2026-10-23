@@ -211,6 +211,28 @@ make release
 
 Для отладки используйте `make debug`: дополнительно публикуются локальные порты PostgreSQL, Redis и Kafka, а фронтенд доступен напрямую на <http://localhost:3000>. В режиме `make release` опубликован только порт общего Nginx -- `127.0.0.1:8080`. API и notifier подключаются через Docker-сеть в обоих режимах.
 
+### Создание администратора
+
+После запуска приложения создайте административную учётную запись:
+
+```sh
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='AdminPassword123!' make backend-create-admin
+```
+
+Команда запускает `/bin/create-admin` в контейнере API с подключением к основной БД
+из `backend/api/.env`. Она использует те же проверки email и хеширование пароля,
+что и регистрация пользователя. При занятом email завершается с ошибкой,
+существующая учётная запись не изменяется. После создания войдите через обычную
+форму входа или `POST /api/v1/auth/tokens`.
+
+Для запуска без Docker из каталога `backend`:
+
+```sh
+POSTGRES_URI='postgres://app_user:app_pswd@localhost:5432/airline_tracker?search_path=api_schema' \
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='AdminPassword123!' \
+go run ./api/cmd/create-admin
+```
+
 ### Балансировка API
 
 Используются три экземпляра API: основной подключён к primary PostgreSQL, два дополнительных -- к двум логическим репликам:

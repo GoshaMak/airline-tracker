@@ -7,11 +7,15 @@ import (
 )
 
 type Outbox struct {
-	Id        uuid.UUID
-	Topic     string
-	Payload   Payload
-	CreatedAt time.Time
-	SentAt    *time.Time
+	Id            uuid.UUID
+	Topic         string
+	Payload       Payload
+	CreatedAt     time.Time
+	SentAt        *time.Time
+	Attempts      int
+	LeaseToken    uuid.UUID
+	TraceCarrier  map[string]string
+	NextAttemptAt time.Time
 }
 
 func NewOutbox(topic string, payload Payload) (Outbox, error) {
@@ -20,6 +24,5 @@ func NewOutbox(topic string, payload Payload) (Outbox, error) {
 		Topic:     topic,
 		Payload:   payload,
 		CreatedAt: time.Now(),
-		SentAt:    nil,
 	}, nil
 }

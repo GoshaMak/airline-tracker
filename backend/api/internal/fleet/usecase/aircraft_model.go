@@ -22,13 +22,13 @@ func NewAircraftModelUsecase(i do.Injector) (*AircraftModelUsecase, error) {
 	}, nil
 }
 
-func (uc *AircraftModelUsecase) CreateAircraftModel(cmd command.CreateAircraftModelCommand) error {
+func (uc *AircraftModelUsecase) CreateAircraftModel(ctx context.Context, cmd command.CreateAircraftModelCommand) error {
 	const op = "AircraftModelUsecase.CreateAircraftModel"
 	am, err := command.ToDomainCreateAircraftModelCommand(cmd)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if err := uc.repo.SaveAircraftModel(context.Background(), am); err != nil {
+	if err := uc.repo.SaveAircraftModel(ctx, am); err != nil {
 		if errors.Is(err, repository.ErrAircraftModelAlreadyExists) {
 			return ErrAircraftModelAlreadyExists
 		}
@@ -40,9 +40,9 @@ func (uc *AircraftModelUsecase) CreateAircraftModel(cmd command.CreateAircraftMo
 	return nil
 }
 
-func (uc *AircraftModelUsecase) AircraftById(id uuid.UUID) (domain.AircraftModel, error) {
+func (uc *AircraftModelUsecase) AircraftById(ctx context.Context, id uuid.UUID) (domain.AircraftModel, error) {
 	const op = "AircraftModelUsecase.AircraftById"
-	amd, err := uc.repo.GetAircraftModelById(context.Background(), id)
+	amd, err := uc.repo.GetAircraftModelById(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrAircraftModelNotFound) {
 			return domain.AircraftModel{}, ErrAircraftModelNotFound

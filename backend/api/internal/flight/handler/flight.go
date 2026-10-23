@@ -49,9 +49,9 @@ func (h *FlightHandler) ListFlights(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	page, err := h.uc.ListFlightsPage(params)
+	page, err := h.uc.ListFlightsPage(ctx.Request.Context(), params)
 	if err != nil {
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -65,18 +65,18 @@ func (h *FlightHandler) FlightById(ctx *gin.Context) {
 	fidStr := ctx.Param("id")
 	fid, err := uuid.Parse(fidStr)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
-	fd, err := h.uc.FlightById(fid)
+	fd, err := h.uc.FlightById(ctx.Request.Context(), fid)
 	if err != nil {
 		if errors.Is(err, usecase.ErrFlightNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "flight not found"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -90,18 +90,18 @@ func (h *FlightHandler) CreateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.CreateFlight"
 	req := &flightDTO.CreateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 	cmd, err := command.NewCreateFlightCommand(req)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.CreateFlight(cmd); err != nil { // FIX: returns 500 if flight exists
-		slog.Warn(op, "err", err)
+	if err := h.uc.CreateFlight(ctx.Request.Context(), cmd); err != nil { // FIX: returns 500 if flight exists
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -112,7 +112,7 @@ func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 	const op = "FlightHandler.UpdateFlight"
 	req := &flightDTO.UpdateFlightRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
@@ -120,7 +120,7 @@ func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
 		return
 	}
@@ -128,16 +128,16 @@ func (h *FlightHandler) UpdateFlight(ctx *gin.Context) {
 
 	cmd, err := command.NewUpdateFlightCommand(req)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request", "err": err})
 		return
 	}
-	if err := h.uc.UpdateFlight(cmd); err != nil {
+	if err := h.uc.UpdateFlight(ctx.Request.Context(), cmd); err != nil {
 		if errors.Is(err, usecase.ErrFlightNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"msg": "flight not found"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}

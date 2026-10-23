@@ -17,41 +17,19 @@ type AircraftUsecase struct {
 	repo repository.AircraftRepository
 }
 
-type paginatedAircraftRepository interface {
-	ListPage(context.Context, pagination.Params) ([]domain.Aircraft, error)
-}
-
-func (uc *AircraftUsecase) ListAircraftsPage(params pagination.Params) (pagination.Page[domain.Aircraft], error) {
-	if repo, ok := uc.repo.(paginatedAircraftRepository); ok {
-		aircraft, err := repo.ListPage(context.Background(), params)
-		if err != nil {
-			if errors.Is(err, repository.ErrOperationNotPermitted) {
-				return pagination.Page[domain.Aircraft]{}, ErrOperationNotPermitted
-			}
-			return pagination.Page[domain.Aircraft]{}, fmt.Errorf("AircraftUsecase.ListAircraftsPage: %w", err)
-		}
-		return pagination.FromFetched(aircraft, params, func(a domain.Aircraft) uuid.UUID { return a.Id }), nil
-	}
-	aircraft, err := uc.ListAircrafts()
-	if err != nil {
-		return pagination.Page[domain.Aircraft]{}, err
-	}
-	return pagination.Paginate(aircraft, params, func(a domain.Aircraft) uuid.UUID { return a.Id }), nil
-}
-
 func NewAircraftUsecase(i do.Injector) (*AircraftUsecase, error) {
 	return &AircraftUsecase{
 		repo: do.MustInvoke[repository.AircraftRepository](i),
 	}, nil
 }
 
-func (uc *AircraftUsecase) CreateAircraft(cmd command.CreateAircraftCommand) error {
+func (uc *AircraftUsecase) CreateAircraft(ctx context.Context, cmd command.CreateAircraftCommand) error {
 	const op = "AircraftUsecase.CreateAircraft"
 	a, err := command.ToDomainCreateAircraftCommand(cmd)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if err := uc.repo.SaveAircraft(context.Background(), a); err != nil {
+	if err := uc.repo.SaveAircraft(ctx, a); err != nil {
 		if errors.Is(err, repository.ErrAircraftAlreadyExists) {
 			return ErrAircraftAlreadyExists
 		}
@@ -63,9 +41,9 @@ func (uc *AircraftUsecase) CreateAircraft(cmd command.CreateAircraftCommand) err
 	return nil
 }
 
-func (uc *AircraftUsecase) ListAircrafts() ([]domain.Aircraft, error) {
+func (uc *AircraftUsecase) ListAircrafts(ctx context.Context) ([]domain.Aircraft, error) {
 	const op = "AircraftUsecase.ListAircrafts"
-	as, err := uc.repo.List(context.Background())
+	as, err := uc.repo.List(ctx)
 	if err != nil {
 		if errors.Is(err, repository.ErrOperationNotPermitted) {
 			return nil, ErrOperationNotPermitted
@@ -73,4 +51,29 @@ func (uc *AircraftUsecase) ListAircrafts() ([]domain.Aircraft, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return as, nil
+}
+
+type paginatedAircraftRepository interface {
+	ListPage(context.Context, pagination.Params) ([]domain.Aircraft, error)
+}
+
+func (uc *AircraftUsecase) ListAircraftsPage(
+	ctx context.Context,
+	params pagination.Params,
+) (pagination.Page[domain.Aircraft], error) {
+	if repo, ok := uc.repo.(paginatedAircraftRepository); ok {
+		aircraft, err := repo.ListPage(ctx, params)
+		if err != nil {
+			if errors.Is(err, repository.ErrOperationNotPermitted) {
+				return pagination.Page[domain.Aircraft]{}, ErrOperationNotPermitted
+			}
+			return pagination.Page[domain.Aircraft]{}, fmt.Errorf("AircraftUsecase.ListAircraftsPage: %w", err)
+		}
+		return pagination.FromFetched(aircraft, params, func(a domain.Aircraft) uuid.UUID { return a.Id }), nil
+	}
+	aircraft, err := uc.ListAircrafts(ctx)
+	if err != nil {
+		return pagination.Page[domain.Aircraft]{}, err
+	}
+	return pagination.Paginate(aircraft, params, func(a domain.Aircraft) uuid.UUID { return a.Id }), nil
 }

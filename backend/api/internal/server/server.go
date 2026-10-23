@@ -12,6 +12,7 @@ import (
 	userHandler "api/internal/user/handler"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"log/slog"
@@ -27,20 +28,38 @@ import (
 )
 
 type Server struct {
-	router   *gin.Engine
-	injector do.Injector
+	router         *gin.Engine
+	injector       do.Injector
+	requestTimeout time.Duration
 }
 
 func NewServer(injector *do.RootScope) (*Server, error) {
+	requestTimeout := 10 * time.Second
+	if value := os.Getenv("API_REQUEST_TIMEOUT"); value != "" {
+		var err error
+		requestTimeout, err = time.ParseDuration(value)
+		if err != nil || requestTimeout <= 0 {
+			return nil, fmt.Errorf("API_REQUEST_TIMEOUT must be a positive duration, got %q", value)
+		}
+	}
 	router := gin.New()
-	router.Use(middleware.Observe(), gin.Recovery(), middleware.Instance(os.Getenv("INSTANCE_ID")))
+	router.Use(
+		middleware.Observe(),
+		gin.Recovery(),
+		middleware.Instance(os.Getenv("INSTANCE_ID")),
+	)
 
 	registerRoutes(injector, router)
 
 	return &Server{
-		router:   router,
-		injector: injector,
+		router:         router,
+		injector:       injector,
+		requestTimeout: requestTimeout,
 	}, nil
+}
+
+func (s *Server) handler() http.Handler {
+	return middleware.Correlate(http.TimeoutHandler(s.router, s.requestTimeout, `{"error":"request timeout"}`))
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -50,8 +69,11 @@ func (s *Server) Run(ctx context.Context) error {
 	port := os.Getenv("PORT")
 	server := &http.Server{
 		Addr:              ":" + port,
-		Handler:           s.router,
+		Handler:           s.handler(),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      s.requestTimeout + 5*time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	shutdownDone := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {

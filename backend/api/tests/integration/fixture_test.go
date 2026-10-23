@@ -5,10 +5,10 @@ package integration
 import (
 	"api/internal/flight"
 	"api/internal/flight/domain"
-	"api/internal/flight/domain/repository"
 	flightPostgres "api/internal/flight/infra/postgres"
 	flightRedis "api/internal/flight/infra/redis"
 	"api/internal/flight/usecase"
+	"api/internal/flight/usecase/repository"
 	"api/internal/publisher"
 	"context"
 	"os"
@@ -26,9 +26,9 @@ var adminID = uuid.MustParse("00000000-0000-4000-8000-000000000001")
 
 type fixture struct {
 	pool   *pgxpool.Pool
-	db     *flightPostgres.PostgresDB
-	cache  *flightRedis.RedisDB
-	repo   repository.FlightRepository
+	db     *flightPostgres.PostgresClient
+	cache  *flightRedis.RedisClient
+	repo   repository.FlightDB
 	uc     *usecase.FlightUsecase
 	flight domain.Flight
 }
@@ -58,9 +58,9 @@ func newFixture(t *testing.T) fixture {
 	do.ProvideValue(injector, client)
 	f := fixture{
 		pool:  pool,
-		db:    do.MustInvoke[*flightPostgres.PostgresDB](injector),
-		cache: do.MustInvoke[*flightRedis.RedisDB](injector),
-		repo:  do.MustInvoke[repository.FlightRepository](injector),
+		db:    do.MustInvoke[*flightPostgres.PostgresClient](injector),
+		cache: do.MustInvoke[*flightRedis.RedisClient](injector),
+		repo:  do.MustInvoke[repository.FlightDB](injector),
 		uc:    do.MustInvoke[*usecase.FlightUsecase](injector),
 	}
 

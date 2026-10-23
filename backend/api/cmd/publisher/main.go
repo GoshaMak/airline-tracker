@@ -6,13 +6,13 @@ import (
 	"api/internal/publisher"
 	"context"
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"os/signal"
 	"shared/logger"
 	"shared/observability"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
@@ -27,24 +27,29 @@ func main() {
 }
 
 func run() error {
-	var output io.Writer = os.Stdout
-	if os.Getenv("MODE") != "DEBUG" {
-		file, err := os.OpenFile(os.Getenv("LOG_FILE"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		output = io.MultiWriter(os.Stdout, file)
-	}
-	if err := logger.SetupLogger(output); err != nil {
+	if err := logger.SetupLogger(os.Stdout); err != nil {
 		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	shutdownTracing, err := observability.Init(ctx, "publisher")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := shutdownTracing(shutdownCtx); err != nil {
+			slog.Warn("tracing shutdown failed", "err", err)
+		}
+	}()
 
 	injector := do.New(
-		do.Package(do.Lazy(postgres.NewPostgresPool), do.Lazy(kafka.NewNotifySender)),
+		do.Package(
+			do.Lazy(postgres.NewPostgresPool),
+			do.Lazy(kafka.NewNotifySender),
+		),
 		publisher.Package,
 	)
 	pool, err := do.Invoke[*pgxpool.Pool](injector)
@@ -62,19 +67,19 @@ func run() error {
 		}
 	}()
 
-	worker, err := publisher.NewPublisher(injector)
+	publisher, err := publisher.NewPublisher(injector)
 	if err != nil {
 		return err
 	}
-	slog.Info("outbox publisher started")
+	slog.Info("publisher started")
 
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error { return observability.Run(ctx) })
-	eg.Go(func() error { return worker.Run(ctx) })
+	eg.Go(func() error { return publisher.Run(ctx) })
 	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
-	slog.Info("outbox publisher stopped")
+	slog.Info("publisher stopped")
 
 	return nil
 }

@@ -31,7 +31,7 @@ func TestFlightUsecase_RejectGateFromAnotherAirport(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = f.uc.CreateFlight(command.CreateFlightCommand{
+		err = f.uc.CreateFlight(ctx, command.CreateFlightCommand{
 			Flight: command.FlightCommand{
 				ScheduledDeparture: f.flight.ScheduledDeparture,
 				ScheduledArrival:   f.flight.ScheduledArrival,

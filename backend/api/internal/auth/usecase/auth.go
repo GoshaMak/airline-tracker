@@ -21,9 +21,9 @@ func NewAuthUsecase(i do.Injector) (*AuthUsecase, error) {
 	}, nil
 }
 
-func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
+func (uc *AuthUsecase) GetUser(ctx context.Context, email, password string) (domain.User, error) {
 	const op = "AuthUsecase.GetUser"
-	u, err := uc.repo.GetUser(context.Background(), email)
+	u, err := uc.repo.GetUser(ctx, email)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			return domain.User{}, ErrUserNotFound
@@ -41,9 +41,9 @@ func (uc *AuthUsecase) GetUser(email, password string) (domain.User, error) {
 	return u, nil
 }
 
-func (uc *AuthUsecase) CreateUser(u domain.User) error {
+func (uc *AuthUsecase) CreateUser(ctx context.Context, u domain.User) error {
 	const op = "AuthUsecase.CreateUser"
-	if err := uc.repo.SaveUser(context.Background(), u); err != nil {
+	if err := uc.repo.SaveUser(ctx, u); err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
 			return ErrUserAlreadyExists
 		}
@@ -55,8 +55,9 @@ func (uc *AuthUsecase) CreateUser(u domain.User) error {
 	return nil
 }
 
-func (uc *AuthUsecase) Exists(email, password string) bool {
-	_, err := uc.GetUser(email, password)
+// TODO: change to (exists bool, err error)
+func (uc *AuthUsecase) Exists(ctx context.Context, email, password string) bool {
+	_, err := uc.GetUser(ctx, email, password)
 	if err != nil { // WARN:
 		return false
 	}

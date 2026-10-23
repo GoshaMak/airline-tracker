@@ -52,11 +52,11 @@ func flightHash(f domain.Flight) map[string]string {
 	return hash
 }
 
-func newRedisFixture(t *testing.T) (*RedisDB, redismock.ClientMock) {
+func newRedisFixture(t *testing.T) (*RedisClient, redismock.ClientMock) {
 	t.Helper()
 	client, mock := redismock.NewClientMock()
 	t.Cleanup(func() { _ = client.Close() })
-	return &RedisDB{cln: client}, mock
+	return &RedisClient{cln: client}, mock
 }
 
 func assertRedisExpectations(t *testing.T, mock redismock.ClientMock) {

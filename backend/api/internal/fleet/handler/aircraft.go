@@ -40,22 +40,22 @@ func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 	const op = "AircraftHandler.AddAircraft"
 	req := &dto.CreateAircraftRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse args"})
 		return
 	}
 	cmd, err := command.NewCreateAircraftCommand(req)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.CreateAircraft(cmd); err != nil {
+	if err := h.uc.CreateAircraft(ctx.Request.Context(), cmd); err != nil {
 		if errors.Is(err, usecase.ErrAircraftAlreadyExists) {
 			ctx.JSON(http.StatusCreated, gin.H{"msg": "aircraft created"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -64,14 +64,15 @@ func (h *AircraftHandler) CreateAircraft(ctx *gin.Context) {
 
 func (h *AircraftHandler) ListAircrafts(ctx *gin.Context) {
 	const op = "AircraftHandler.ListAircrafts"
+	// TODO: think abt supporting requests without limit
 	params, err := pagination.Parse(ctx.Query("limit"), ctx.Query("cursor"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	page, err := h.uc.ListAircraftsPage(params)
+	page, err := h.uc.ListAircraftsPage(ctx.Request.Context(), params)
 	if err != nil {
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}

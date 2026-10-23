@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"notifier/internal/mailer"
 	"notifier/internal/receiver/domain"
@@ -10,8 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"shared/observability"
+
 	"github.com/samber/do/v2"
-	"golang.org/x/sync/errgroup"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type EmailSenderUsecase struct {
@@ -20,7 +26,7 @@ type EmailSenderUsecase struct {
 }
 
 type mailPort interface {
-	SendEmail([]common.Email, []byte) error
+	SendEmail(context.Context, []common.Email, []byte, string) error
 }
 
 func NewEmailSenderUsecase(i do.Injector) (*EmailSenderUsecase, error) {
@@ -37,30 +43,46 @@ const (
 
 func (uc *EmailSenderUsecase) SendEmail(ctx context.Context, n domain.Notification) error {
 	const op = "EmailSenderUsecase.SendEmail"
+	ctx, span := observability.Start(
+		ctx,
+		"notifier.smtp.send",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(attribute.String("notification.id", n.Id.String())),
+	)
+	defer span.End()
+	var err error
 
 	switch n.Type {
 	case domain.NotificationSubscribed:
-		cmd, err := command.NewSendSubscribedNotificationCommand(n)
+		var cmd command.SendSubscribedNotificationCommand
+		cmd, err = command.NewSendSubscribedNotificationCommand(n)
 		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+			break
 		}
-		if err := uc.sendSubscribed(ctx, cmd); err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
+		err = uc.sendSubscribed(ctx, n, cmd)
 	case domain.NotificationFlightUpdated:
-		cmd, err := command.NewSendFlightUpdatedCommand(n)
+		var cmd command.SendFlightUpdatedCommand
+		cmd, err = command.NewSendFlightUpdatedCommand(n)
 		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+			break
 		}
-		if err := uc.sendFlightUpdated(ctx, cmd); err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
+		err = uc.sendFlightUpdated(ctx, n, cmd)
+	default:
+		err = fmt.Errorf("unsupported notification type %q", n.Type)
 	}
-
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "SMTP delivery failed")
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	return nil
 }
 
-func (uc *EmailSenderUsecase) sendSubscribed(ctx context.Context, cmd command.SendSubscribedNotificationCommand) error {
+func (uc *EmailSenderUsecase) sendSubscribed(
+	ctx context.Context,
+	n domain.Notification,
+	cmd command.SendSubscribedNotificationCommand,
+) error {
 	var subj, body string
 	subj = "Flight departure"
 	body = formDepartureBody(cmd)
@@ -73,7 +95,7 @@ func (uc *EmailSenderUsecase) sendSubscribed(ctx context.Context, cmd command.Se
 			body + sep,
 	)
 
-	if err := uc.m.SendEmail([]common.Email{cmd.ToEmail}, msg); err != nil {
+	if err := uc.m.SendEmail(ctx, []common.Email{cmd.ToEmail}, msg, stableMessageID(n, cmd.ToEmail)); err != nil {
 		return err
 	}
 
@@ -101,35 +123,33 @@ func formDepartureBody(cmd command.SendSubscribedNotificationCommand) string {
 
 func (uc *EmailSenderUsecase) sendFlightUpdated(
 	ctx context.Context,
+	n domain.Notification,
 	cmd command.SendFlightUpdatedCommand,
 ) error {
 	var subj, body string
 	subj = "Flight departure"
 	body = formFlightUpdatedBody(cmd)
 
-	g, ctx := errgroup.WithContext(ctx)
-	for i := range cmd.Users {
-		g.Go(func() error {
-			msg := []byte(
-				"From: " + uc.appEmail.String() + sep +
-					"To: " + cmd.Users[i].String() + sep +
-					"Subject: " + subj + sep +
-					sep +
-					body + sep,
-			)
-
-			if err := uc.m.SendEmail([]common.Email{cmd.Users[i]}, msg); err != nil {
-				return err
-			}
-
-			return nil
-		})
+	if len(cmd.Users) != 1 {
+		return fmt.Errorf("expected one recipient per notification, got %d", len(cmd.Users))
 	}
-
-	if err := g.Wait(); err != nil {
+	to := cmd.Users[0]
+	msg := []byte(
+		"From: " + uc.appEmail.String() + sep +
+			"To: " + to.String() + sep +
+			"Subject: " + subj + sep +
+			sep +
+			body + sep,
+	)
+	if err := uc.m.SendEmail(ctx, []common.Email{to}, msg, stableMessageID(n, to)); err != nil {
 		return err
 	}
 	return nil
+}
+
+func stableMessageID(n domain.Notification, recipient common.Email) string {
+	hash := sha256.Sum256([]byte(recipient.String()))
+	return fmt.Sprintf("<%s.%s@airline-tracker>", n.Id.String(), hex.EncodeToString(hash[:8]))
 }
 
 func formFlightUpdatedBody(cmd command.SendFlightUpdatedCommand) string {

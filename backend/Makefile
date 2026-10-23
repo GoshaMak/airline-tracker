@@ -25,10 +25,10 @@ export ALLURE_LABEL_EPIC ?= unit
 
 .PHONY: test-unit
 test-unit:
-	cd $(API_PREFIX) && go test -v -count=1 -coverprofile=coverage.out ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' || true
+	@cd $(API_PREFIX) && sh ../scripts/run-filtered-go-test.sh go test -v -count=1 -coverprofile=coverage.out ./...
 	cd $(API_PREFIX) && python3 ../scripts/render-coverage.py
-	cd $(NOTIFIER_PREFIX) && go test -v -count=1 ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' || true
-	cd shared && go test -v -count=1 ./... 2>&1 | grep -v '\[no test files\]' | grep -v 'coverage: 0.0% of statements' || true
+	@cd $(NOTIFIER_PREFIX) && sh ../scripts/run-filtered-go-test.sh go test -v -count=1 ./...
+	@cd shared && sh ../scripts/run-filtered-go-test.sh go test -v -count=1 ./...
 
 .PHONY: test-name
 test-name:

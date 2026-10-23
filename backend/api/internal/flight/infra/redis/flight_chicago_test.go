@@ -12,12 +12,12 @@ import (
 	rds "github.com/redis/go-redis/v9"
 )
 
-func newRedisChicagoFixture(t *testing.T) (*RedisDB, *miniredis.Miniredis) {
+func newRedisChicagoFixture(t *testing.T) (*RedisClient, *miniredis.Miniredis) {
 	t.Helper()
 	redis := miniredis.RunT(t)
 	client := rds.NewClient(&rds.Options{Addr: redis.Addr()})
 	t.Cleanup(func() { _ = client.Close() })
-	return &RedisDB{cln: client}, redis
+	return &RedisClient{cln: client}, redis
 }
 
 func TestRedisDB_UpdateFlight_Chicago(t *testing.T) {

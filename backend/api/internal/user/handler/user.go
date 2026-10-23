@@ -44,19 +44,19 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 	uidStr := ctx.GetString("user_id")
 	uid, err := uuid.Parse(uidStr)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 		return
 	}
 
 	var req userDTO.CreateSubscriptionRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
-	if err := h.uc.CreateSubscription(uid, req.FlightID, *req.NotifyBeforeMinutes); err != nil {
+	if err := h.uc.CreateSubscription(ctx.Request.Context(), uid, req.FlightID, *req.NotifyBeforeMinutes); err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 			return
@@ -65,7 +65,7 @@ func (h *UserHandler) Subscribe(ctx *gin.Context) {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "flight not found"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -77,7 +77,7 @@ func (h *UserHandler) AddTimers(ctx *gin.Context) {
 	const op = "UserHandler.AddTimers"
 	uid, err := uuid.Parse(ctx.GetString("user_id"))
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 		return
 	}
@@ -88,16 +88,16 @@ func (h *UserHandler) AddTimers(ctx *gin.Context) {
 	}
 	var req userDTO.AddSubscriptionTimersRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.AddSubscriptionTimers(uid, fid, req.NotifyBeforeMinutes); err != nil {
+	if err := h.uc.AddSubscriptionTimers(ctx.Request.Context(), uid, fid, req.NotifyBeforeMinutes); err != nil {
 		if errors.Is(err, usecase.ErrSubscriptionNotFound) {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "subscription not found"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -108,7 +108,7 @@ func (h *UserHandler) Unsubscribe(ctx *gin.Context) {
 	const op = "UserHandler.Unsubscribe"
 	uid, err := uuid.Parse(ctx.GetString("user_id"))
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 		return
 	}
@@ -117,8 +117,8 @@ func (h *UserHandler) Unsubscribe(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	if err := h.uc.DeleteSubscription(uid, fid); err != nil {
-		slog.Error(op, "err", err)
+	if err := h.uc.DeleteSubscription(ctx.Request.Context(), uid, fid); err != nil {
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -135,14 +135,14 @@ func (h *UserHandler) ListFlights(ctx *gin.Context) {
 	uidStr := ctx.GetString("user_id")
 	uid, err := uuid.Parse(uidStr)
 	if err != nil {
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"msg": "user not found"})
 		return
 	}
 
-	page, err := h.uc.ListFlightsPage(uid, params)
+	page, err := h.uc.ListFlightsPage(ctx.Request.Context(), uid, params)
 	if err != nil {
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}

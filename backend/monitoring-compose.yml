@@ -19,6 +19,14 @@ services:
       - ./monitoring/loki.yml:/etc/loki/config.yml:ro
       - loki_data:/loki
 
+  tempo:
+    image: grafana/tempo:2.9.0
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./monitoring/tempo.yml:/etc/tempo.yml:ro
+      - tempo_data:/var/tempo
+
   alloy:
     image: grafana/alloy:v1.12.2
     restart: unless-stopped
@@ -33,6 +41,8 @@ services:
       - alloy_data:/var/lib/alloy/data
     depends_on:
       loki:
+        condition: service_started
+      tempo:
         condition: service_started
 
   grafana:
@@ -59,6 +69,8 @@ services:
         condition: service_started
       loki:
         condition: service_started
+      tempo:
+        condition: service_started
 
   nginx-exporter: &nginx-exporter
     image: nginx/nginx-prometheus-exporter:1.5.1
@@ -77,4 +89,5 @@ volumes:
   prometheus_data:
   loki_data:
   alloy_data:
+  tempo_data:
   grafana_data:

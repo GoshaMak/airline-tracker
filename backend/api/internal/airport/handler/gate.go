@@ -40,24 +40,24 @@ func (h *GateHandler) CreateGate(ctx *gin.Context) {
 	const op = "GateHandler.CreateGate"
 	req := &dto.CreateGateRequest{}
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
 	cmd, err := command.NewCreateGateCommand(req)
 	if err != nil {
-		slog.Warn(op, "err", err)
+		slog.WarnContext(ctx.Request.Context(), op, "err", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
 
-	if err := h.uc.CreateGate(cmd); err != nil {
+	if err := h.uc.CreateGate(ctx.Request.Context(), cmd); err != nil {
 		if errors.Is(err, usecase.ErrGateAlreadyExists) {
 			ctx.JSON(http.StatusCreated, gin.H{"msg": "gate created"})
 			return
 		}
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}
@@ -72,9 +72,9 @@ func (h *GateHandler) ListGates(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "bad request"})
 		return
 	}
-	page, err := h.uc.ListGatesPage(params)
+	page, err := h.uc.ListGatesPage(ctx.Request.Context(), params)
 	if err != nil {
-		slog.Error(op, "err", err)
+		slog.ErrorContext(ctx.Request.Context(), op, "err", err)
 		httperror.Internal(ctx, err, usecase.ErrOperationNotPermitted)
 		return
 	}

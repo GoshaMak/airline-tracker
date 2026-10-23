@@ -1,4 +1,6 @@
 x-app: &app
+  labels:
+    airline_tracker.logs: "true"
   image: airline-tracker-test:${TEST_RUN_ID:?Set TEST_RUN_ID}
   build:
     context: ../..
@@ -7,13 +9,14 @@ x-app: &app
     MODE: DEBUG
     GIN_MODE: release
     PORT: "8080"
-    INSTANCE_ID: test-environment
     POSTGRES_URI: postgres://app_user:app_pswd@postgres:5432/airline_tracker?search_path=api_schema
     REDIS_ADDR: redis:6379
     JWT_KEY: test-only-key-${TEST_RUN_ID:?Set TEST_RUN_ID}
     KAFKA_PEERS: kafka:9092
     SUBSCRIPTION_CREATED_TOPIC: subscription-created
     FLIGHT_UPDATED_TOPIC: flight-updated
+    OTEL_EXPORTER_OTLP_ENDPOINT: ${TEST_OTLP_ENDPOINT:-}
+    OTEL_TRACES_SAMPLER_ARG: "1"
   init: true
 
 services:

@@ -2,7 +2,7 @@ package usecase
 
 import (
 	gateRepository "api/internal/airport/domain/repository"
-	flightRepository "api/internal/flight/domain/repository"
+	flightRepository "api/internal/flight/usecase/repository"
 	"api/internal/infra/kafka"
 	"api/internal/notification/domain"
 	"api/internal/notification/usecase/model"
@@ -11,33 +11,44 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"shared/observability"
 
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
 
 type NotificationUsecase struct {
-	ns         messageSender
-	userRepo   userRepository.UserRepository
-	flightRepo flightRepository.FlightRepository
-	gateRepo   gateRepository.GateRepository
+	ms       messageSender
+	userRepo userRepository.UserRepository
+	flightDB flightRepository.FlightDB
+	gateRepo gateRepository.GateRepository
 }
 
-type messageSender interface{ SendMessage(string, []byte) error }
+type messageSender interface {
+	SendContext(
+		ctx context.Context,
+		topic,
+		key,
+		eventID string,
+		version int,
+		carrier map[string]string,
+		msg []byte,
+	) error
+}
 
 func NewNotificationUsecase(i do.Injector) (*NotificationUsecase, error) {
 	n := do.MustInvoke[*kafka.NotifySender](i)
 	return &NotificationUsecase{
-		ns:         n,
-		userRepo:   do.MustInvoke[userRepository.UserRepository](i),
-		flightRepo: do.MustInvoke[flightRepository.FlightRepository](i),
-		gateRepo:   do.MustInvoke[gateRepository.GateRepository](i),
+		ms:       n,
+		userRepo: do.MustInvoke[userRepository.UserRepository](i),
+		flightDB: do.MustInvoke[flightRepository.FlightDB](i),
+		gateRepo: do.MustInvoke[gateRepository.GateRepository](i),
 	}, nil
 }
 
-func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
+func (nu *NotificationUsecase) SendMessage(ctx context.Context, uid, fid uuid.UUID) error {
 	const op = "NotificationUsecase.SendMessage"
-	u, err := nu.userRepo.Exist(context.Background(), uid)
+	u, err := nu.userRepo.Exist(ctx, uid)
 	if err != nil {
 		if errors.Is(err, userRepository.ErrUserNotFound) {
 			return ErrUserNotFound
@@ -45,7 +56,7 @@ func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	f, err := nu.flightRepo.Exist(context.Background(), fid)
+	f, err := nu.flightDB.Exist(ctx, fid)
 	if err != nil {
 		if errors.Is(err, flightRepository.ErrFlightNotFound) {
 			return ErrFlightNotFound
@@ -53,7 +64,7 @@ func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	route, err := nu.flightRepo.GetFlightRoute(context.Background(), fid)
+	route, err := nu.flightDB.GetFlightRoute(ctx, fid)
 	if err != nil {
 		if errors.Is(err, flightRepository.ErrFlightRouteNotFound) {
 			return ErrFlightRouteNotFound
@@ -61,12 +72,12 @@ func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	depAirport, err := nu.gateRepo.GetAirportByGateId(context.Background(), route.DepartureGateId)
+	depAirport, err := nu.gateRepo.GetAirportByGateId(ctx, route.DepartureGateId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	arrAirport, err := nu.gateRepo.GetAirportByGateId(context.Background(), route.ArrivalGateId)
+	arrAirport, err := nu.gateRepo.GetAirportByGateId(ctx, route.ArrivalGateId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -86,7 +97,7 @@ func (nu *NotificationUsecase) SendMessage(uid, fid uuid.UUID) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := nu.ns.SendMessage("flights", msg); err != nil {
+	if err := nu.ms.SendContext(ctx, "flights", fid.String(), uuid.NewString(), 1, observability.Inject(ctx), msg); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

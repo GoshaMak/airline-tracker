@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 )
 
@@ -28,18 +27,23 @@ type userRepository struct {
 type userDB interface {
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 	Query(context.Context, string, ...any) (pgx.Rows, error)
+	Begin(context.Context) (pgx.Tx, error)
 }
 
 func NewUserRepository(i do.Injector) (repository.UserRepository, error) {
 	return &userRepository{
-		conn: do.MustInvoke[*pgxpool.Pool](i),
+		conn: do.MustInvokeAs[userDB](i),
 	}, nil
 }
 
 func NewSubscriptionRepository(i do.Injector) (repository.SubscriptionRepository, error) {
 	return &userRepository{
-		conn: do.MustInvoke[*pgxpool.Pool](i),
+		conn: do.MustInvokeAs[userDB](i),
 	}, nil
+}
+
+func (r *userRepository) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	return infraPostgres.WithTransaction(ctx, r.conn, fn)
 }
 
 func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
@@ -48,7 +52,7 @@ func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 	insert into users(id, email, password_hash, role)
 		values ($1, $2, $3, $4)
 	`
-	_, err := r.conn.Exec(ctx, query,
+	_, err := infraPostgres.Executor(ctx, r.conn).Exec(ctx, query,
 		user.Id,
 		user.Email.String(),
 		user.PasswordHash.String(),
@@ -69,7 +73,7 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 	query := `
 	select * from users where email = $1
 	`
-	row, err := r.conn.Query(ctx, query, email)
+	row, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, email)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -93,7 +97,7 @@ func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User,
 	query := `
 	select * from users where id = $1
 	`
-	row, err := r.conn.Query(ctx, query, uid)
+	row, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, uid)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -121,7 +125,7 @@ func (r *userRepository) Subscribe(
 	query := `
 	select subscribe($1, $2)
 	`
-	_, err := r.conn.Exec(ctx, query, uid, fid)
+	_, err := infraPostgres.Executor(ctx, r.conn).Exec(ctx, query, uid, fid)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -161,7 +165,7 @@ func (r *userRepository) Create(
 	on conflict (subscription_id, notify_before_minutes) do nothing
 	returning notify_before_minutes
 	`
-	rows, err := r.conn.Query(ctx, query, uid, fid, notifyBeforeMinutes)
+	rows, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, uid, fid, notifyBeforeMinutes)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -184,7 +188,7 @@ func (r *userRepository) AddTimers(
 	from subscriptions
 	where user_id = $1 and flight_id = $2
 	`
-	rows, err := r.conn.Query(ctx, findQuery, uid, fid)
+	rows, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, findQuery, uid, fid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -202,7 +206,7 @@ func (r *userRepository) AddTimers(
 	on conflict (subscription_id, notify_before_minutes) do nothing
 	returning notify_before_minutes
 	`
-	rows, err = r.conn.Query(ctx, insertQuery, subscriptionID, notifyBeforeMinutes)
+	rows, err = infraPostgres.Executor(ctx, r.conn).Query(ctx, insertQuery, subscriptionID, notifyBeforeMinutes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -219,7 +223,7 @@ func (r *userRepository) Delete(ctx context.Context, uid, fid uuid.UUID) error {
 	delete from subscriptions
 	where user_id = $1 and flight_id = $2
 	`
-	if _, err := r.conn.Exec(ctx, query, uid, fid); err != nil {
+	if _, err := infraPostgres.Executor(ctx, r.conn).Exec(ctx, query, uid, fid); err != nil {
 		return fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	return nil
@@ -233,7 +237,7 @@ func (r *userRepository) ListFlights(
 	query := `
 	select * from scan_user_flights_info($1)
 	`
-	rows, err := r.conn.Query(ctx, query, uid)
+	rows, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
@@ -266,7 +270,7 @@ func (r *userRepository) ListFlightsPage(
 	order by id
 	limit $3
 	`
-	rows, err := r.conn.Query(ctx, query, uid, params.CursorValue(), params.FetchLimit())
+	rows, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, uid, params.CursorValue(), params.FetchLimit())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
