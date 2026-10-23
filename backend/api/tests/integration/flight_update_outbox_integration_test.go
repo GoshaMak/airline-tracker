@@ -9,11 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
-	"time"
 
 	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 )
 
 func TestFlightUsecase_UpdateCreatesOutboxEvent(t *testing.T) {
@@ -47,18 +45,10 @@ func TestFlightUsecase_UpdateCreatesOutboxEvent(t *testing.T) {
 
 		var payload []byte
 		var pending bool
-		deadline := time.Now().Add(5 * time.Second)
-		for {
-			err = f.pool.QueryRow(ctx,
-				"SELECT payload, sent_at IS NULL FROM outbox WHERE topic = $1 AND payload->>'flight_id' = $2",
-				"flight-updated", f.flight.Id.String()).Scan(&payload, &pending)
-			if err == nil {
-				break
-			}
-			if !errors.Is(err, pgx.ErrNoRows) || time.Now().After(deadline) {
-				t.Fatalf("outbox event did not appear: %v", err)
-			}
-			time.Sleep(10 * time.Millisecond)
+		if err := f.pool.QueryRow(ctx,
+			"SELECT payload, sent_at IS NULL FROM outbox WHERE topic = $1 AND payload->>'flight_id' = $2",
+			"flight-updated", f.flight.Id.String()).Scan(&payload, &pending); err != nil {
+			t.Fatalf("outbox event was not committed with the flight update: %v", err)
 		}
 		var event domain.FlightUpdatedPayloadModel
 		if err := json.Unmarshal(payload, &event); err != nil {

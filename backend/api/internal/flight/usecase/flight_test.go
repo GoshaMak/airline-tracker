@@ -52,6 +52,15 @@ func (m *flightRepoMock) Update(ctx context.Context, u domain.UpdateFlightInfo) 
 	return m.updateFn(ctx, u)
 }
 
+func (m *flightRepoMock) UpdateIfChanged(ctx context.Context, u domain.UpdateFlightInfo) (bool, error) {
+	err := m.Update(ctx, u)
+	return err == nil, err
+}
+
+func (m *flightRepoMock) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	return fn(ctx)
+}
+
 func (m *flightRepoMock) ListFlights(ctx context.Context) ([]domain.Flight, error) {
 	return m.listFlightsFn(ctx)
 }
