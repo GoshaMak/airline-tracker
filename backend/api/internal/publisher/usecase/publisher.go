@@ -20,8 +20,22 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const (
+	outboxLease        = 30 * time.Second
+	publishTimeout     = 10 * time.Second
+	maxPublishAttempts = 8
+)
+
 type messageSender interface {
-	SendContext(context.Context, string, string, string, int, map[string]string, []byte) error
+	SendContext(
+		ctx context.Context,
+		topic,
+		key,
+		eventID string,
+		version int,
+		carrier map[string]string,
+		msg []byte,
+	) error
 }
 
 type PublisherUsecase struct {
@@ -55,19 +69,13 @@ func (p *SendPayload) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-const (
-	outboxLease        = 30 * time.Second
-	publishTimeout     = 10 * time.Second
-	maxPublishAttempts = 8
-)
-
-func (uc *PublisherUsecase) Publish(ctx context.Context) error {
+func (uc *PublisherUsecase) Publish(ctx context.Context) (bool, error) {
 	const op = "PublisherUsecase.Publish"
 	ctx, cancel := context.WithTimeout(ctx, publishTimeout)
 	defer cancel()
 	items, err := uc.repo.Claim(ctx, 1, outboxLease)
 	if err != nil {
-		return fmt.Errorf("%s claim: %w", op, err)
+		return false, fmt.Errorf("%s claim: %w", op, err)
 	}
 	for _, item := range items {
 		jobCtx := observability.Extract(ctx, item.TraceCarrier)
@@ -88,10 +96,10 @@ func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 			span.SetStatus(codes.Error, "Kafka publish failed")
 		}
 		span.End()
+		persistCtx, persistCancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 		if sendErr != nil {
 			backoff := time.Second << min(item.Attempts-1, 6)
 			backoff += time.Duration(rand.Int63n(int64(250 * time.Millisecond)))
-			persistCtx, persistCancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 			retryErr := uc.repo.Retry(
 				persistCtx,
 				item.Id,
@@ -107,26 +115,25 @@ func (uc *PublisherUsecase) Publish(ctx context.Context) error {
 			}
 			observability.ObserveJob("publisher", result, time.Since(started))
 			if retryErr != nil {
-				return fmt.Errorf("%s retry: %w (publish: %v)", op, retryErr, sendErr)
+				return true, fmt.Errorf("%s retry: %w (publish: %v)", op, retryErr, sendErr)
 			}
 			slog.InfoContext(jobCtx, "outbox publish failed",
 				"event_id", item.Id,
 				"attempt", item.Attempts,
 				"err", sendErr)
-			continue
-		}
-		persistCtx, persistCancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
-		if err := uc.repo.Complete(persistCtx, item.Id, item.LeaseToken); err != nil {
+		} else {
+			if err := uc.repo.Complete(persistCtx, item.Id, item.LeaseToken); err != nil {
+				persistCancel()
+				observability.ObserveJob("publisher", "retry", time.Since(started))
+				return true, fmt.Errorf("%s complete: %w", op, err)
+			}
 			persistCancel()
-			observability.ObserveJob("publisher", "retry", time.Since(started))
-			return fmt.Errorf("%s complete: %w", op, err)
+			observability.ObserveJob("publisher", "success", time.Since(started))
+			slog.InfoContext(jobCtx, "outbox event published",
+				"event_id", item.Id,
+				"attempt", item.Attempts,
+				"duration", time.Since(started))
 		}
-		persistCancel()
-		observability.ObserveJob("publisher", "success", time.Since(started))
-		slog.InfoContext(jobCtx, "outbox event published",
-			"event_id", item.Id,
-			"attempt", item.Attempts,
-			"duration", time.Since(started))
 	}
-	return nil
+	return len(items) > 0, nil
 }

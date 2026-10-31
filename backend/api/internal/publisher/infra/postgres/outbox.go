@@ -176,8 +176,8 @@ func (r *outboxRepository) Claim(
 		set lease_token = gen_random_uuid(),
 			lease_until = now() + ($2 * interval '1 millisecond'),
 			attempts = attempts + 1
-	 	from eligible e where o.id = e.id
-	 	returning o.id, o.topic, o.payload, o.created_at, o.sent_at, o.attempts,
+		from eligible e where o.id = e.id
+		returning o.id, o.topic, o.payload, o.created_at, o.sent_at, o.attempts,
 			o.lease_token, o.next_attempt_at, o.trace_carrier, o.correlation_id
 	)
 	select id, topic, payload, created_at, sent_at, attempts,
@@ -212,22 +212,19 @@ func (r *outboxRepository) Claim(
 		return nil, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 	stats, statsErr := r.conn.Query(ctx, `
-		select count(*), coalesce(extract(epoch from (now()-min(created_at))),0)
+		select count(*) as pending,
+			coalesce(extract(epoch from (now()-min(created_at))), 0) as oldest
 		from api_schema.outbox
 		where sent_at is null and
 			failed_at is null
 		`)
 	if statsErr == nil {
 		type queueStats struct {
-			pending int64
-			oldest  float64
+			Pending int64   `db:"pending"`
+			Oldest  float64 `db:"oldest"`
 		}
-		if result, collectErr := pgx.CollectExactlyOneRow(stats, func(row pgx.CollectableRow) (queueStats, error) {
-			var value queueStats
-			err := row.Scan(&value.pending, &value.oldest)
-			return value, err
-		}); collectErr == nil {
-			observability.SetQueue("publisher", "outbox", float64(result.pending), result.oldest)
+		if result, collectErr := pgx.CollectExactlyOneRow(stats, pgx.RowToStructByName[queueStats]); collectErr == nil {
+			observability.SetQueue("publisher", "outbox", float64(result.Pending), result.Oldest)
 		}
 	}
 	return items, nil

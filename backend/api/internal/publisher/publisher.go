@@ -23,18 +23,23 @@ func NewPublisher(i *do.RootScope) (*Publisher, error) {
 
 func (p *Publisher) Run(ctx context.Context) error {
 	const op = "Publisher.Run"
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		processed, err := p.uc.Publish(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, op, "err", err)
+		}
+		if processed && err == nil {
+			continue
+		}
+		timer := time.NewTimer(time.Second)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return ctx.Err()
-
-		case <-ticker.C:
-			if err := p.uc.Publish(ctx); err != nil {
-				slog.Error(op, "err", err)
-			}
+		case <-timer.C:
 		}
 	}
 }

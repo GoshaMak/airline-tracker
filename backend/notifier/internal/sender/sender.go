@@ -21,18 +21,23 @@ func NewSender(i do.Injector) (*Sender, error) {
 
 func (s *Sender) Run(ctx context.Context) error {
 	const op = "Sender.Run"
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		processed, err := s.uc.Send(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, op, "err", err)
+		}
+		if processed && err == nil {
+			continue
+		}
+		timer := time.NewTimer(time.Second)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return ctx.Err()
-
-		case <-ticker.C:
-			if err := s.uc.Send(ctx); err != nil {
-				slog.Error(op, "err", err)
-			}
+		case <-timer.C:
 		}
 	}
 }

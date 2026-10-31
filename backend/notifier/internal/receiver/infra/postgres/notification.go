@@ -224,7 +224,8 @@ func (r *notificationRepository) RecordEventFailure(
 	insert into notifier_schema.inbox_events
 		(event_id, schema_version, trace_carrier, status, attempts, last_error, failed_at, source_topic, source_partition, source_offset, source_payload)
 		values($1, $2,$3::jsonb, case when $5<=1 then 'failed' else 'processing' end, 1, left($4, 1000), case when $5<=1 then now() else null end, $6, $7, $8, $9)
-	on conflict(event_id) do update set attempts=notifier_schema.inbox_events.attempts+1,
+	on conflict(event_id) do update
+	set attempts=notifier_schema.inbox_events.attempts+1,
 		last_error=left($4,1000),
 		schema_version=$2,
 		trace_carrier=$3::jsonb,
@@ -248,7 +249,16 @@ func (r *notificationRepository) RecordEventFailure(
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	rows, err := r.conn.Query(ctx, query, event.EventID, event.SchemaVersion, carrierJSON, cause, maxAttempts, event.Topic, event.Partition, event.Offset, event.Payload)
+	rows, err := r.conn.Query(ctx, query,
+		event.EventID,
+		event.SchemaVersion,
+		carrierJSON,
+		cause,
+		maxAttempts,
+		event.Topic,
+		event.Partition,
+		event.Offset,
+		event.Payload)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -266,7 +276,12 @@ func (r *notificationRepository) RecordEventFailure(
 	return statuses[0] == "failed", nil
 }
 
-func (r *notificationRepository) ClaimDue(ctx context.Context, workerID string, limit int, lease time.Duration) ([]domain.Notification, error) {
+func (r *notificationRepository) ClaimDue(
+	ctx context.Context,
+	workerID string,
+	limit int,
+	lease time.Duration,
+) ([]domain.Notification, error) {
 	const op = "NotificationRepository.ClaimDue"
 	if workerID == "" || limit < 1 || limit > 100 || lease <= 0 {
 		return nil, fmt.Errorf("%s: invalid claim limits", op)
@@ -309,9 +324,31 @@ func (r *notificationRepository) ClaimDue(ctx context.Context, workerID string, 
 				lease_until=now()+($2*interval '1 millisecond')
 			from eligible e
 			where n.id=e.id
-			returning n.id, n.payload, n.created_at, n.send_at, n.status, n.type, n.event_id, n.recipient, n.attempts, n.lease_token, n.next_attempt_at, n.trace_carrier
+			returning n.id,
+				n.payload,
+				n.created_at,
+				n.send_at,
+				n.status,
+				n.type,
+				n.event_id,
+				n.recipient,
+				n.attempts,
+				n.lease_token,
+				n.next_attempt_at,
+				n.trace_carrier
 		)
-		select id, payload, created_at, send_at, status, type, event_id, recipient, attempts, lease_token, next_attempt_at, trace_carrier
+		select id,
+			payload,
+			created_at,
+			send_at,
+			status,
+			type,
+			event_id,
+			recipient,
+			attempts,
+			lease_token,
+			next_attempt_at,
+			trace_carrier
 		from claimed
 		`, limit, lease.Milliseconds())
 	if err != nil {
@@ -333,22 +370,19 @@ func (r *notificationRepository) ClaimDue(ctx context.Context, workerID string, 
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	stats, statsErr := r.conn.Query(ctx, `
-		select count(*), greatest(coalesce(extract(epoch from now()-min(send_at)),0),0)
+		select count(*) as pending,
+			greatest(coalesce(extract(epoch from now()-min(send_at)), 0), 0) as oldest
 		from notifier_schema.notifications
 		where status not in ('sent','failed') and
 			failed_at is null
 		`)
 	if statsErr == nil {
 		type queueStats struct {
-			pending int64
-			oldest  float64
+			Pending int64   `db:"pending"`
+			Oldest  float64 `db:"oldest"`
 		}
-		if result, collectErr := pgx.CollectExactlyOneRow(stats, func(row pgx.CollectableRow) (queueStats, error) {
-			var v queueStats
-			e := row.Scan(&v.pending, &v.oldest)
-			return v, e
-		}); collectErr == nil {
-			observability.SetQueue("notifier", "email", float64(result.pending), result.oldest)
+		if result, collectErr := pgx.CollectExactlyOneRow(stats, pgx.RowToStructByName[queueStats]); collectErr == nil {
+			observability.SetQueue("notifier", "email", float64(result.Pending), result.Oldest)
 		}
 	}
 	return items, nil
@@ -378,11 +412,11 @@ func (r *notificationRepository) Retry(ctx context.Context, id, leaseToken uuid.
 	tag, err := r.conn.Exec(ctx, `
 		update notifier_schema.notifications
 		set status=case when attempts >= $5 then 'failed' else status end,
-		failed_at=case when attempts >= $5 then now() else null end,
-		next_attempt_at=case when attempts >= $5 then next_attempt_at else $3 end,
-		last_error=left($4,1000),
-		lease_token=null,
-		lease_until=null
+			failed_at=case when attempts >= $5 then now() else null end,
+			next_attempt_at=case when attempts >= $5 then next_attempt_at else $3 end,
+			last_error=left($4,1000),
+			lease_token=null,
+			lease_until=null
 		where id=$1 and
 			lease_token=$2 and
 			status not in ('sent','failed')

@@ -33,13 +33,13 @@ const (
 	maxDeliveryAttempts      = 8
 )
 
-func (uc *SenderUsecase) Send(ctx context.Context) error {
+func (uc *SenderUsecase) Send(ctx context.Context) (bool, error) {
 	const op = "SenderUsecase.Send"
 	ctx, cancel := context.WithTimeout(ctx, notificationCycleTimeout)
 	defer cancel()
 	notifications, err := uc.repo.ClaimDue(ctx, uc.workerID, 1, notificationLease)
 	if err != nil {
-		return fmt.Errorf("%s claim: %w", op, err)
+		return false, fmt.Errorf("%s claim: %w", op, err)
 	}
 	for _, notification := range notifications {
 		jobCtx := observability.Extract(ctx, notification.TraceCarrier)
@@ -58,24 +58,24 @@ func (uc *SenderUsecase) Send(ctx context.Context) error {
 			}
 			observability.ObserveJob("notifier", result, time.Since(started))
 			if retryErr != nil {
-				return errors.Join(fmt.Errorf("%s send: %w", op, sendErr), fmt.Errorf("%s persist retry: %w", op, retryErr))
+				return true, errors.Join(fmt.Errorf("%s send: %w", op, sendErr), fmt.Errorf("%s persist retry: %w", op, retryErr))
 			}
 			slog.WarnContext(jobCtx, "email delivery failed",
 				"notification_id", notification.Id,
 				"attempt", notification.Attempts,
 				"err", sendErr)
-			continue
-		}
-		if err := uc.repo.Complete(persistCtx, notification.Id, notification.LeaseToken); err != nil {
+		} else {
+			if err := uc.repo.Complete(persistCtx, notification.Id, notification.LeaseToken); err != nil {
+				persistCancel()
+				observability.ObserveJob("notifier", "retry", time.Since(started))
+				return true, fmt.Errorf("%s complete: %w", op, err)
+			}
 			persistCancel()
-			observability.ObserveJob("notifier", "retry", time.Since(started))
-			return fmt.Errorf("%s complete: %w", op, err)
+			observability.ObserveJob("notifier", "success", time.Since(started))
+			slog.InfoContext(jobCtx, "email delivered",
+				"notification_id", notification.Id,
+				"attempt", notification.Attempts)
 		}
-		persistCancel()
-		observability.ObserveJob("notifier", "success", time.Since(started))
-		slog.InfoContext(jobCtx, "email delivered",
-			"notification_id", notification.Id,
-			"attempt", notification.Attempts)
 	}
-	return nil
+	return len(notifications) > 0, nil
 }
