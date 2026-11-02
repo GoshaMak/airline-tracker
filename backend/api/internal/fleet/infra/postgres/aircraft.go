@@ -10,11 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"shared/observability"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type aircraftRepository struct {
@@ -37,6 +39,8 @@ func (r *aircraftRepository) SaveAircraft(
 	a domain.Aircraft,
 ) error {
 	const op = "AircraftRepository.SaveAircraft"
+	ctx, span := observability.Start(ctx, "repository.aircraft.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	query := `
 	insert into
 		aircraft(registration_number, aircraft_model_id, serial_number, mileage)
@@ -58,7 +62,9 @@ func (r *aircraftRepository) SaveAircraft(
 
 func (r *aircraftRepository) List(ctx context.Context) ([]domain.Aircraft, error) {
 	const op = "AircraftRepository.List"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.aircraft.list", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select *
 	from aircraft
 	`
@@ -86,7 +92,9 @@ func (r *aircraftRepository) ListPage(
 	params pagination.Params,
 ) ([]domain.Aircraft, error) {
 	const op = "AircraftRepository.ListPage"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.aircraft.list_page", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select *
 	from aircraft
 	where ($1::uuid is null or id > $1)

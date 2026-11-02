@@ -4,9 +4,11 @@ import (
 	"api/internal/flight/domain"
 	"api/internal/flight/infra/redis/model"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	rds "github.com/redis/go-redis/v9"
@@ -29,6 +31,48 @@ func formFlightKey(id string) string {
 
 func flightIndexKey() string {
 	return "flight:ids"
+}
+
+const flightPageVersionKey = "flight:pages:version"
+const flightPageTTL = 5 * time.Minute
+
+func (r *RedisClient) FlightPageVersion(ctx context.Context) (string, error) {
+	v, err := r.cln.Get(ctx, flightPageVersionKey).Result()
+	if err == rds.Nil {
+		created, err := r.cln.SetNX(ctx, flightPageVersionKey, "1", 0).Result()
+		if err != nil {
+			return "", err
+		}
+		if created {
+			return "1", nil
+		}
+		v, err = r.cln.Get(ctx, flightPageVersionKey).Result()
+	}
+	return v, err
+}
+
+func (r *RedisClient) BumpFlightPageVersion(ctx context.Context) error {
+	return r.cln.Incr(ctx, flightPageVersionKey).Err()
+}
+
+func (r *RedisClient) SaveFlightPage(ctx context.Context, key string, flights []domain.Flight) error {
+	data, err := json.Marshal(flights)
+	if err != nil {
+		return err
+	}
+	return r.cln.Set(ctx, key, data, flightPageTTL).Err()
+}
+
+func (r *RedisClient) GetFlightPage(ctx context.Context, key string) ([]domain.Flight, error) {
+	data, err := r.cln.Get(ctx, key).Bytes()
+	if err != nil {
+		return nil, err
+	}
+	var flights []domain.Flight
+	if err := json.Unmarshal(data, &flights); err != nil {
+		return nil, err
+	}
+	return flights, nil
 }
 
 func (r *RedisClient) SaveFlight(

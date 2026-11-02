@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type notificationRepository struct{ conn notificationDB }
@@ -32,6 +33,8 @@ func NewNotificationRepository(i do.Injector) (repository.NotificationRepository
 
 func (r *notificationRepository) Save(ctx context.Context, n domain.Notification) error {
 	const op = "NotificationRepository.Save"
+	ctx, span := observability.Start(ctx, "repository.notification.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	insert into notifier_schema.notifications
 		(id, payload, created_at, send_at, status, type, event_id, recipient, attempts, next_attempt_at, trace_carrier)
@@ -54,6 +57,8 @@ func (r *notificationRepository) Save(ctx context.Context, n domain.Notification
 
 func (r *notificationRepository) ListNotSent(ctx context.Context) ([]domain.Notification, error) {
 	const op = "NotificationRepository.ListNotSent"
+	ctx, span := observability.Start(ctx, "repository.notification.list_not_sent", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	select id, payload, created_at, send_at, status, type, event_id, recipient,
 		attempts, lease_token, next_attempt_at, trace_carrier
@@ -85,6 +90,8 @@ func (r *notificationRepository) Mark(
 	n domain.Notification,
 	status domain.NotificationStatus,
 ) error {
+	ctx, span := observability.Start(ctx, "repository.notification.mark", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	_, err := r.conn.Exec(ctx, `update notifier_schema.notifications set status=$1 where id=$2`, status.String(), n.Id)
 	return err
 }
@@ -97,6 +104,8 @@ func (r *notificationRepository) ApplyEvent(
 	notifications []domain.Notification,
 ) (bool, error) {
 	const op = "NotificationRepository.ApplyEvent"
+	ctx, span := observability.Start(ctx, "repository.notification.apply_event", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	insert into notifier_schema.inbox_events(event_id,schema_version,trace_carrier,status)
 		values($1,$2,$3::jsonb,'processing')
@@ -220,6 +229,8 @@ func (r *notificationRepository) RecordEventFailure(
 	maxAttempts int,
 ) (bool, error) {
 	const op = "NotificationRepository.RecordEventFailure"
+	ctx, span := observability.Start(ctx, "repository.notification.record_event_failure", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	insert into notifier_schema.inbox_events
 		(event_id, schema_version, trace_carrier, status, attempts, last_error, failed_at, source_topic, source_partition, source_offset, source_payload)
@@ -283,6 +294,8 @@ func (r *notificationRepository) ClaimDue(
 	lease time.Duration,
 ) ([]domain.Notification, error) {
 	const op = "NotificationRepository.ClaimDue"
+	ctx, span := observability.Start(ctx, "repository.notification.claim_due", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	if workerID == "" || limit < 1 || limit > 100 || lease <= 0 {
 		return nil, fmt.Errorf("%s: invalid claim limits", op)
 	}
@@ -389,6 +402,8 @@ func (r *notificationRepository) ClaimDue(
 }
 
 func (r *notificationRepository) Complete(ctx context.Context, id, leaseToken uuid.UUID) error {
+	ctx, span := observability.Start(ctx, "repository.notification.complete", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	tag, err := r.conn.Exec(ctx, `
 		update notifier_schema.notifications
 		set status='sent',
@@ -409,6 +424,8 @@ func (r *notificationRepository) Complete(ctx context.Context, id, leaseToken uu
 }
 
 func (r *notificationRepository) Retry(ctx context.Context, id, leaseToken uuid.UUID, nextAttempt time.Time, cause string, maxAttempts int) error {
+	ctx, span := observability.Start(ctx, "repository.notification.retry", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	tag, err := r.conn.Exec(ctx, `
 		update notifier_schema.notifications
 		set status=case when attempts >= $5 then 'failed' else status end,

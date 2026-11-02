@@ -10,22 +10,24 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"shared/observability"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
+	"go.opentelemetry.io/otel/trace"
 )
-
-type airportRepository struct {
-	conn airportDB
-}
 
 type airportDB interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+type airportRepository struct {
+	conn airportDB
 }
 
 func NewAirportRepository(i do.Injector) (repository.AirportRepository, error) {
@@ -39,6 +41,8 @@ func (r *airportRepository) Save(
 	a domain.Airport,
 ) error {
 	const op = "AirportRepository.Save"
+	ctx, span := observability.Start(ctx, "repository.airport.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	cityQuery := `
 	select city.id
 	from cities city
@@ -74,6 +78,8 @@ func (r *airportRepository) Save(
 
 func (r *airportRepository) ListAirports(ctx context.Context) ([]domain.Airport, error) {
 	const op = "AirportRepository.ListAirports"
+	ctx, span := observability.Start(ctx, "repository.airport.list", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	select
 		a.id as id,
@@ -113,6 +119,8 @@ func (r *airportRepository) ListAirportsPage(
 	params pagination.Params,
 ) ([]domain.Airport, error) {
 	const op = "AirportRepository.ListAirportsPage"
+	ctx, span := observability.Start(ctx, "repository.airport.list_page", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	select
 		a.id as id,

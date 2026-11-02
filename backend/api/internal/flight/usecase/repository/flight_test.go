@@ -110,6 +110,22 @@ func (s *cacheStub) FlushFlights(context.Context) error {
 	return nil
 }
 
+func (s *cacheStub) GetFlightPage(context.Context, string) ([]domain.Flight, error) {
+	return nil, errors.New("cache miss")
+}
+
+func (s *cacheStub) SaveFlightPage(context.Context, string, []domain.Flight) error {
+	return nil
+}
+
+func (s *cacheStub) BumpFlightPageVersion(context.Context) error {
+	return nil
+}
+
+func (s *cacheStub) FlightPageVersion(context.Context) (string, error) {
+	return "1", nil
+}
+
 func newFixture() (*flightRepository, *dbStub, *cacheStub) {
 	db, cache := &dbStub{}, &cacheStub{}
 	return &flightRepository{db: db, cache: cache}, db, cache

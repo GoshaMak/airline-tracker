@@ -12,12 +12,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"shared/observability"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/samber/do/v2"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type userRepository struct {
@@ -43,12 +45,16 @@ func NewSubscriptionRepository(i do.Injector) (repository.SubscriptionRepository
 }
 
 func (r *userRepository) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	ctx, span := observability.Start(ctx, "repository.user.transaction", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	return infraPostgres.WithTransaction(ctx, r.conn, fn)
 }
 
 func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 	const op = "UserRepository.SaveUser"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.user.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	insert into users(id, email, password_hash, role)
 		values ($1, $2, $3, $4)
 	`
@@ -70,8 +76,13 @@ func (r *userRepository) SaveUser(ctx context.Context, user domain.User) error {
 
 func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User, error) {
 	const op = "UserRepository.GetUser"
-	query := `
-	select * from users where email = $1
+	ctx, span := observability.Start(ctx, "repository.user.get", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
+	select *
+	from users
+	where email = $1
+	limit 1
 	`
 	row, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, email)
 	if err != nil {
@@ -94,7 +105,9 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 
 func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User, error) {
 	const op = "UserRepository.Exist"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.user.exist", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select * from users where id = $1
 	`
 	row, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, uid)
@@ -122,7 +135,9 @@ func (r *userRepository) Subscribe(
 	fid uuid.UUID,
 ) error {
 	const op = "UserRepository.Subscribe"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.user.subscribe", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select subscribe($1, $2)
 	`
 	_, err := infraPostgres.Executor(ctx, r.conn).Exec(ctx, query, uid, fid)
@@ -152,12 +167,14 @@ func (r *userRepository) Create(
 	notifyBeforeMinutes int64,
 ) (bool, error) {
 	const op = "UserRepository.CreateSubscription"
+	ctx, span := observability.Start(ctx, "repository.user.create_subscription", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	if err := r.Subscribe(ctx, uid, fid); err != nil &&
 		!errors.Is(err, repository.ErrUserAlreadySubscribed) {
 		return false, fmt.Errorf("%s: %w", op, translateError(err))
 	}
 
-	query := `
+	const query = `
 	insert into subscription_notification_timers(subscription_id, notify_before_minutes)
 	select id, $3
 	from subscriptions
@@ -183,7 +200,9 @@ func (r *userRepository) AddTimers(
 	notifyBeforeMinutes []int64,
 ) ([]int64, error) {
 	const op = "UserRepository.AddTimers"
-	findQuery := `
+	ctx, span := observability.Start(ctx, "repository.user.add_timers", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const findQuery = `
 	select id
 	from subscriptions
 	where user_id = $1 and flight_id = $2
@@ -219,7 +238,9 @@ func (r *userRepository) AddTimers(
 
 func (r *userRepository) Delete(ctx context.Context, uid, fid uuid.UUID) error {
 	const op = "UserRepository.DeleteSubscription"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.user.delete_subscription", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	delete from subscriptions
 	where user_id = $1 and flight_id = $2
 	`
@@ -234,7 +255,9 @@ func (r *userRepository) ListFlights(
 	uid uuid.UUID,
 ) ([]flightDomain.Flight, error) {
 	const op = "UserRepository.ListFlights"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.user.list_flights", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select * from scan_user_flights_info($1)
 	`
 	rows, err := infraPostgres.Executor(ctx, r.conn).Query(ctx, query, uid)
@@ -263,7 +286,9 @@ func (r *userRepository) ListFlightsPage(
 	params pagination.Params,
 ) ([]flightDomain.Flight, error) {
 	const op = "UserRepository.ListFlightsPage"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.user.list_flights_page", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select *
 	from scan_user_flights_info($1)
 	where ($2::uuid is null or id > $2)

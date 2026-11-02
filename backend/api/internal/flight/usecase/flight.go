@@ -170,23 +170,27 @@ func (uc *FlightUsecase) ListFlights(ctx context.Context) ([]domain.Flight, erro
 }
 
 type paginatedFlightRepository interface {
-	ListFlightsPage(context.Context, pagination.Params) ([]domain.Flight, error)
+	ListFlightsPage(ctx context.Context, params pagination.Params) ([]domain.Flight, error)
 }
 
-func (uc *FlightUsecase) ListFlightsPage(ctx context.Context, params pagination.Params) (pagination.Page[domain.Flight], error) {
-	if repo, ok := uc.repo.(paginatedFlightRepository); ok {
-		flights, err := repo.ListFlightsPage(ctx, params)
+func (uc *FlightUsecase) ListFlightsPage(
+	ctx context.Context,
+	params pagination.Params,
+) (pagination.Page[domain.Flight], error) {
+	repo, ok := uc.repo.(paginatedFlightRepository)
+	if !ok {
+		flights, err := uc.ListFlights(ctx)
 		if err != nil {
-			if errors.Is(err, repository.ErrOperationNotPermitted) {
-				return pagination.Page[domain.Flight]{}, ErrOperationNotPermitted
-			}
-			return pagination.Page[domain.Flight]{}, fmt.Errorf("FlightUsecase.ListFlightsPage: %w", err)
+			return pagination.Page[domain.Flight]{}, err
 		}
-		return pagination.FromFetched(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
+		return pagination.Paginate(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
 	}
-	flights, err := uc.ListFlights(ctx)
+	flights, err := repo.ListFlightsPage(ctx, params)
 	if err != nil {
-		return pagination.Page[domain.Flight]{}, err
+		if errors.Is(err, repository.ErrOperationNotPermitted) {
+			return pagination.Page[domain.Flight]{}, ErrOperationNotPermitted
+		}
+		return pagination.Page[domain.Flight]{}, fmt.Errorf("FlightUsecase.ListFlightsPage: %w", err)
 	}
-	return pagination.Paginate(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
+	return pagination.FromFetched(flights, params, func(f domain.Flight) uuid.UUID { return f.Id }), nil
 }

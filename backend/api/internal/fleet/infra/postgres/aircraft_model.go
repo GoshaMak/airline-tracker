@@ -7,12 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"shared/observability"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type aircraftModelRepository struct {
@@ -35,7 +37,9 @@ func (r *aircraftModelRepository) SaveAircraftModel(
 	am domain.AircraftModel,
 ) error {
 	const op = "AircraftModelRepository.SaveAircraftModel"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.aircraft_model.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	insert into
 		aircraft_models(manufacturer, model, mass, max_altitude, max_speed)
 		values ($1, $2, $3, $4, $5)
@@ -59,7 +63,9 @@ func (r *aircraftModelRepository) GetAircraftModelById(
 	id uuid.UUID,
 ) (domain.AircraftModel, error) {
 	const op = "AircraftModelRepository.GetAircraftModelById"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.aircraft_model.get_by_id", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select  *
 	from aircraft_models
 	where id = $1

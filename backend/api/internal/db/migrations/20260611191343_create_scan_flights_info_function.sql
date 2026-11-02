@@ -35,9 +35,9 @@ begin
                gd.airport_id,
                ga.airport_id
         from flights f
-                 join flight_routes v on f.id = v.flight_id
-                 join gates gd on gd.id = v.departure_gate_id
-                 join gates ga on ga.id = v.arrival_gate_id;
+            join flight_routes v on f.id = v.flight_id
+            join gates gd on gd.id = v.departure_gate_id
+            join gates ga on ga.id = v.arrival_gate_id;
 end;
 $$;
 -- +goose StatementEnd

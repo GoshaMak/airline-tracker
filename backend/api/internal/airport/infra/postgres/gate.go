@@ -8,12 +8,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"shared/observability"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type gateRepository struct {
@@ -35,7 +37,9 @@ func (r *gateRepository) Save(
 	ctx context.Context,
 	g domain.Gate,
 ) error {
-	query := `
+	ctx, span := observability.Start(ctx, "repository.gate.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	insert into gates(id, airport_id, number)
 		values ($1, $2, $3)
 	`
@@ -57,6 +61,8 @@ func (r *gateRepository) GetAirportByGateId(
 	gid uuid.UUID,
 ) (domain.Airport, error) {
 	const op = "GateRepository.GetAirportByGateId"
+	ctx, span := observability.Start(ctx, "repository.gate.get_airport_by_gate_id", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	select
 		a.id as id,
@@ -92,7 +98,9 @@ func (r *gateRepository) GetAirportByGateId(
 
 func (r *gateRepository) List(ctx context.Context) ([]domain.Gate, error) {
 	const op = "GateRepository.List"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.gate.list", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select *
 	from gates
 	`
@@ -121,7 +129,9 @@ func (r *gateRepository) ListPage(
 	params pagination.Params,
 ) ([]domain.Gate, error) {
 	const op = "GateRepository.ListPage"
-	query := `
+	ctx, span := observability.Start(ctx, "repository.gate.list_page", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	const query = `
 	select *
 	from gates
 	where ($1::uuid is null or id > $1)

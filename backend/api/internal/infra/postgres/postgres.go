@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,6 +24,11 @@ func newPool(ctx context.Context) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postgres config: %w", err)
 	}
+
+	// INFO: https://www.youtube.com/watch?v=4IeCUl64Ar0&list=WL&index=25
+	cpus := runtime.GOMAXPROCS(0)
+	config.MaxConns = int32(cpus*2 + 1)
+	config.MinConns = max(4, int32(cpus))
 
 	if config.ConnConfig.ConnectTimeout == 0 {
 		config.ConnConfig.ConnectTimeout = 5 * time.Second

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"reflect"
 	"shared/observability"
@@ -53,6 +54,8 @@ func (r *outboxRepository) Save(
 	ob domain.Outbox,
 ) error {
 	const op = "OutboxRepository.Save"
+	ctx, span := observability.Start(ctx, "repository.outbox.save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	insert into api_schema.outbox(id, topic, payload, created_at, trace_carrier, correlation_id)
 	values($1, $2, $3::jsonb, $4, $5::jsonb, $6)
@@ -99,6 +102,8 @@ func (r *outboxRepository) ListNotSent(
 	newPayload func() domain.Payload,
 ) ([]domain.Outbox, error) {
 	const op = "OutboxRepository.ListNotSent"
+	ctx, span := observability.Start(ctx, "repository.outbox.list_not_sent", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	select id, topic, payload, created_at, sent_at, attempts, lease_token,
 		next_attempt_at, trace_carrier, correlation_id
@@ -132,6 +137,8 @@ func (r *outboxRepository) ListNotSent(
 
 func (r *outboxRepository) MarkAsSent(ctx context.Context, ob domain.Outbox) error {
 	const op = "OutboxRepository.MarkNotSent"
+	ctx, span := observability.Start(ctx, "repository.outbox.mark_as_sent", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	update outbox
 	set sent_at = $1
@@ -151,6 +158,8 @@ func (r *outboxRepository) Claim(
 	lease time.Duration,
 ) ([]domain.Outbox, error) {
 	const op = "OutboxRepository.Claim"
+	ctx, span := observability.Start(ctx, "repository.outbox.claim", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	with exhausted as (
 		update api_schema.outbox
@@ -244,6 +253,8 @@ func (p *rawPayload) UnmarshalJSON(b []byte) error {
 
 func (r *outboxRepository) Complete(ctx context.Context, id, leaseToken uuid.UUID) error {
 	const op = "OutboxRepository.Complete"
+	ctx, span := observability.Start(ctx, "repository.outbox.complete", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	update api_schema.outbox
 	set sent_at=now(),
@@ -274,6 +285,8 @@ func (r *outboxRepository) Retry(
 	maxAttempts int,
 ) error {
 	const op = "OutboxRepository.Retry"
+	ctx, span := observability.Start(ctx, "repository.outbox.retry", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
 	const query = `
 	update api_schema.outbox
 	set failed_at=case when attempts >= $4 then now() else null end,
