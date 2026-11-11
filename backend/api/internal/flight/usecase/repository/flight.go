@@ -5,7 +5,6 @@ import (
 	"api/internal/flight/domain"
 	"api/internal/flight/infra/postgres"
 	"api/internal/flight/infra/redis"
-	infraPostgres "api/internal/infra/postgres"
 	"api/internal/pagination"
 	userDomain "api/internal/user/domain"
 	"context"
@@ -46,6 +45,7 @@ type FlightCache interface {
 	GetFlights(context.Context) ([]domain.Flight, error)
 	UpdateFlight(context.Context, domain.UpdateFlightInfo) error
 	FlushFlights(context.Context) error
+	InvalidateFlights(context.Context, []uuid.UUID) error
 	GetFlightPage(context.Context, string) ([]domain.Flight, error)
 	SaveFlightPage(context.Context, string, []domain.Flight) error
 	BumpFlightPageVersion(context.Context) error
@@ -76,24 +76,52 @@ func NewFlightRepository(i do.Injector) (FlightDB, error) {
 	}, nil
 }
 
-func (r *flightRepository) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
-	if tx, ok := r.db.(interface {
-		WithTransaction(context.Context, func(context.Context) error) error
-	}); ok {
-		dbCtx, span := startFlightSpan(ctx, "transaction.database")
-		err := tx.WithTransaction(dbCtx, fn)
-		endFlightSpan(span, err)
-		if err == nil {
-			cacheCtx, cacheSpan := startFlightSpan(ctx, "transaction.flush_cache")
-			flushErr := r.cache.FlushFlights(cacheCtx)
-			endFlightSpan(cacheSpan, flushErr)
-			if flushErr != nil {
-				slog.WarnContext(ctx, "FlightRepository.WithTransaction: cache flush failed", "err", flushErr)
-			}
-		}
-		return err
+// pendingFlightInvalidations belongs to one transaction, never to the repository.
+type flightInvalidationsKey struct{}
+
+type pendingFlightInvalidations struct {
+	ids []uuid.UUID
+}
+
+func (r *flightRepository) invalidateFlight(ctx context.Context, id uuid.UUID) {
+	if pending, ok := ctx.Value(flightInvalidationsKey{}).(*pendingFlightInvalidations); ok {
+		pending.ids = append(pending.ids, id)
+		return
 	}
-	return fn(ctx)
+	r.invalidateFlights(ctx, []uuid.UUID{id})
+}
+
+func (r *flightRepository) invalidateFlights(ctx context.Context, ids []uuid.UUID) {
+	if len(ids) == 0 {
+		return
+	}
+	cacheCtx, span := startFlightSpan(ctx, "invalidate.cache")
+	err := r.cache.InvalidateFlights(cacheCtx, ids)
+	endFlightSpan(span, err)
+	if err != nil {
+		slog.WarnContext(ctx, "FlightRepository: cache invalidation failed", "err", err)
+	}
+}
+
+func (r *flightRepository) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	if _, ok := ctx.Value(flightInvalidationsKey{}).(*pendingFlightInvalidations); ok {
+		return fn(ctx)
+	}
+	tx, ok := r.db.(interface {
+		WithTransaction(context.Context, func(context.Context) error) error
+	})
+	if !ok {
+		return fn(ctx)
+	}
+	pending := &pendingFlightInvalidations{}
+	workCtx := context.WithValue(ctx, flightInvalidationsKey{}, pending)
+	dbCtx, span := startFlightSpan(workCtx, "transaction.database")
+	err := tx.WithTransaction(dbCtx, fn)
+	endFlightSpan(span, err)
+	if err == nil {
+		r.invalidateFlights(ctx, pending.ids)
+	}
+	return err
 }
 
 func (r *flightRepository) Save(ctx context.Context, flight domain.Flight) error {
@@ -106,6 +134,10 @@ func (r *flightRepository) Save(ctx context.Context, flight domain.Flight) error
 			return ErrOperationNotPermitted
 		}
 		return fmt.Errorf("%s: %w", op, err)
+	}
+	if _, ok := ctx.Value(flightInvalidationsKey{}).(*pendingFlightInvalidations); ok {
+		r.invalidateFlight(ctx, flight.Id)
+		return nil
 	}
 	if err := r.cache.BumpFlightPageVersion(ctx); err != nil {
 		slog.WarnContext(ctx, op+": page cache version bump failed", "err", err)
@@ -177,24 +209,7 @@ func (r *flightRepository) Update(ctx context.Context, ufi domain.UpdateFlightIn
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if infraPostgres.TxFromContext(ctx) != nil {
-		return nil
-	}
-	if err := r.cache.BumpFlightPageVersion(ctx); err != nil {
-		slog.WarnContext(ctx, op+": page cache version bump failed", "err", err)
-	}
-	cacheCtx, cacheSpan := startFlightSpan(ctx, "update.cache")
-	err = r.cache.UpdateFlight(cacheCtx, ufi)
-	endFlightSpan(cacheSpan, err)
-	if err != nil {
-		slog.WarnContext(ctx, op, "err", err)
-		flushCtx, flushSpan := startFlightSpan(ctx, "update.flush_cache")
-		flushErr := r.cache.FlushFlights(flushCtx)
-		endFlightSpan(flushSpan, flushErr)
-		if flushErr != nil {
-			slog.ErrorContext(ctx, op+": redis failed while flushing", "err", flushErr)
-		}
-	}
+	r.invalidateFlight(ctx, ufi.FlightId)
 	return nil
 }
 
@@ -210,6 +225,7 @@ func (r *flightRepository) UpdateIfChanged(ctx context.Context, ufi domain.Updat
 		if err != nil {
 			return false, err
 		}
+		r.invalidateFlight(ctx, ufi.FlightId)
 		return true, nil
 	}
 	dbCtx, dbSpan := startFlightSpan(ctx, "update_if_changed.database")
@@ -225,20 +241,10 @@ func (r *flightRepository) UpdateIfChanged(ctx context.Context, ufi domain.Updat
 		}
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	if changed && infraPostgres.TxFromContext(ctx) == nil {
-		if err := r.cache.BumpFlightPageVersion(ctx); err != nil {
-			slog.WarnContext(ctx, op+": page cache version bump failed", "err", err)
-		}
-		cacheCtx, cacheSpan := startFlightSpan(ctx, "update_if_changed.cache")
-		cacheErr := r.cache.UpdateFlight(cacheCtx, ufi)
-		endFlightSpan(cacheSpan, cacheErr)
-		if cacheErr != nil {
-			slog.WarnContext(ctx, op, "err", cacheErr)
-			flushCtx, flushSpan := startFlightSpan(ctx, "update_if_changed.flush_cache")
-			flushErr := r.cache.FlushFlights(flushCtx)
-			endFlightSpan(flushSpan, flushErr)
-		}
+	if changed {
+		r.invalidateFlight(ctx, ufi.FlightId)
 	}
+
 	return changed, nil
 }
 

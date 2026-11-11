@@ -289,3 +289,24 @@ func (r *RedisClient) FlushFlights(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (r *RedisClient) InvalidateFlights(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	keys := []string{flightIndexKey()}
+	seen := make(map[uuid.UUID]bool, len(ids))
+	for _, id := range ids {
+		if !seen[id] {
+			keys = append(keys, formFlightKey(id.String()))
+			seen[id] = true
+		}
+	}
+	pipe := r.cln.TxPipeline()
+	pipe.Unlink(ctx, keys...)
+	pipe.Incr(ctx, flightPageVersionKey)
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("RedisDB.InvalidateFlights: %w", err)
+	}
+	return nil
+}

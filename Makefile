@@ -3,16 +3,19 @@ FRONTEND_DIR := frontend
 RUN_ID ?= local
 TEST_ENV = . tests/environment/stand.sh; environment_init "$(RUN_ID)";
 
-.PHONY: test-env-up test-env-check test-env-reset test-env-down
+.PHONY: test-env-up
 test-env-up:
 	$(TEST_ENV) environment_up
 
+.PHONY: test-env-check
 test-env-check:
 	$(TEST_ENV) environment_check
 
+.PHONY: test-env-reset
 test-env-reset:
 	$(TEST_ENV) environment_reset
 
+.PHONY: test-env-down
 test-env-down:
 	$(TEST_ENV) environment_down
 
@@ -39,6 +42,36 @@ test:
 .PHONY: load-test
 load-test:
 	k6 run --no-usage-report --new-machine-readable-summary=false tests/load/api.js
+
+LOAD_ENV = export TEST_COMPOSE_EXTRA=tests/load/compose.yml MONITORING_CPUS=$${MONITORING_CPUS:-1} GRAFANA_ROOT_URL=$${GRAFANA_ROOT_URL:-http://localhost:$${LOAD_UI_PORT:-3001}/monitoring/}; $(TEST_ENV)
+SCENARIO ?= ramp
+
+.PHONY: load-up
+load-up:
+	$(LOAD_ENV) \
+	environment_up; \
+	db psql -X -v ON_ERROR_STOP=1 -U postgres -d airline_tracker < tests/load/seed.sql; \
+	dc up -d --wait --wait-timeout 120 prometheus grafana loki tempo alloy load-ui cadvisor kafka-exporter postgres-exporter
+
+.PHONY: load-run
+load-run:
+	$(LOAD_ENV) \
+	mkdir -p "$$results/load"; \
+	date +%s > "$$results/load/start"; \
+	status=0; \
+	dc run --rm --user "$$(id -u):$$(id -g)" k6 run --no-usage-report \
+	    -o experimental-prometheus-rw --tag run_id=$(RUN_ID) --tag profile=$(SCENARIO) \
+	    /scripts/$(SCENARIO).js || status=$$?; \
+	date +%s > "$$results/load/end"; \
+	exit "$$status"
+
+.PHONY: load-export
+load-export:
+	$(LOAD_ENV) dc run --rm --no-deps --user "$$(id -u):$$(id -g)" tools python /load/export.py
+
+.PHONY: load-down
+load-down:
+	$(LOAD_ENV) environment_down
 
 .PHONY: backend-%
 backend-%:

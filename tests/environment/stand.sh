@@ -9,6 +9,9 @@ environment_init() {
 }
 
 dc() {
+    if [ -n "${TEST_COMPOSE_EXTRA:-}" ]; then
+        set -- -f "$TEST_COMPOSE_EXTRA" "$@"
+    fi
     docker compose --env-file /dev/null -p "airline-test-$TEST_RUN_ID" -f "$environment_dir/compose.yml" "$@";
 }
 

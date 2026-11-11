@@ -96,13 +96,23 @@ func (p *PostgresClient) Update(
 	ctx context.Context,
 	ufi domain.UpdateFlightInfo,
 ) error {
+	return p.update(ctx, ufi, true)
+}
+
+func (p *PostgresClient) update(
+	ctx context.Context,
+	ufi domain.UpdateFlightInfo,
+	checkExists bool,
+) error {
 	const op = "PostgresClient.Update"
 	query := `
 	update flights
 	set`
 
-	if _, err := p.Exist(ctx, ufi.FlightId); err != nil {
-		return fmt.Errorf("%s: %w", op, translateError(err))
+	if checkExists {
+		if _, err := p.Exist(ctx, ufi.FlightId); err != nil {
+			return fmt.Errorf("%s: %w", op, translateError(err))
+		}
 	}
 
 	args := []any{}
@@ -182,7 +192,7 @@ func (p *PostgresClient) UpdateIfChanged(ctx context.Context, ufi domain.UpdateF
 	if sameUpdate(current, ufi) {
 		return false, nil
 	}
-	if err := p.Update(ctx, ufi); err != nil {
+	if err := p.update(ctx, ufi, false); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -250,10 +260,24 @@ func (p *PostgresClient) ListFlightsPage(
 ) ([]domain.Flight, error) {
 	const op = "PostgresDB.ListFlightsPage"
 	query := `
-	select *
-	from scan_flights_info()
-	where ($1::uuid is null or id > $1)
-	order by id
+	select f.id,
+	       f.aircraft_id,
+	       f.scheduled_departure,
+	       f.scheduled_arrival,
+	       f.actual_departure,
+	       f.actual_arrival,
+	       f.status,
+	       f.plan,
+	       fr.departure_gate_id,
+	       fr.arrival_gate_id,
+	       gd.airport_id as departure_airport_id,
+	       ga.airport_id as arrival_airport_id
+	from flights f
+	join flight_routes fr on fr.flight_id = f.id
+	join gates gd on gd.id = fr.departure_gate_id
+	join gates ga on ga.id = fr.arrival_gate_id
+	where ($1::uuid is null or f.id > $1)
+	order by f.id
 	limit $2
 	`
 	rows, err := infraPostgres.Executor(ctx, p.conn).Query(ctx, query, params.CursorValue(), params.FetchLimit())

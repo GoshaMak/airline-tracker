@@ -220,6 +220,43 @@ func TestPostgresDB_Update(t *testing.T) {
 	})
 }
 
+func TestPostgresDB_UpdateIfChanged(t *testing.T) {
+	const lockQuery = `(?s)select id, scheduled_departure, scheduled_arrival, actual_departure, actual_arrival, status, plan from flights where id=\$1 for update`
+	columns := []string{"id", "scheduled_departure", "scheduled_arrival", "actual_departure", "actual_arrival", "status", "plan"}
+	for _, tt := range []struct {
+		name       string
+		status     string
+		rows       int
+		wantChange bool
+		wantErr    error
+	}{
+		{name: "positive: changed flight skips redundant existence read", status: "boarding", rows: 1, wantChange: true},
+		{name: "positive: unchanged flight does not write", status: "scheduled", rows: 1},
+		{name: "negative: missing flight", status: "boarding", wantErr: ErrFlightNotFound},
+	} {
+		allure.Test(t, tt.name, func(ctx *allure.Context) {
+			t := ctx.T()
+			f := newFlightBuilder().build()
+			status := tt.status
+			repo, db := newPostgresFixture(t)
+			defer assertDBExpectations(t, db)
+			rows := pgxmock.NewRows(columns)
+			if tt.rows == 1 {
+				rows.AddRow(f.Id, f.ScheduledDeparture, f.ScheduledArrival, nil, nil, f.Status.String(), nil)
+			}
+			db.ExpectQuery(lockQuery).WithArgs(f.Id).WillReturnRows(rows).RowsWillBeClosed()
+			if tt.wantChange {
+				db.ExpectExec(regexp.QuoteMeta("update flights set status = $1 where id = $2")).
+					WithArgs(&status, f.Id).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+			}
+			changed, err := repo.UpdateIfChanged(context.Background(), domain.UpdateFlightInfo{FlightId: f.Id, Status: &status})
+			if !errors.Is(err, tt.wantErr) || changed != tt.wantChange {
+				t.Fatalf("changed=%v, err=%v; want changed=%v, err=%v", changed, err, tt.wantChange, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestPostgresDB_ListFlights(t *testing.T) {
 	allure.Test(t, "positive: maps result", func(allureCtx *allure.Context) {
 		t := allureCtx.T()
@@ -375,7 +412,7 @@ func TestPostgresDB_GetFlightAirports(t *testing.T) {
 }
 
 func TestPostgresDB_ListFlightsPage(t *testing.T) {
-	const query = "select * from scan_flights_info() where ($1::uuid is null or id > $1) order by id limit $2"
+	const query = `(?s)select f.id,.*from flights f join flight_routes fr on fr.flight_id = f.id join gates gd on gd.id = fr.departure_gate_id join gates ga on ga.id = fr.arrival_gate_id where \(\$1::uuid is null or f.id > \$1\) order by f.id limit \$2`
 	failure := errors.New("database unavailable")
 	for _, tt := range []struct {
 		name    string
@@ -401,7 +438,7 @@ func TestPostgresDB_ListFlightsPage(t *testing.T) {
 			if tt.cursor != nil {
 				cursor = *tt.cursor
 			}
-			expected := db.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(cursor, 2)
+			expected := db.ExpectQuery(query).WithArgs(cursor, 2)
 			if tt.failure != nil {
 				expected.WillReturnError(tt.failure)
 			} else {

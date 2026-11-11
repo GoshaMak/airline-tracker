@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samber/do/v2"
 )
 
@@ -51,6 +52,10 @@ func newPool(ctx context.Context) (*pgxpool.Pool, error) {
 			cancel()
 		}
 		if err == nil {
+			if err := registerPoolMetrics(pool); err != nil {
+				pool.Close()
+				return nil, fmt.Errorf("unable to register postgres pool metrics: %w", err)
+			}
 			slog.Info("Connected to PostgreSQL")
 			return pool, nil
 		}
@@ -75,6 +80,9 @@ func newPool(ctx context.Context) (*pgxpool.Pool, error) {
 }
 
 func CloseConnection(c *pgxpool.Pool) error {
+	if collector, ok := poolCollectors.LoadAndDelete(c); ok {
+		prometheus.Unregister(collector.(*poolCollector))
+	}
 	c.Close()
 	return nil
 }

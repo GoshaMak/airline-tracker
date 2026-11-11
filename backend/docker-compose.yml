@@ -54,29 +54,29 @@ services:
       <<: *api-environment
       INSTANCE_ID: api-read-2
 
-  api-mirror:
-    <<: *api-read-service
-    environment:
-      <<: *api-environment
-      INSTANCE_ID: api-mirror
-
-  api-mirror-read-1:
-    <<: *api-read-service
-    env_file:
-      - ./api/.env
-      - ./api/replica-2.env
-    environment:
-      <<: *api-environment
-      INSTANCE_ID: api-mirror-read-1
-
-  api-mirror-read-2:
-    <<: *api-read-service
-    env_file:
-      - ./api/.env
-      - ./api/replica-2.env
-    environment:
-      <<: *api-environment
-      INSTANCE_ID: api-mirror-read-2
+  # api-mirror:
+  #   <<: *api-read-service
+  #   environment:
+  #     <<: *api-environment
+  #     INSTANCE_ID: api-mirror
+  #
+  # api-mirror-read-1:
+  #   <<: *api-read-service
+  #   env_file:
+  #     - ./api/.env
+  #     - ./api/replica-2.env
+  #   environment:
+  #     <<: *api-environment
+  #     INSTANCE_ID: api-mirror-read-1
+  #
+  # api-mirror-read-2:
+  #   <<: *api-read-service
+  #   env_file:
+  #     - ./api/.env
+  #     - ./api/replica-2.env
+  #   environment:
+  #     <<: *api-environment
+  #     INSTANCE_ID: api-mirror-read-2
 
   api-publisher: &publisher-service
     stop_grace_period: 30s
@@ -218,6 +218,8 @@ services:
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
+    ports:
+      - "127.0.0.1:8090:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -238,12 +240,12 @@ services:
         condition: service_started
       api-read-2:
         condition: service_started
-      api-mirror:
-        condition: service_started
-      api-mirror-read-1:
-        condition: service_started
-      api-mirror-read-2:
-        condition: service_started
+      # api-mirror:
+      #   condition: service_started
+      # api-mirror-read-1:
+      #   condition: service_started
+      # api-mirror-read-2:
+      #   condition: service_started
     ports:
       - "127.0.0.1:8080:80"
     volumes:

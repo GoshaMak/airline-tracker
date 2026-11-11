@@ -1,0 +1,128 @@
+include:
+  - ../../backend/monitoring-compose.yml
+
+x-application: &application
+  cpuset: ${APP_CPUS:-8-11}
+  mem_limit: 128m
+
+services:
+  api-migrate:
+    mem_limit: 128m
+  notifier-migrate:
+    mem_limit: 128m
+  drain:
+    mem_limit: 128m
+  integration-tests:
+    mem_limit: 256m
+  e2e-tests:
+    mem_limit: 256m
+  traffic:
+    mem_limit: 128m
+
+  api:
+    <<: *application
+    cpuset: 0-3
+    mem_limit: 256m
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+
+  publisher:
+    <<: *application
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+
+  notifier:
+    <<: *application
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+
+  postgres:
+    <<: *application
+    cpuset: 4-7
+    mem_limit: 1G
+
+  redis:
+    <<: *application
+    mem_limit: 128m
+
+  kafka:
+    <<: *application
+    mem_limit: 512m
+
+  mailpit:
+    mem_limit: 128m
+    cpuset: ${MONITORING_CPUS:-1}
+    environment:
+      MP_MAX_MESSAGES: "1000000"
+
+  tools:
+    mem_limit: 128m
+    volumes:
+      - ../load:/load:ro
+      - ./results/${TEST_RUN_ID}/load:/results
+    environment:
+      RUN_ID: ${TEST_RUN_ID}
+
+  k6:
+    mem_limit: 512m
+    image: grafana/k6:2.3.0
+    profiles: [load]
+    cpuset: ${LOAD_CPUS:-0}
+    environment:
+      BASE_URL: http://api:8080
+      MAILPIT_URL: http://mailpit:8025
+      RUN_ID: ${TEST_RUN_ID}
+      VUS: ${VUS:-20}
+      MAX_VUS: ${MAX_VUS:-200}
+      DURATION: ${DURATION:-90s}
+      STAGE_DURATION: ${STAGE_DURATION:-15s}
+      THINK_SECONDS: ${THINK_SECONDS:-1}
+      MAIL_TIMEOUT_SECONDS: ${MAIL_TIMEOUT_SECONDS:-30}
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
+      K6_PROMETHEUS_RW_STALE_MARKERS: "true"
+    volumes:
+      - ../load:/scripts:ro
+      - ./results/${TEST_RUN_ID}/load:/results
+
+  load-ui:
+    mem_limit: 32m
+    image: nginx:stable-alpine
+    cpuset: ${MONITORING_CPUS:-1}
+    depends_on:
+      grafana:
+        condition: service_started
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1/monitoring/api/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "127.0.0.1:${LOAD_UI_PORT:-3001}:80"
+    volumes:
+      - ../load/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+  kafka-exporter:
+    mem_limit: 64m
+    image: danielqsj/kafka-exporter:v1.9.0
+    cpuset: ${MONITORING_CPUS:-1}
+    command: ["--kafka.server=kafka:9092", "--topic.filter=subscription-created|flight-updated"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  cadvisor:
+    mem_limit: 192m
+    image: ghcr.io/google/cadvisor:0.60.6
+    cpuset: ${MONITORING_CPUS:-1}
+    privileged: true
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=5s
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro

@@ -7,7 +7,7 @@
   ],
   "schemaVersion": 39,
   "version": 1,
-  "editable": false,
+  "editable": true,
   "refresh": "15s",
   "timezone": "browser",
   "time": {

@@ -75,6 +75,14 @@ type cacheStub struct {
 	saved                                        domain.Flight
 	updated                                      domain.UpdateFlightInfo
 	requested                                    uuid.UUID
+	invalidated                                  []uuid.UUID
+	invalidateCalls                              int
+}
+
+func (s *cacheStub) InvalidateFlights(_ context.Context, ids []uuid.UUID) error {
+	s.invalidateCalls++
+	s.invalidated = append(s.invalidated, ids...)
+	return s.err
 }
 
 func (s *cacheStub) SaveFlight(_ context.Context, f domain.Flight) error {
@@ -190,8 +198,8 @@ func TestFlightRepository_Update(t *testing.T) {
 		status := "boarding"
 		update := domain.UpdateFlightInfo{FlightId: uuid.New(), Status: &status}
 		err := repo.Update(context.Background(), update)
-		if err != nil || db.updateCalls != 1 || cache.updateCalls != 1 ||
-			db.updated != update || cache.updated != update {
+		if err != nil || db.updateCalls != 1 || cache.invalidateCalls != 1 ||
+			db.updated != update || len(cache.invalidated) != 1 || cache.invalidated[0] != update.FlightId {
 			t.Fatalf("err=%v, db=%+v, cache=%+v", err, db, cache)
 		}
 	})
@@ -314,4 +322,97 @@ func TestFlightRepository_GetFlightAirports(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+type transactionDBStub struct {
+	*dbStub
+	changed      bool
+	commitErr    error
+	beforeCommit func()
+}
+
+func (s *transactionDBStub) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	if err := fn(ctx); err != nil {
+		return err
+	}
+	if s.beforeCommit != nil {
+		s.beforeCommit()
+	}
+	return s.commitErr
+}
+func (s *transactionDBStub) UpdateIfChanged(context.Context, domain.UpdateFlightInfo) (bool, error) {
+	return s.changed, s.err
+}
+
+func TestFlightRepository_TransactionInvalidation(t *testing.T) {
+	failure := errors.New("transaction failed")
+	for _, tt := range []struct {
+		name               string
+		changed            bool
+		workErr, commitErr error
+		wantCalls          int
+	}{
+		{name: "commit", changed: true, wantCalls: 1},
+		{name: "unchanged"},
+		{name: "rollback", changed: true, workErr: failure},
+		{name: "commit failure", changed: true, commitErr: failure},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cache := &cacheStub{}
+			db := &transactionDBStub{dbStub: &dbStub{}, changed: tt.changed, commitErr: tt.commitErr}
+			db.beforeCommit = func() {
+				if cache.invalidateCalls != 0 {
+					t.Fatal("invalidated before commit")
+				}
+			}
+			repo := &flightRepository{db: db, cache: cache}
+			id := uuid.New()
+			err := repo.WithTransaction(context.Background(), func(ctx context.Context) error {
+				_, err := repo.UpdateIfChanged(ctx, domain.UpdateFlightInfo{FlightId: id})
+				if err != nil {
+					return err
+				}
+				if cache.invalidateCalls != 0 {
+					t.Fatal("invalidated inside transaction")
+				}
+				return tt.workErr
+			})
+			wantErr := tt.workErr
+			if wantErr == nil {
+				wantErr = tt.commitErr
+			}
+			if !errors.Is(err, wantErr) || cache.invalidateCalls != tt.wantCalls || cache.flushCalls != 0 {
+				t.Fatalf("err=%v cache=%+v", err, cache)
+			}
+			if tt.wantCalls > 0 && (len(cache.invalidated) != 1 || cache.invalidated[0] != id) {
+				t.Fatalf("invalidated=%v", cache.invalidated)
+			}
+		})
+	}
+}
+
+func TestFlightRepository_UpdateIfChangedFallbackInvalidates(t *testing.T) {
+	repo, db, cache := newFixture()
+	id := uuid.New()
+	changed, err := repo.UpdateIfChanged(context.Background(), domain.UpdateFlightInfo{FlightId: id})
+	if err != nil || !changed || db.updateCalls != 1 || cache.invalidateCalls != 1 || len(cache.invalidated) != 1 || cache.invalidated[0] != id {
+		t.Fatalf("changed=%v err=%v cache=%+v", changed, err, cache)
+	}
+}
+
+func TestFlightRepository_NonTransactionalFallbackInvalidatesImmediately(t *testing.T) {
+	repo, _, cache := newFixture()
+	failure := errors.New("later work failed")
+	err := repo.WithTransaction(context.Background(), func(ctx context.Context) error {
+		if err := repo.Update(ctx, domain.UpdateFlightInfo{FlightId: uuid.New()}); err != nil {
+			return err
+		}
+		if cache.invalidateCalls != 1 {
+			t.Fatal("committed update must invalidate immediately")
+		}
+		return failure
+	})
+	if !errors.Is(err, failure) || cache.invalidateCalls != 1 {
+		t.Fatalf("err=%v cache=%+v", err, cache)
+	}
 }
