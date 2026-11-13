@@ -1,15 +1,70 @@
 services:
+  mailpit:
+    image: axllent/mailpit:v1.27.8
+    ports:
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
   api:
     ports:
       - "127.0.0.1:8081:8080"
+    environment:
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: no-reply@airline.test
+    depends_on:
+      mailpit:
+        condition: service_healthy
 
   api-read-1:
     ports:
       - "127.0.0.1:8082:8080"
+    environment:
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: no-reply@airline.test
+    depends_on:
+      mailpit:
+        condition: service_healthy
 
   api-read-2:
     ports:
       - "127.0.0.1:8083:8080"
+    environment:
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: no-reply@airline.test
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  notifier:
+    environment:
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: no-reply@airline.test
+      APP_PASSWORD: ""
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  notifier-2:
+    environment:
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: no-reply@airline.test
+      APP_PASSWORD: ""
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  notifier-3:
+    environment:
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: no-reply@airline.test
+      APP_PASSWORD: ""
+    depends_on:
+      mailpit:
+        condition: service_healthy
 
   postgres:
     ports:

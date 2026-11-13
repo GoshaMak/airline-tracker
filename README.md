@@ -213,7 +213,7 @@ make release
 
 После запуска веб-интерфейс доступен на <http://localhost:8080>, API -- на <http://localhost:8080/api/v1>, интерактивная документация API (Swagger UI) -- на <http://localhost:8080/api/v1/docs/>, OpenAPI-спецификация в YAML -- на <http://localhost:8080/api/v1/openapi.yml>. Описание интерфейса API находится в [OpenAPI 3.0 спецификации](backend/api/cmd/docs/openapi.yml).
 
-Для отладки используйте `make debug`: дополнительно публикуются локальные порты PostgreSQL, Redis и Kafka, а фронтенд доступен напрямую на <http://localhost:3000>. В режиме `make release` опубликован только порт общего Nginx -- `127.0.0.1:8080`. API и notifier подключаются через Docker-сеть в обоих режимах.
+Для отладки используйте `make debug`: дополнительно публикуются локальные порты PostgreSQL, Redis и Kafka, а фронтенд доступен напрямую на <http://localhost:3000>. Почта в debug-режиме попадает в Mailpit и доступна на <http://localhost:8025>; наружу письма не отправляются. В режиме `make release` опубликован только порт общего Nginx -- `127.0.0.1:8080`. API и notifier подключаются через Docker-сеть в обоих режимах.
 
 ### Создание администратора
 

@@ -7,9 +7,10 @@ import (
 	"api/internal/flight/infra/redis"
 	"api/internal/pagination"
 	"errors"
-	"github.com/google/uuid"
 	"reflect"
 	"testing"
+
+	"github.com/google/uuid"
 
 	allure "github.com/allure-framework/allure-go/commons/gotest"
 )
