@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	allure "github.com/allure-framework/allure-go/commons/gotest"
 	"github.com/cucumber/godog"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -38,19 +39,21 @@ type authBDD struct {
 }
 
 func TestAuthenticationBDD(t *testing.T) {
-	options := godog.Options{
-		Format:   "pretty",
-		Paths:    []string{"features/authentication.feature"},
-		FS:       authFeatureFS,
-		TestingT: t,
-	}
-	suite := godog.TestSuite{
-		ScenarioInitializer: initializeAuthScenario,
-		Options:             &options,
-	}
-	if suite.Run() != 0 {
-		t.Fail()
-	}
+	allure.Test(t, "e2e: email authentication and recovery (BDD)", func(a *allure.Context) {
+		options := godog.Options{
+			Format:   "pretty",
+			Paths:    []string{"features/authentication.feature"},
+			FS:       authFeatureFS,
+			TestingT: a.T(),
+		}
+		suite := godog.TestSuite{
+			ScenarioInitializer: initializeAuthScenario,
+			Options:             &options,
+		}
+		if suite.Run() != 0 {
+			a.T().Fail()
+		}
+	})
 }
 
 func initializeAuthScenario(sc *godog.ScenarioContext) {
