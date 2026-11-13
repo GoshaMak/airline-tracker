@@ -1,7 +1,8 @@
 openapi: 3.0.3
+
 info:
   title: Airline Tracker API
-  version: 1.0.0
+  version: 1.0.1
   description: |
     HTTP interface of the Airline Tracker `api` service.
 
@@ -94,13 +95,40 @@ paths:
     post:
       tags: [Authentication]
       operationId: createAuthToken
-      summary: Authenticate and create a JWT
+      summary: Validate password and send an email verification code
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '202':
+          description: Password accepted. A verification code was emailed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginChallenge'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid email or password.
+        '423':
+          description: Account is temporarily locked.
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/verify:
+    post:
+      tags: [Authentication]
+      operationId: verifyLoginCode
+      summary: Verify the email code and create a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeVerificationRequest'
       responses:
         '200':
           description: Authentication succeeded.
@@ -110,10 +138,73 @@ paths:
                 $ref: '#/components/schemas/TokenResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/UserNotFound'
+        '401':
+          description: Invalid or expired code.
+        '423':
+          description: Account is temporarily locked.
+
+  /api/v1/auth/recovery:
+    post:
+      tags: [Authentication]
+      operationId: requestAuthRecovery
+      summary: Request an email recovery code for a locked account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+      responses:
+        '202':
+          description: Generic response to avoid account enumeration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/recovery/verify:
+    post:
+      tags: [Authentication]
+      operationId: verifyAuthRecovery
+      summary: Unlock a locked account with its recovery code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoveryVerificationRequest'
+      responses:
+        '200':
+          description: Account unlocked.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid or expired recovery code.
+
+  /api/v1/auth/password:
+    post:
+      tags: [Authentication]
+      operationId: changePassword
+      summary: Change password for the authenticated user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Password changed.
+        '400':
+          description: Invalid request or password policy violation.
+        '401':
+          description: Missing token or incorrect current password.
 
   /api/v1/airports:
     get:
@@ -680,6 +771,57 @@ components:
         token:
           type: string
           description: Signed JWT for use in the `Authorization` header.
+
+    LoginChallenge:
+      type: object
+      required: [challenge_id]
+      properties:
+        challenge_id:
+          type: string
+          format: uuid
+
+    CodeVerificationRequest:
+      type: object
+      required: [challenge_id, code]
+      properties:
+        challenge_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: '^\d{6}$'
+
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    RecoveryVerificationRequest:
+      type: object
+      required: [email, code]
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          pattern: '^\d{6}$'
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+          format: password
+        new_password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
 
     CreateSubscriptionRequest:
       type: object

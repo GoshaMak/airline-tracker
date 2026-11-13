@@ -87,19 +87,71 @@ function request(method, path, body, token, expected = 200, kind = "valid") {
     return response;
 }
 
+function loginWithEmailCode(email, password) {
+    const started = Date.now();
+    const challengeResponse = request("POST", "/auth/tokens", { email, password }, "", 202);
+    const challengeId = json(challengeResponse).challenge_id;
+    if (!challengeId) {
+        fail("Login did not return an email verification challenge");
+    }
+
+    const deadline = Date.now() + Number(__ENV.MAIL_TIMEOUT_SECONDS || 30) * 1000;
+    let code = "";
+    while (Date.now() < deadline && !code) {
+        const query = encodeURIComponent(`to:${email} "Airline Tracker login code"`);
+        const search = http.get(
+            `${mailpit}/api/v1/search?query=${query}&limit=10`,
+            {
+                tags: {
+                    name: "GET Mailpit search",
+                    target: "mailpit",
+                },
+                timeout: "5s",
+            });
+        for (const summary of (json(search).messages || [])) {
+            if (Date.parse(summary.Created) < started) {
+                continue;
+            }
+            const detail = http.get(
+                `${mailpit}/api/v1/message/${encodeURIComponent(summary.ID)}`,
+                {
+                    tags: {
+                        name: "GET Mailpit message",
+                        target: "mailpit",
+                    },
+                    timeout: "5s",
+                });
+            const match = (json(detail).Text || "").match(/verification code:\s*([0-9]{6})/);
+            if (match) {
+                code = match[1];
+                break;
+            }
+        }
+        if (!code) {
+            sleep(0.2);
+        }
+    }
+    if (!code) {
+        fail(`Email verification code did not arrive for ${email}`);
+    }
+    const verified = request("POST", "/auth/verify", { challenge_id: challengeId, code }, "", 200);
+    const token = json(verified).token;
+    if (!token) {
+        fail("Email verification did not return a token");
+    }
+    return token;
+}
+
 export function setup() {
-    const response = request(
-        "POST",
-        "/auth/tokens",
-        {
-            email: "admin@airline.test",
-            password: "TestAdmin123!",
-        },
-        "",
-    );
-    if (response.status !== 200 || !json(response).token) {
+    const password = __ENV.E2E_ADMIN_PASSWORD;
+    if (!password) {
+        fail("Set E2E_ADMIN_PASSWORD before make load-up");
+    }
+    const adminToken = loginWithEmailCode("admin@airline.test", password);
+    if (!adminToken) {
         fail("Run make load-up with the same RUN_ID first");
     }
+    return { adminToken };
 }
 
 function businessRequest(method, path, body, token, errorPercent) {
@@ -124,15 +176,14 @@ function businessRequest(method, path, body, token, errorPercent) {
     return request(method, path, body, token);
 }
 
-function runJourney(errorPercent = 0) {
+function runJourney(errorPercent = 0, setupData = {}) {
     const user = exec.vu.idInTest;
     const email = `load-${user}@airline.test`;
     const hash = crypto.md5(`load-flight-${user}`, "hex");
     const flight = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20)}`;
     const marker = `${runID}-${user}-${exec.scenario.iterationInTest}-${Date.now()}`;
     const pause = () => sleep(Number(__ENV.THINK_SECONDS || 0));
-    const login = request("POST", "/auth/tokens", { email, password: "Passenger123!" }, "");
-    const token = json(login).token;
+    const token = loginWithEmailCode(email, __ENV.E2E_ADMIN_PASSWORD);
     if (!token) {
         pause();
         return;
@@ -149,10 +200,7 @@ function runJourney(errorPercent = 0) {
     businessRequest("GET", "/subscriptions", null, token, errorPercent);
     pause();
 
-    const admin = request("POST", "/auth/tokens", {
-        email: "admin@airline.test", password: "TestAdmin123!",
-    }, "");
-    const adminToken = json(admin).token;
+    const adminToken = setupData.adminToken;
     if (!adminToken || subscription.status !== 200) {
         pause();
         return;
@@ -175,10 +223,10 @@ function runJourney(errorPercent = 0) {
     pause();
 }
 
-export function journey(errorPercent = 0) {
+export function journey(errorPercent = 0, setupData = {}) {
     const started = Date.now();
     try {
-        runJourney(errorPercent);
+        runJourney(errorPercent, setupData);
     } finally {
         journeyDuration.add(Date.now() - started);
     }

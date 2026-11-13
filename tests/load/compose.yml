@@ -71,6 +71,7 @@ services:
     environment:
       BASE_URL: http://api:8080
       MAILPIT_URL: http://mailpit:8025
+      E2E_ADMIN_PASSWORD: ${E2E_ADMIN_PASSWORD:?Set E2E_ADMIN_PASSWORD}
       RUN_ID: ${TEST_RUN_ID}
       VUS: ${VUS:-20}
       MAX_VUS: ${MAX_VUS:-200}

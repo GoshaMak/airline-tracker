@@ -3,125 +3,146 @@ import { isAdminRole, isUserRole } from "../domain/auth.js";
 import { applyToken, clearToken } from "./state.js";
 
 export async function loadFlights({ api, state }) {
-  const response = await api.request("/flights");
-  state.flights = response.items || [];
+    const response = await api.request("/flights");
+    state.flights = response.items || [];
 }
 
 export async function loadAirports({ api, state }) {
-  const response = await api.request("/airports");
-  state.airports = response.items || [];
+    const response = await api.request("/airports");
+    state.airports = response.items || [];
 }
 
 export async function loadSubscriptions({ api, state }) {
-  if (!state.token || !isUserRole(state.userRole)) {
-    state.subscriptions = [];
-    return;
-  }
+    if (!state.token || !isUserRole(state.userRole)) {
+        state.subscriptions = [];
+        return;
+    }
 
-  const response = await api.request("/subscriptions");
-  state.subscriptions = response.items || [];
+    const response = await api.request("/subscriptions");
+    state.subscriptions = response.items || [];
 }
 
 function aircraftModelId(aircraft) {
-  return aircraft.aircraft_model_id || "";
+    return aircraft.aircraft_model_id || "";
 }
 
 export async function loadAircrafts({ api, state }) {
-  if (!state.token || !isAdminRole(state.userRole)) {
-    state.aircrafts = [];
-    state.aircraftModels = {};
-    return;
-  }
+    if (!state.token || !isAdminRole(state.userRole)) {
+        state.aircrafts = [];
+        state.aircraftModels = {};
+        return;
+    }
 
-  const response = await api.request("/aircraft");
-  const aircrafts = response.items || [];
-  state.aircrafts = aircrafts;
+    const response = await api.request("/aircraft");
+    const aircrafts = response.items || [];
+    state.aircrafts = aircrafts;
 
-  const modelIds = [...new Set(aircrafts.map((aircraft) => aircraftModelId(aircraft)).filter(Boolean))];
-  const modelEntries = await Promise.all(
-    modelIds.map(async (id) => {
-      const model = await api.request(`/aircraft-models/${encodeURIComponent(id)}`);
-      return [id, model];
-    })
-  );
-  state.aircraftModels = Object.fromEntries(modelEntries);
+    const modelIds = [...new Set(aircrafts.map((aircraft) => aircraftModelId(aircraft)).filter(Boolean))];
+    const modelEntries = await Promise.all(
+        modelIds.map(async (id) => {
+            const model = await api.request(`/aircraft-models/${encodeURIComponent(id)}`);
+            return [id, model];
+        })
+    );
+    state.aircraftModels = Object.fromEntries(modelEntries);
 }
 
 export async function loadGates({ api, state }) {
-  if (!state.token || !isAdminRole(state.userRole)) {
-    state.gates = [];
-    return;
-  }
+    if (!state.token || !isAdminRole(state.userRole)) {
+        state.gates = [];
+        return;
+    }
 
-  const response = await api.request("/gates");
-  state.gates = response.items || [];
+    const response = await api.request("/gates");
+    state.gates = response.items || [];
 }
 
 export async function loadAdminResources(context) {
-  if (!context.state.token || !isAdminRole(context.state.userRole)) return;
-  await Promise.all([loadAircrafts(context), loadGates(context)]);
+    if (!context.state.token || !isAdminRole(context.state.userRole)) return;
+    await Promise.all([loadAircrafts(context), loadGates(context)]);
 }
 
 export async function refreshData(context) {
-  const results = await Promise.allSettled([
-    loadAirports(context),
-    loadFlights(context),
-    loadSubscriptions(context),
-    loadAdminResources(context),
-  ]);
-  const failed = results.find((result) => result.status === "rejected");
-  if (failed) throw failed.reason;
+    const results = await Promise.allSettled([
+        loadAirports(context),
+        loadFlights(context),
+        loadSubscriptions(context),
+        loadAdminResources(context),
+    ]);
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed) throw failed.reason;
 }
 
-export async function loginUser({ api, email, password, sessionStore, state }) {
-  const response = await api.request("/auth/tokens", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
-  applyToken(state, response.token, email);
-  sessionStore?.saveSession({
-    token: state.token,
-    userEmail: state.userEmail,
-    userRole: state.userRole,
-  });
+export async function beginLogin({ api, email, password }) {
+    return api.request("/auth/tokens", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+    });
+}
+
+export async function completeLogin({ api, email, challengeId, code, sessionStore, state }) {
+    const response = await api.request("/auth/verify", {
+        method: "POST",
+        body: JSON.stringify({ challenge_id: challengeId, code }),
+    });
+    applyToken(state, response.token, email);
+    sessionStore?.saveSession({
+        token: state.token,
+        userEmail: state.userEmail,
+        userRole: state.userRole,
+    });
+}
+
+export async function requestRecovery({ api, email }) {
+    return api.request("/auth/recovery", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+    });
+}
+
+export async function completeRecovery({ api, email, code }) {
+    return api.request("/auth/recovery/verify", {
+        method: "POST",
+        body: JSON.stringify({ email, code }),
+    });
 }
 
 export async function registerUser({ api, email, password, role = REGISTER_ROLE }) {
-  await api.request("/users", {
-    method: "POST",
-    body: JSON.stringify({ email, password, role }),
-  });
+    await api.request("/users", {
+        method: "POST",
+        body: JSON.stringify({ email, password, role }),
+    });
 }
 
 export function logoutUser({ sessionStore, state }) {
-  clearToken(state);
-  sessionStore?.clearSession();
+    clearToken(state);
+    sessionStore?.clearSession();
 }
 
 export async function subscribeToFlight({ api, flightId, state }) {
-  await api.request("/subscriptions", {
-    method: "POST",
-    body: JSON.stringify({ flight_id: flightId, notify_before_minutes: 0 }),
-  });
+    await api.request("/subscriptions", {
+        method: "POST",
+        body: JSON.stringify({ flight_id: flightId, notify_before_minutes: 0 }),
+    });
 
-  const flight = state.flights.find((item) => item.id === flightId);
-  if (flight && !state.subscriptions.some((item) => item.id === flightId)) {
-    state.subscriptions = [...state.subscriptions, flight];
-  }
+    const flight = state.flights.find((item) => item.id === flightId);
+    if (flight && !state.subscriptions.some((item) => item.id === flightId)) {
+        state.subscriptions = [...state.subscriptions, flight];
+    }
 
-  await loadSubscriptions({ api, state });
+    await loadSubscriptions({ api, state });
 }
 
 export async function createFlight({ api, payload }) {
-  await api.request("/flights", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+    await api.request("/flights", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
 }
 
 export async function updateFlight({ api, flightId, payload }) {
-  await api.request(`/flights/${encodeURIComponent(flightId)}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+    await api.request(`/flights/${encodeURIComponent(flightId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    });
 }

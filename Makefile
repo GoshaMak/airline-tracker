@@ -50,7 +50,7 @@ SCENARIO ?= ramp
 load-up:
 	$(LOAD_ENV) \
 	environment_up; \
-	db psql -X -v ON_ERROR_STOP=1 -U postgres -d airline_tracker < tests/load/seed.sql; \
+	dc exec -T -e E2E_ADMIN_PASSWORD="$$E2E_ADMIN_PASSWORD" postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d airline_tracker < tests/load/seed.sql; \
 	dc up -d --wait --wait-timeout 120 prometheus grafana loki tempo alloy load-ui cadvisor kafka-exporter postgres-exporter
 
 .PHONY: load-run

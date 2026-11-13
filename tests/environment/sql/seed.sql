@@ -6,7 +6,7 @@ SET search_path = api_schema, public;
 
 INSERT INTO users (id, email, password_hash, role) VALUES
 ('00000000-0000-4000-8000-000000000001', 'admin@airline.test',
- crypt('TestAdmin123!', '$2a$10$abcdefghijklmnopqrstuu'), 'admin');
+ crypt(gen_random_uuid()::text, gen_salt('bf')), 'admin');
 
 INSERT INTO countries (id, code, name) VALUES
 ('00000000-0000-4000-8000-000000000010', 'RU', 'Russia');

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -38,19 +39,14 @@ func TestFlightSubscriptionNotification(t *testing.T) {
 		}
 		const flightID = "00000000-0000-4000-8000-000000000050"
 		email := "passenger-" + uuid.NewString() + "@airline.test"
-		const password = "Passenger123!"
+		password := generatedPassword()
 		plan := "E2E " + strings.ToUpper(uuid.NewString())
 		var passengerToken, adminToken string
 
 		ctx.Step("Register ctx passenger and log in", func(ctx *allure.Context) {
 			credentials := map[string]string{"email": email, "password": password}
 			requestJSON(ctx, "POST", api+"/users", "", credentials, http.StatusCreated, nil)
-			var login struct{ Token string }
-			requestJSON(ctx, "POST", api+"/auth/tokens", "", credentials, http.StatusOK, &login)
-			if login.Token == "" {
-				ctx.T().Fatal("passenger did not receive ctx token")
-			}
-			passengerToken = login.Token
+			passengerToken = loginWithEmailOTP(ctx, api, mailpit, email, password)
 		})
 
 		ctx.Step("Find the scheduled flight", func(ctx *allure.Context) {
@@ -75,13 +71,11 @@ func TestFlightSubscriptionNotification(t *testing.T) {
 		})
 
 		ctx.Step("Log in as administrator and change the flight", func(ctx *allure.Context) {
-			var login struct{ Token string }
-			requestJSON(ctx, "POST", api+"/auth/tokens", "",
-				map[string]string{"email": "admin@airline.test", "password": "TestAdmin123!"}, http.StatusOK, &login)
-			if login.Token == "" {
-				ctx.T().Fatal("administrator did not receive ctx token")
+			adminPassword := os.Getenv("E2E_ADMIN_PASSWORD")
+			if adminPassword == "" {
+				ctx.T().Fatal("E2E_ADMIN_PASSWORD is required")
 			}
-			adminToken = login.Token
+			adminToken = loginWithEmailOTP(ctx, api, mailpit, "admin@airline.test", adminPassword)
 			requestJSON(ctx, "PATCH", api+"/flights/"+flightID, adminToken,
 				map[string]any{"flight": map[string]string{"status": "delayed", "plan": plan}}, http.StatusOK, nil)
 		})
@@ -103,6 +97,35 @@ func TestFlightSubscriptionNotification(t *testing.T) {
 			}
 		})
 	})
+}
+
+func loginWithEmailOTP(ctx *allure.Context, api, mailpit, email, password string) string {
+	ctx.T().Helper()
+	requestJSON(ctx, http.MethodDelete, mailpit+"/api/v1/messages", "", nil, http.StatusOK, nil)
+	var challenge struct {
+		ChallengeID string `json:"challenge_id"`
+	}
+	requestJSON(ctx, "POST", api+"/auth/tokens", "", map[string]string{
+		"email": email, "password": password,
+	}, http.StatusAccepted, &challenge)
+	if challenge.ChallengeID == "" {
+		ctx.T().Fatal("login did not return a challenge ID")
+	}
+	mail := waitForEmail(ctx, mailpit, email, "verification code:")
+	match := regexp.MustCompile(`verification code:\s*([0-9]{6})`).FindStringSubmatch(mail.Text)
+	if len(match) != 2 {
+		ctx.T().Fatalf("verification email has no code: %q", mail.Text)
+	}
+	var login struct {
+		Token string `json:"token"`
+	}
+	requestJSON(ctx, "POST", api+"/auth/verify", "", map[string]string{
+		"challenge_id": challenge.ChallengeID, "code": match[1],
+	}, http.StatusOK, &login)
+	if login.Token == "" {
+		ctx.T().Fatal("email verification did not return a token")
+	}
+	return login.Token
 }
 
 func requestJSON(ctx *allure.Context, method, url, token string, input any, wantStatus int, output any) {
@@ -135,7 +158,31 @@ func requestJSON(ctx *allure.Context, method, url, token string, input any, want
 	if err != nil {
 		ctx.T().Fatal(err)
 	}
-	ctx.Attachment(method+" "+url, []byte(fmt.Sprintf("Request: %s\nStatus: %d\nResponse: %s", payload, response.StatusCode, body)), "text/plain")
+	loggedPayload := payload
+	if len(payload) > 0 {
+		var safe map[string]any
+		if json.Unmarshal(payload, &safe) == nil {
+			for _, key := range []string{"password", "current_password", "new_password", "code"} {
+				if _, exists := safe[key]; exists {
+					safe[key] = "[redacted]"
+				}
+			}
+			if encoded, err := json.Marshal(safe); err == nil {
+				loggedPayload = encoded
+			}
+		}
+	}
+	loggedResponse := body
+	var safeResponse map[string]any
+	if json.Unmarshal(body, &safeResponse) == nil {
+		if _, exists := safeResponse["token"]; exists {
+			safeResponse["token"] = "[redacted]"
+			if encoded, err := json.Marshal(safeResponse); err == nil {
+				loggedResponse = encoded
+			}
+		}
+	}
+	ctx.Attachment(method+" "+url, []byte(fmt.Sprintf("Request: %s\nStatus: %d\nResponse: %s", loggedPayload, response.StatusCode, loggedResponse)), "text/plain")
 	if response.StatusCode != wantStatus {
 		ctx.T().Fatalf("%s %s: status=%d, want=%d, body=%s", method, url, response.StatusCode, wantStatus, body)
 	}

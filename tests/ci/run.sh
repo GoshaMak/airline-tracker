@@ -28,6 +28,7 @@ ci_container() {
         -w "$CI_WORK" \
         -e CI_RUN_ID -e CI_WORK -e CI_RESULTS -e CI_HISTORY \
         -e CI_REVISION -e GITHUB_RUN_ID -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL \
+        -e E2E_ADMIN_PASSWORD \
         "$CI_IMAGE" "$@"
 }
 

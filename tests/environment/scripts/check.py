@@ -1,6 +1,9 @@
 import json
+import os
+import re
 import smtplib
 import sys
+import time
 import urllib.request
 
 
@@ -27,13 +30,44 @@ else:
     assert request("http://api:8080/api/v1/status") == "OK"
     flights = request("http://api:8080/api/v1/flights?limit=10")["items"]
     assert any(f["id"] == "00000000-0000-4000-8000-000000000050" for f in flights)
-    token = request(
+    request("http://mailpit:8025/api/v1/messages", method="DELETE")
+    challenge = request(
         "http://api:8080/api/v1/auth/tokens",
         method="POST",
         data={
             "email": "admin@airline.test",
-            "password": "TestAdmin123!",
+            "password": os.environ["E2E_ADMIN_PASSWORD"],
         },
+    )
+    assert challenge["challenge_id"]
+
+    code = None
+    deadline = time.monotonic() + 30
+    while code is None and time.monotonic() < deadline:
+        mailbox = request("http://mailpit:8025/api/v1/messages?limit=50")
+        for message in mailbox["messages"]:
+            if message.get("Subject") != "Airline Tracker login code":
+                continue
+            if not any(
+                recipient.get("Address", "").lower() == "admin@airline.test"
+                for recipient in message.get("To", [])
+            ):
+                continue
+            detail = request(
+                "http://mailpit:8025/api/v1/message/" + message["ID"]
+            )
+            match = re.search(r"verification code:\s*([0-9]{6})", detail.get("Text", ""))
+            if match:
+                code = match.group(1)
+                break
+        if code is None:
+            time.sleep(0.2)
+    assert code, "administrator login verification email did not arrive"
+
+    token = request(
+        "http://api:8080/api/v1/auth/verify",
+        method="POST",
+        data={"challenge_id": challenge["challenge_id"], "code": code},
     )["token"]
     assert token
 

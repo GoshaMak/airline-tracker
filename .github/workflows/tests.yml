@@ -20,6 +20,12 @@ jobs:
       CI_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
       CI_REVISION: ${{ github.sha }}
     steps:
+      - name: Generate an ephemeral test administrator password
+        run: |
+          password="Aa1!$(openssl rand -hex 20)"
+          echo "::add-mask::$password"
+          echo "E2E_ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v5
         with:
           persist-credentials: false

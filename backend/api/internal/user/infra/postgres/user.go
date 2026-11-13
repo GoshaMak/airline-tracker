@@ -103,6 +103,22 @@ func (r *userRepository) GetUser(ctx context.Context, email string) (domain.User
 	return ud, nil
 }
 
+func (r *userRepository) UpdatePassword(ctx context.Context, uid uuid.UUID, passwordHash domain.PasswordHashed) error {
+	const query = `
+	update users
+	set password_hash = $2
+	where id = $1
+	`
+	tag, err := infraPostgres.Executor(ctx, r.conn).Exec(ctx, query, uid, passwordHash.String())
+	if err != nil {
+		return fmt.Errorf("UserRepository.UpdatePassword: %w", translateError(err))
+	}
+	if tag.RowsAffected() == 0 {
+		return repository.ErrUserNotFound
+	}
+	return nil
+}
+
 func (r *userRepository) Exist(ctx context.Context, uid uuid.UUID) (domain.User, error) {
 	const op = "UserRepository.Exist"
 	ctx, span := observability.Start(ctx, "repository.user.exist", trace.WithSpanKind(trace.SpanKindClient))

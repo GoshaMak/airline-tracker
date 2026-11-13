@@ -12,6 +12,15 @@ import (
 )
 
 func AuthMiddleware(role userDomain.Role) gin.HandlerFunc {
+	return authMiddleware(&role)
+}
+
+// AuthAnyRoleMiddleware verifies a JWT and accepts any role carried by a valid token.
+func AuthAnyRoleMiddleware() gin.HandlerFunc {
+	return authMiddleware(nil)
+}
+
+func authMiddleware(requiredRole *userDomain.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		header := ctx.GetHeader("Authorization")
 		if header == "" {
@@ -30,7 +39,8 @@ func AuthMiddleware(role userDomain.Role) gin.HandlerFunc {
 		claims := &usecase.JWTClaims{}
 
 		token, err := jwt.ParseWithClaims(
-			tokenString, claims,
+			tokenString,
+			claims,
 			func(t *jwt.Token) (any, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("invalid signing method")
@@ -48,7 +58,7 @@ func AuthMiddleware(role userDomain.Role) gin.HandlerFunc {
 			return
 		}
 
-		if claims.Role != role {
+		if requiredRole != nil && claims.Role != *requiredRole {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, "unauthorized")
 			return
 		}

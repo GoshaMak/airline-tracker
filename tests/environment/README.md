@@ -4,7 +4,12 @@
 
 ## Управление окружением
 
+Для локального запуска используется тестовый пароль по умолчанию. При желании
+его можно переопределить через `E2E_ADMIN_PASSWORD`. В CI пароль генерируется
+для каждого запуска и передаётся через GitHub Actions environment.
+
 ```sh
+export E2E_ADMIN_PASSWORD="Aa1!$(openssl rand -hex 20)"
 make test-env-up
 make test-env-check
 make test-env-reset
@@ -20,9 +25,11 @@ make test-env-down
 ## Интеграционные тесты
 
 ```sh
-make test-env-up RUN_ID=developer-a
 make test-integration RUN_ID=developer-a
 ```
+
+Цель сама запускает тестовый стенд перед прогоном и восстанавливает его после
+завершения.
 
 Тесты выделены тегом `integration`, поэтому обычный `go test ./...` их не запускает.
 

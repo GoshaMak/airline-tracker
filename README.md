@@ -201,6 +201,10 @@ Airline Tracker -- система для просмотра рейсов и от
 - `backend/db/replication/replication.env` -- административное подключение для настройки репликации;
 - `utils/.env` -- только для генератора тестовых данных.
 
+Для входа с email-кодом API также использует `SMTP_ADDR` и `APP_EMAIL` из
+`backend/api/.env`. При авторизации SMTP с паролем задайте `SMTP_USERNAME` и
+`SMTP_PASSWORD` через секреты окружения.
+
 Запуск приложения:
 
 ```bash

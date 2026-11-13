@@ -10,4 +10,7 @@ export const options = loadOptions("ramp", [
     { duration: stageDuration, target: maxVUs },
     { duration: stageDuration, target: 0 },
 ]);
-export default function() { journey(); }
+
+export default function(data) {
+    journey(0, data);
+}

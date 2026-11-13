@@ -48,6 +48,7 @@
                 </span>
               </label>
               <button type="submit">Sign in</button>
+              <button class="text-button" id="recoveryLink" type="button">Locked out? Recover access</button>
             </form>
 
             <form id="registerForm" class="form-stack compact">
@@ -69,6 +70,27 @@
                 </span>
               </label>
               <button class="secondary-button" type="submit">Create account</button>
+            </form>
+            <form id="verifyForm" class="form-stack compact" hidden>
+              <p class="session-state">Enter the verification code sent to your email.</p>
+              <label>
+                Email code
+                <input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+              </label>
+              <button type="submit">Verify and sign in</button>
+              <button class="text-button" type="button" data-auth-cancel>Back to sign in</button>
+            </form>
+            <form id="recoveryForm" class="form-stack compact" hidden>
+              <label>
+                Account email
+                <input name="email" type="email" autocomplete="email" required>
+              </label>
+              <label>
+                Recovery code
+                <input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" hidden>
+              </label>
+              <button class="secondary-button" type="submit" data-recovery-submit>Send recovery code</button>
+              <button class="text-button" type="button" data-auth-cancel>Back to sign in</button>
             </form>
           </section>
 

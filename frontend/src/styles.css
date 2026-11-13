@@ -51,6 +51,19 @@ button:disabled {
   opacity: 0.5;
 }
 
+[hidden] {
+  display: none !important;
+}
+
+.text-button {
+  min-height: 28px;
+  padding: 0;
+  background: transparent;
+  color: var(--teal);
+  text-align: left;
+  text-decoration: underline;
+}
+
 .secondary-button {
   background: #253342;
 }

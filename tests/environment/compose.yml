@@ -23,6 +23,8 @@ services:
   traffic:
     image: airline-tracker-traffic:${TEST_RUN_ID:?Set TEST_RUN_ID}
     profiles: [tools]
+    environment:
+      E2E_ADMIN_PASSWORD: ${E2E_ADMIN_PASSWORD:-}
     build: ../traffic
     volumes:
       - ./results/${TEST_RUN_ID}/traffic:/results
@@ -42,6 +44,8 @@ services:
     environment:
       API_BASE_URL: http://api:8080/api/v1
       MAILPIT_URL: http://mailpit:8025
+      POSTGRES_URI: postgres://app_user:app_pswd@postgres:5432/airline_tracker?search_path=api_schema
+      E2E_ADMIN_PASSWORD: ${E2E_ADMIN_PASSWORD:-}
       ALLURE_RESULTS_DIR: /results
       ALLURE_LABEL_EPIC: e2e
     volumes:
@@ -64,6 +68,8 @@ services:
   tools:
     image: python:3.13.7-alpine3.22
     profiles: [tools]
+    environment:
+      E2E_ADMIN_PASSWORD: ${E2E_ADMIN_PASSWORD:-}
     volumes:
       - ./scripts:/test-support:ro
     command: [python, /test-support/check.py]
@@ -144,10 +150,16 @@ services:
   api:
     <<: *app
     command: [/bin/api]
+    environment:
+      <<: *app-env
+      SMTP_ADDR: mailpit:1025
+      APP_EMAIL: auth@airline.test
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
     healthcheck:
       test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:8080/api/v1/status"]

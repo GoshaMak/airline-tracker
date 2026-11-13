@@ -1,5 +1,6 @@
 -- The isolated stand supplies the reference airports, gates, aircraft and administrator.
 -- One passenger and flight per VU: no growing subscriber fan-out between iterations.
+\getenv test_password E2E_ADMIN_PASSWORD
 begin;
 set search_path = api_schema, public;
 
@@ -9,8 +10,8 @@ select md5('load-user-' || n)::uuid,
         password.hash,
         'user'
 from generate_series(1, 10000) as n
-cross join (select crypt('Passenger123!', '$2a$10$abcdefghijklmnopqrstuu') as hash offset 0) as password
-on conflict do nothing;
+cross join (select crypt(:'test_password', gen_salt('bf')) as hash offset 0) as password
+on conflict (email) do update set password_hash = excluded.password_hash;
 
 insert into flights (id, aircraft_id, scheduled_departure, scheduled_arrival, status, plan)
 select md5('load-flight-' || n)::uuid,

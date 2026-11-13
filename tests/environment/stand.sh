@@ -3,6 +3,7 @@ set -eu
 
 environment_init() {
     export TEST_RUN_ID="${1:-local}"
+    export E2E_ADMIN_PASSWORD="${E2E_ADMIN_PASSWORD:-Aa1!local-e2e-admin-password}"
     environment_dir=tests/environment
     results="$environment_dir/results/$TEST_RUN_ID"
     mkdir -p "$results"
@@ -69,11 +70,24 @@ environment_up() {
         dc run --rm --no-deps api-migrate
         dc run --rm --no-deps notifier-migrate
         db psql -X -U postgres -d airline_tracker -f /test-support/seed.sql
+        configure_admin_password || return
         snapshot
+    else
+        configure_admin_password || return
     fi
     topics
     dc up -d --no-deps --wait --wait-timeout 120 api notifier publisher
     environment_check
+}
+
+configure_admin_password() {
+    dc exec -T -e E2E_ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" postgres \
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d airline_tracker <<'SQL'
+\getenv admin_password E2E_ADMIN_PASSWORD
+UPDATE api_schema.users
+SET password_hash = crypt(:'admin_password', gen_salt('bf'))
+WHERE email = 'admin@airline.test';
+SQL
 }
 
 environment_check() {
@@ -109,7 +123,8 @@ environment_run() (
 )
 
 environment_integration() {
-    dc stop api publisher notifier
+    environment_up || return
+    dc stop api publisher notifier || return
     environment_run dc run --build --rm --no-deps integration-tests
 }
 
